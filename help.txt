@@ -1,0 +1,51 @@
+powershell:
+Set-ExecutionPolicy Bypass -Scope Process 
+
+eslint:
+ npx (or pnpm exec) runs the package binary from the project’s .bin, so it picks up the project-local eslint (not globally).
+
+mypy:
+must install mypy in the uv environment 
+uv sync --extra tests --extra mypy --extra dev --extra custom-data
+
+the backend serves the built frontend from the frontend/dist folder 
+(or whatever build directory you configured).
+
+Details and quick checklist:
+The backend uses a build_dir that points to:
+<repo-root>/frontend/dist (when you build locally), or
+a packaged build directory (fallback), or
+a custom directory if you set UI.custom_build in config.toml.
+Static public files (those served at /public) come from public_dir = APP_ROOT/public (so public when you run from the backend from the backend/public folder).
+
+Routes of interest:
+/ (index) -> served from build_dir/index.html
+/assets/... -> served from build_dir/assets/...
+/public/... -> served from APP_ROOT/public
+What this means for your workflow
+
+Editing frontend source files in src requires running the frontend build so dist is updated. Otherwise the backend will continue serving the old build files.
+Commands (PowerShell):
+
+1. Build everything (recommended): 
+`pnpm run buildUi`
+  Or just build the frontend:
+`cd frontend
+pnpm run build`
+
+2.Then restart the backend:
+`cd backend
+uv run chainlit run .\chainlit\hello.py`
+
+Faster dev option:
+Run the frontend dev server (HMR) in one terminal and the backend in another
+`# frontend (fast updates)
+cd frontend
+pnpm run dev
+
+# backend (serves API / backend)
+cd backend
+uv run chainlit run .\chainlit\hello.py`
+
+ you may open the Vite dev URL (usually http://localhost:5173) directly for instant frontend changes, 
+ or adapt your setup to proxy if you want a single origin.
