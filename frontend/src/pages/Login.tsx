@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import ChipList from '@/components/Chiplist';
 import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
 
@@ -21,6 +22,9 @@ export default function Login() {
   const navigate = useNavigate();
   // const { variant } = useTheme();
   //const isDarkMode = variant === 'dark';
+  // const [queries, setQueries] = useState<
+  //   Array<string | { id?: string; text?: string }>
+  // >([]);
 
   const handleCookieAuth = (json: any): void => {
     if (json?.success != true) throw LoginError;
@@ -80,6 +84,15 @@ export default function Login() {
       navigate('/');
     }
   }, [config, user]);
+
+  // useEffect(() => {
+  //   fetch('../../public/sample_questions.json')
+  //     .then((response) => response.json())
+  //     .then((data) => setQueries(data.questions))
+  //     .catch((error) =>
+  //       console.error('Error fetching sample questions:', error)
+  //     );
+  // }, []);
 
   return (
     <main className="wrap" role="main" aria-labelledby="app-title">
@@ -163,8 +176,23 @@ export default function Login() {
 
         <div className="card" aria-labelledby="samples-title">
           <strong id="samples-title">Γρήγορα δείγματα</strong>
+          {/* {queries.length > 0 && (
+            <div className="sample-questions" id="samples" role="list">
+              {queries.map((question, index) => {
+                // Some data sources may return objects { id, text }
+                const text =
+                  typeof question === 'string'
+                    ? question
+                    : question?.text || '';
 
-          <div className="sample-questions" id="samples" role="list">
+                return <ButtonChip key={index} index={index} text={text} />;
+              })}
+            </div>
+          )} */}
+
+          <ChipList />
+
+          {/* <div className="sample-questions" id="samples" role="list">
             <button
               className="chip"
               type="button"
@@ -197,9 +225,9 @@ export default function Login() {
             >
               Πηγή: 2020_2120\885_2025.pdf
             </button>
-          </div>
+          </div> */}
 
-          <form
+          {/* <form
             className="search-box"
             // onSubmit="return false;"
             aria-label="Quick question"
@@ -222,7 +250,7 @@ export default function Login() {
           >
             Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε
             και πατήστε "Ρώτα".
-          </div>
+          </div> */}
         </div>
       </div>
       <div className="flex flex-1 items-center justify-center">
@@ -246,44 +274,5 @@ export default function Login() {
         </div>
       </footer>
     </main>
-    // <div className="grid min-h-svh lg:grid-cols-2">
-    //   <div className="flex flex-col gap-4 p-6 md:p-10">
-    //     <div className="flex justify-center gap-2 md:justify-start">
-    //       <Logo className="w-[60px]" />
-    //     </div>
-    //     <div className="flex flex-1 items-center justify-center">
-    //       <div className="w-full max-w-xs">
-    //         <LoginForm
-    //           error={error}
-    //           callbackUrl="/"
-    //           providers={config?.oauthProviders || []}
-    //           onPasswordSignIn={
-    //             config?.passwordAuth ? handlePasswordLogin : undefined
-    //           }
-    //           onOAuthSignIn={async (provider: string) => {
-    //             window.location.href = apiClient.getOAuthEndpoint(provider);
-    //           }}
-    //         />
-    //       </div>
-    //     </div>
-    //   </div>
-    //   {!config?.headerAuth ? (
-    //     <div className="relative hidden bg-muted lg:block overflow-hidden">
-    //       <img
-    //         src={
-    //           config?.ui?.login_page_image ||
-    //           apiClient.buildEndpoint('/favicon')
-    //         }
-    //         alt="Image"
-    //         className={`absolute inset-0 h-full w-full object-cover ${
-    //           isDarkMode
-    //             ? config?.ui?.login_page_image_dark_filter ||
-    //               'brightness-[0.2] grayscale'
-    //             : config?.ui?.login_page_image_filter || ''
-    //         }`}
-    //       />
-    //     </div>
-    //   ) : null}
-    // </div>
   );
 }

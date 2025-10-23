@@ -288,11 +288,12 @@ nav.primary-nav a:hover {
 .chip {
   background: #eef6ff;
   color: var(--accentb);
-  padding: 8px 12px;
-  border-radius: 999px;
+  margin: 2px 0;
+  padding: 8px 12px !important;
+  /* border-radius: 999px; */
   border: 1px solid rgba(11, 78, 162, 0.06);
   cursor: pointer;
-  font-size: 13px;
+  /* font-size: 13px; */
   font-weight: 600;
 }
 .chip:focus {
