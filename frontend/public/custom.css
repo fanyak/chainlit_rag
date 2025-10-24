@@ -2,7 +2,7 @@
   --accentb: #0b4ea2;
   --bg: #f6f8fb;
   --card: #ffffff;
-  --muted: #4b5563;
+  --muted: rgb(75, 85, 90);
   --text: #071524;
   --radius: 10px;
   --focus: rgba(11, 78, 162, 0.18);
@@ -295,6 +295,8 @@ nav.primary-nav a:hover {
   cursor: pointer;
   /* font-size: 13px; */
   font-weight: 600;
+  white-space: wrap !important;
+  text-align: left !important;
 }
 .chip:focus {
   outline: 3px solid var(--focus);
@@ -303,16 +305,18 @@ nav.primary-nav a:hover {
 
 .search-box {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-top: 12px;
 }
 .search-box div {
   flex: 1;
-  height: 40px;
-  padding: 10px;
+  height: 50px;
+  padding: 5px 6px;
   border-radius: 8px;
   border: 1px solid #e6e9ee;
-  font-size: 14px;
+  font-size: 0.875rem;
+  vertical-align: middle;
 }
 .search-box div:focus {
   outline: 3px solid var(--focus);

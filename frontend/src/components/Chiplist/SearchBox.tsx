@@ -21,6 +21,7 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
   useEffect(() => {
     let ignore = false;
     console.log('start over with clean slate');
+    // initial paint
     setQuickQueryHtml(setDisplayText('', false));
     async function typeText(speed: number, signal: AbortSignal) {
       // REF: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal#implementing_an_abortable_api
@@ -56,10 +57,14 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           }, speed);
 
           // Watch for 'abort' signals
+          // addEventListeners are tasked in the macrotask queue
+          // so the console.log will appear before the rejected promise is handled
+          // with .catch() below. Catch will only be called
+          // if the promise is rejected while not yet resolved
           signal.addEventListener('abort', () => {
             window.clearInterval(timer);
-            console.log('Typing aborted');
             reject(signal.reason);
+            console.log('Typing aborted');
           });
         }
       );
@@ -71,9 +76,11 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
     // Each time when an async function is called, it returns a new Promise
     // which will be resolved with the value returned by the async function,
     // or rejected with an exception uncaught within the async function.
+    // new microtask added to the JavaScript event loop
     typeText(60, controller.signal).catch((e) => {
       // catch the uncaught rejection inside the async function
-      console.log('caught abort signal', e);
+      // this will be called if the promise is rejected before being resolved
+      console.log('caught abort signal in unresolved promise', e);
       // setQuickQueryHtml(setDisplayText(quickQuery, false));
     });
 
@@ -99,6 +106,7 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           id="quickQuery"
           contentEditable="true"
           aria-label="Ερώτηση"
+          className="text-sm"
           dangerouslySetInnerHTML={quickQueryHtml}
         />
         {/* <input
@@ -114,14 +122,15 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           type="button"
           id="askBtn"
           aria-label="Ρώτα"
-        ></Button>
-        Ρώτα
+        >
+          Ρώτα
+        </Button>
       </form>
       <div
         style={{
           marginTop: '12px',
           color: 'var(--muted)',
-          fontSize: '13px'
+          fontSize: '0.75rem'
         }}
       >
         Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε και

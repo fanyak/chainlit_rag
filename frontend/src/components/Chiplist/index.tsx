@@ -71,22 +71,24 @@ export default function ChipList() {
 
   return (
     <>
-      {queries.map((question, index) => {
-        const text =
-          typeof question === 'string' ? question : question?.text ?? '';
-        const key =
-          typeof question === 'object' && question?.id != null
-            ? String(question.id)
-            : text.trim() || String(index);
-        return (
-          <ButtonChip
-            key={key}
-            index={index}
-            text={text}
-            onSelect={setQuickQuery}
-          />
-        );
-      })}
+      <div className="sample-questions" id="samples" role="list">
+        {queries.map((question, index) => {
+          const text =
+            typeof question === 'string' ? question : question?.text ?? '';
+          const key =
+            typeof question === 'object' && question?.id != null
+              ? String(question.id)
+              : text.trim() || String(index);
+          return (
+            <ButtonChip
+              key={key}
+              index={index}
+              text={text}
+              onSelect={setQuickQuery}
+            />
+          );
+        })}
+      </div>
       <SearchBox quickQuery={quickQuery} />
     </>
   );
