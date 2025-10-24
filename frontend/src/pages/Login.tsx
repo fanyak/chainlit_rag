@@ -95,39 +95,40 @@ export default function Login() {
   // }, []);
 
   return (
-    <main className="wrap" role="main" aria-labelledby="app-title">
-      <header className="header" role="banner" aria-label="Top navigation">
-        <div className="brand">
-          <div className="logo-img-container">
-            <Logo className="w-[60px]" />
+    <div className="custom-pg">
+      <main className="wrap" role="main" aria-labelledby="app-title">
+        <header className="header" role="banner" aria-label="Top navigation">
+          <div className="brand">
+            <div className="logo-img-container">
+              <Logo className="w-[60px]" />
+            </div>
+            <div className="brand-title">
+              <p className="title" id="app-title">
+                Foros Chatbot — Φορολογικός Βοηθός
+              </p>
+              <p className="tag">
+                Αξιόπιστες απαντήσεις στις ερωτήσεις για την ελληνική φορολογική
+                νομοθεσία
+              </p>
+            </div>
           </div>
-          <div className="brand-title">
-            <p className="title" id="app-title">
-              Foros Chatbot — Φορολογικός Βοηθός
-            </p>
-            <p className="tag">
-              Αξιόπιστες απαντήσεις στις ερωτήσεις για την ελληνική φορολογική
-              νομοθεσία
-            </p>
-          </div>
-        </div>
-        <nav className="primary-nav" aria-label="Κύρια πλοήγηση">
-          <a href="/spec" title="Προδιαγραφή">
-            Προδιαγραφή
-          </a>
-          <a href="/guide" title="Οδηγός">
-            Οδηγός
-          </a>
-          <a href="/examples" title="Παραδείγματα">
-            Παραδείγματα
-          </a>
-          <a href="/about" title="Περί">
-            Περί
-          </a>
-        </nav>
+          <nav className="primary-nav" aria-label="Κύρια πλοήγηση">
+            <a href="/spec" title="Προδιαγραφή">
+              Προδιαγραφή
+            </a>
+            <a href="/guide" title="Οδηγός">
+              Οδηγός
+            </a>
+            <a href="/examples" title="Παραδείγματα">
+              Παραδείγματα
+            </a>
+            <a href="/about" title="Περί">
+              Περί
+            </a>
+          </nav>
 
-        <div className="header-cta" role="region" aria-label="Ενέργειες">
-          {/* <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="header-cta" role="region" aria-label="Ενέργειες">
+            {/* <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                             id="openChatBtn"
                             className="btn"
@@ -144,39 +145,39 @@ export default function Login() {
                             Σύνδεση
                         </button> 
           </div>*/}
-        </div>
-      </header>
-      <div className="features" aria-hidden="false">
-        <div className="card card--left" aria-labelledby="features-title">
-          <strong id="features-title">Τι κάνει η εφαρμογή</strong>
-          <ul className="features-list" role="list">
-            <li role="listitem">
-              Αναζητά τεκμήρια και απαντά με βάση την ελληνική φορολογική
-              νομοθεσία.
-              <span className="meta">
-                Αναζήτηση στο σύνολο των εγγράφων και σύνοψη απάντησης.
-              </span>
-            </li>
-            <li role="listitem">
-              Υποστηρίζει προβολή συνδέσμων προς αρχεία PDF που χρησιμοποιήθηκαν
-              ως πηγές.
-              <span className="meta">
-                Ανοίγει PDF σε νέα καρτέλα για αναφορά.
-              </span>
-            </li>
-            <li role="listitem">
-              Προστατευμένη πρόσβαση (πρέπει να συνδεθείτε για πλήρη
-              λειτουργικότητα).
-              <span className="meta">
-                Συνεργασία με Auth0 / OAuth για έλεγχο ταυτότητας.
-              </span>
-            </li>
-          </ul>
-        </div>
+          </div>
+        </header>
+        <div className="features" aria-hidden="false">
+          <div className="card card--left" aria-labelledby="features-title">
+            <strong id="features-title">Τι κάνει η εφαρμογή</strong>
+            <ul className="features-list" role="list">
+              <li role="listitem">
+                Αναζητά τεκμήρια και απαντά με βάση την ελληνική φορολογική
+                νομοθεσία.
+                <span className="meta">
+                  Αναζήτηση στο σύνολο των εγγράφων και σύνοψη απάντησης.
+                </span>
+              </li>
+              <li role="listitem">
+                Υποστηρίζει προβολή συνδέσμων προς αρχεία PDF που
+                χρησιμοποιήθηκαν ως πηγές.
+                <span className="meta">
+                  Ανοίγει PDF σε νέα καρτέλα για αναφορά.
+                </span>
+              </li>
+              <li role="listitem">
+                Προστατευμένη πρόσβαση (πρέπει να συνδεθείτε για πλήρη
+                λειτουργικότητα).
+                <span className="meta">
+                  Συνεργασία με Auth0 / OAuth για έλεγχο ταυτότητας.
+                </span>
+              </li>
+            </ul>
+          </div>
 
-        <div className="card" aria-labelledby="samples-title">
-          <strong id="samples-title">Γρήγορα δείγματα</strong>
-          {/* {queries.length > 0 && (
+          <div className="card" aria-labelledby="samples-title">
+            <strong id="samples-title">Γρήγορα δείγματα</strong>
+            {/* {queries.length > 0 && (
             <div className="sample-questions" id="samples" role="list">
               {queries.map((question, index) => {
                 // Some data sources may return objects { id, text }
@@ -190,9 +191,9 @@ export default function Login() {
             </div>
           )} */}
 
-          <ChipList />
+            <ChipList />
 
-          {/* <div className="sample-questions" id="samples" role="list">
+            {/* <div className="sample-questions" id="samples" role="list">
             <button
               className="chip"
               type="button"
@@ -227,7 +228,7 @@ export default function Login() {
             </button>
           </div> */}
 
-          {/* <form
+            {/* <form
             className="search-box"
             // onSubmit="return false;"
             aria-label="Quick question"
@@ -251,28 +252,29 @@ export default function Login() {
             Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε
             και πατήστε "Ρώτα".
           </div> */}
+          </div>
         </div>
-      </div>
-      <div className="flex flex-1 items-center justify-center">
-        <div className="w-full max-w-xs">
-          <LoginForm
-            error={error}
-            callbackUrl="/"
-            providers={config?.oauthProviders || []}
-            onPasswordSignIn={
-              config?.passwordAuth ? handlePasswordLogin : undefined
-            }
-            onOAuthSignIn={async (provider: string) => {
-              window.location.href = apiClient.getOAuthEndpoint(provider);
-            }}
-          />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <LoginForm
+              error={error}
+              callbackUrl="/"
+              providers={config?.oauthProviders || []}
+              onPasswordSignIn={
+                config?.passwordAuth ? handlePasswordLogin : undefined
+              }
+              onOAuthSignIn={async (provider: string) => {
+                window.location.href = apiClient.getOAuthEndpoint(provider);
+              }}
+            />
+          </div>
         </div>
-      </div>
-      <footer>
-        <div style={{ marginTop: '16px', color: 'var(--muted)' }}>
-          Ανάπτυξη · Φορολογικός Βοηθός — Foros Chatbot
-        </div>
-      </footer>
-    </main>
+        <footer>
+          <div style={{ marginTop: '16px', color: 'var(--muted)' }}>
+            Ανάπτυξη · Φορολογικός Βοηθός — Foros Chatbot
+          </div>
+        </footer>
+      </main>
+    </div>
   );
 }
