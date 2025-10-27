@@ -48,7 +48,7 @@ If you want to keep the pip-installed version but add your customizations:
 Find where Chainlit is installed:
 `python -c "import chainlit; import os; print(os.path.dirname(chainlit.__file__))"`
 Replace the frontend files with your built versions:
-`cp -r /your/fork/backend/chainlit/frontend/dist/* /path/to/installed/chainlit/frontend/dist/`
+`cp -r ./backend/chainlit/frontend/dist/* ../chainlit/public/custom_build/`
 
 When you copy ./backend/chainlit/frontend/dist/* to the installed package's frontend folder, you're getting:
 

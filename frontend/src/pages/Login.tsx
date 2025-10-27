@@ -5,7 +5,6 @@ import ChipList from '@/components/Chiplist';
 import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
 
-//import { useTheme } from '@/components/ThemeProvider';
 import { useQuery } from 'hooks/query';
 
 import { ChainlitContext, useAuth } from 'client-types/*';
@@ -20,11 +19,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const apiClient = useContext(ChainlitContext);
   const navigate = useNavigate();
-  // const { variant } = useTheme();
-  //const isDarkMode = variant === 'dark';
-  // const [queries, setQueries] = useState<
-  //   Array<string | { id?: string; text?: string }>
-  // >([]);
 
   const handleCookieAuth = (json: any): void => {
     if (json?.success != true) throw LoginError;
@@ -85,15 +79,6 @@ export default function Login() {
     }
   }, [config, user]);
 
-  // useEffect(() => {
-  //   fetch('../../public/sample_questions.json')
-  //     .then((response) => response.json())
-  //     .then((data) => setQueries(data.questions))
-  //     .catch((error) =>
-  //       console.error('Error fetching sample questions:', error)
-  //     );
-  // }, []);
-
   return (
     <div className="custom-pg">
       <main className="wrap" role="main" aria-labelledby="app-title">
@@ -127,25 +112,11 @@ export default function Login() {
             </a>
           </nav>
 
-          <div className="header-cta" role="region" aria-label="Ενέργειες">
-            {/* <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            id="openChatBtn"
-                            className="btn"
-                            type="button"
-                            disabled
-                        >
-                            Άνοιγμα συνομιλίας
-                        </button>
-                        <button
-                            id="loginBtn"
-                            class="btn secondary"
-                            type="button"
-                        >
-                            Σύνδεση
-                        </button> 
-          </div>*/}
-          </div>
+          <div
+            className="header-cta"
+            role="region"
+            aria-label="Ενέργειες"
+          ></div>
         </header>
         <div className="features" aria-hidden="false">
           <div className="card card--left" aria-labelledby="features-title">
@@ -177,81 +148,8 @@ export default function Login() {
 
           <div className="card" aria-labelledby="samples-title">
             <strong id="samples-title">Γρήγορα δείγματα</strong>
-            {/* {queries.length > 0 && (
-            <div className="sample-questions" id="samples" role="list">
-              {queries.map((question, index) => {
-                // Some data sources may return objects { id, text }
-                const text =
-                  typeof question === 'string'
-                    ? question
-                    : question?.text || '';
-
-                return <ButtonChip key={index} index={index} text={text} />;
-              })}
-            </div>
-          )} */}
 
             <ChipList />
-
-            {/* <div className="sample-questions" id="samples" role="list">
-            <button
-              className="chip"
-              type="button"
-              role="listitem"
-              aria-label="Δείγμα: Πώς υποβάλλεται ο πίνακας προσωπικού;"
-            >
-              Πώς υποβάλλεται ο πίνακας προσωπικού;
-            </button>
-            <button
-              className="chip"
-              type="button"
-              role="listitem"
-              aria-label="Δείγμα: Πότε ισχύει η απαλλαγή ΦΠΑ για μικρές επιχειρήσεις;"
-            >
-              Πότε ισχύει η απαλλαγή ΦΠΑ για μικρές επιχειρήσεις;
-            </button>
-            <button
-              className="chip"
-              type="button"
-              role="listitem"
-              aria-label="Δείγμα: Τι ισχύει για τη φορολογία μισθωτών υπηρεσιών;"
-            >
-              Τι ισχύει για τη φορολογία μισθωτών υπηρεσιών;
-            </button>
-            <button
-              className="chip"
-              type="button"
-              role="listitem"
-              aria-label="Δείγμα: Πηγή 2020_2120 885 2025.pdf"
-            >
-              Πηγή: 2020_2120\885_2025.pdf
-            </button>
-          </div> */}
-
-            {/* <form
-            className="search-box"
-            // onSubmit="return false;"
-            aria-label="Quick question"
-          >
-            <label htmlFor="quickQuery" className="sr-only">
-              Ερώτηση αναζήτησης
-            </label>
-            <div id="quickQuery" contentEditable="true" aria-label="Ερώτηση" />
-            <button id="askBtn" className="small ghost" type="button">
-              Ρώτα
-            </button>
-          </form>
-
-          <div
-            style={{
-              marginTop: '12px',
-              color: 'var(--muted)',
-              fontSize: '13px'
-            }}
-          >
-            Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε
-            και πατήστε "Ρώτα".
-          </div> */}
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center">
