@@ -18,7 +18,7 @@ const SELECTORS = {
   THREAD_TEST2: '#thread-test2',
   THREAD_OPTIONS: '#thread-options',
   DELETE_THREAD: '#delete-thread',
-  CONFIRM_BUTTON: "[role='alertdialog'] button.bg-primary",
+  CONFIRM_BUTTON: "[role='alertdialog'] button.bg-transparent",
   NEW_CHAT_BUTTON: '#new-chat-button',
   CONFIRM_NEW: '#confirm',
   LOADER: '.lucide-loader'
