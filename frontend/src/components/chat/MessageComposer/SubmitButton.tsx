@@ -56,7 +56,7 @@ export default function SubmitButton({
               disabled={disabled}
               onClick={onSubmit}
               size="icon"
-              className="rounded-full h-8 w-8"
+              className="rounded-full h-8 w-8 text-white"
             >
               <Send className="!size-6" />
             </Button>

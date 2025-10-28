@@ -10,7 +10,7 @@ export default function BlinkingCursor({ whitespace }: Props) {
   return (
     <span
       className={cn(
-        'inline-block h-3.5 w-3.5 bg-foreground rounded-full animate-pulse',
+        'inline-block h-3.5 w-3.5 bg-green-500 rounded-full animate-pulse',
         whitespace && 'ml-2'
       )}
     />
