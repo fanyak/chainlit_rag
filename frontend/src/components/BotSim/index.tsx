@@ -13,6 +13,7 @@ function BotSim() {
   );
 
   const backs: string[] = messages.map(() => '');
+  // these are imperative instead of declarative
   const [text1, setText1] = useState<string>('');
   const [text2, setText2] = useState<string>('');
   const [text3, setText3] = useState<string>('');
@@ -45,7 +46,6 @@ function BotSim() {
         return new Promise<void>(
           (resolve: (value: void) => void, reject: (reason?: any) => any) => {
             // If the signal is already aborted, immediately reject the promise.
-
             if (signal.aborted) {
               reject(signal.reason);
               return;
@@ -123,6 +123,8 @@ function BotSim() {
         // for await (const _ of iter) {
         //   // do nothing
         // }
+
+        // awaits each value yielded from the object sequentially!
         await Array.fromAsync(iter, (_, index) => {
           const setDone: Dispatch<SetStateAction<boolean>> =
             setTextDoneArray[index];
@@ -144,7 +146,9 @@ function BotSim() {
 
   return (
     // Updating state with setText{i} requests another render with the new state value
-    <div style={{ minHeight: '180px' }}>
+    <div
+      style={{ minHeight: '180px', backgroundColor: 'rgba(11, 78, 162, 0.02)' }}
+    >
       {messages.map((msg, index) => (
         <Fragment key={index}>
           {/* {textArray[index] && ( */}
