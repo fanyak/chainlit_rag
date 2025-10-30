@@ -62,6 +62,7 @@
 
 .custom-pg {
   height: 100%;
+  min-height: 100vh;
   margin: 0;
   font-size: 16px !important;
   background: var(--bg) !important;
@@ -74,9 +75,9 @@
 
 .custom-pg .wrap {
   max-width: 70vw;
-  font-size: 1.125rem;
-  margin: 32px auto;
-  padding: 28px;
+  /* font-size: 1.125rem; */
+  margin: 0 auto;
+  padding: 15px;
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: 0 10px 40px rgba(11, 78, 162, 0.06);
@@ -286,7 +287,7 @@
   background: #eef6ff;
   color: var(--accentb);
   margin: 2px 0;
-  padding: 8px 12px !important;
+  padding: 10px 12px !important;
   /* border-radius: 999px; */
   border: 1px solid rgba(11, 78, 162, 0.06);
   cursor: pointer;
@@ -296,8 +297,8 @@
   text-align: left !important;
 }
 .chip:focus {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .custom-pg .search-box {

@@ -76,7 +76,7 @@ export function LoginForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className={cn('flex flex-col gap-6')}
+      className={cn('flex flex-col gap-3 mt-1')}
     >
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="title font-bold">

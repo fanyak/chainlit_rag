@@ -1,7 +1,11 @@
 import { escapeHtml } from '@/lib/utils';
+import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+
+const PLACEHOLDER_TEXT =
+  'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε νέα ερώτηση...';
 
 export default function SearchBox({ quickQuery }: { quickQuery: string }) {
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
@@ -19,8 +23,11 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
   }
 
   useEffect(() => {
+    if (!quickQuery.length) {
+      setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
+      return;
+    }
     let ignore = false;
-    console.log('start over with clean slate');
     // initial paint
     setQuickQueryHtml(setDisplayText('', false));
     async function typeText(speed: number, signal: AbortSignal) {
@@ -106,7 +113,10 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           id="quickQuery"
           contentEditable="true"
           aria-label="Ερώτηση"
-          className="text-sm"
+          className={clsx(
+            'text-sm',
+            quickQuery?.trim().length ? '' : 'text-muted-foreground'
+          )}
           dangerouslySetInnerHTML={quickQueryHtml}
         />
         {/* <input
@@ -126,7 +136,7 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           Ρώτα
         </Button>
       </form>
-      <div
+      {/* <div
         style={{
           marginTop: '12px',
           color: 'var(--muted)',
@@ -135,7 +145,7 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
       >
         Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε και
         πατήστε "Ρώτα".
-      </div>
+      </div> */}
     </>
   );
 }

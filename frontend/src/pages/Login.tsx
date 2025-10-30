@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import BotSim from '@/components/BotSim';
 import ChipList from '@/components/Chiplist';
 import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
@@ -147,8 +148,10 @@ export default function Login() {
           </div>
 
           <div className="card" aria-labelledby="samples-title">
-            <strong id="samples-title">Γρήγορα δείγματα</strong>
-
+            <BotSim />
+            <strong id="samples-title" className="mt-2">
+              Γρήγορα δείγματα
+            </strong>
             <ChipList />
           </div>
         </div>
