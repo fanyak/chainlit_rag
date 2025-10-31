@@ -93,7 +93,7 @@ export default function Login() {
                 Foros Chatbot — Φορολογικός Βοηθός
               </p>
               <p className="tag">
-                Αξιόπιστες απαντήσεις στις ερωτήσεις για την ελληνική φορολογική
+                Αξιόπιστες απαντήσεις σχετικά με την ελληνική φορολογική
                 νομοθεσία
               </p>
             </div>
@@ -149,8 +149,8 @@ export default function Login() {
 
           <div className="card" aria-labelledby="samples-title">
             <BotSim />
-            <strong id="samples-title" className="mt-2">
-              Γρήγορα δείγματα
+            <strong id="samples-title" className="mt-4">
+              Δείγματα ερωτήσεων
             </strong>
             <ChipList />
           </div>

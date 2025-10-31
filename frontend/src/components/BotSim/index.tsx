@@ -4,7 +4,7 @@ import { Dispatch, Fragment, SetStateAction, useEffect, useState } from 'react';
 function BotSim() {
   const messages: string[] = [
     'Χαίρεται! Είμαι ο Φορολογικός Βοηθός',
-    'Είμαι bot εκπαιδευμένο ειδικά για να απαντά σε ερωτήσεις σχετικά με την ελληνική φορολογική νομοθεσία.',
+    'Είμαι bot ειδικά εκπαιδευμένο να απαντά σε ερωτήσεις σχετικά με την ελληνική φορολογική νομοθεσία.',
     'Πώς μπορώ να σας βοηθήσω σήμερα;'
   ];
 
@@ -87,7 +87,7 @@ function BotSim() {
       };
     }
 
-    async function* syncRunner(): AsyncGenerator<void, void, unknown> {
+    async function* simRunner(): AsyncGenerator<void, void, unknown> {
       /** generator function to run the typing animation
        * @returns {AsyncGenerator<void, void, unknown>}
        * A generator object that conforms to the Iterator Protocol
@@ -95,37 +95,38 @@ function BotSim() {
        * next() returns a promise fulfilling to an iterator result object
        * Yields after each message is typed out
        */
-      const promise: (index: number) => Promise<void> = typeText(
+      const promiseText: (index: number) => Promise<void> = typeText(
         60,
         controller!.signal
       );
       let i = 0;
       // keep track of the promises here to handle errors from abort signals
       while (i < messages.length) {
-        yield promise(i);
+        yield promiseText(i);
         i++;
       }
     }
     // this will be called when the component mounts
     (async () => {
       // Generator object the conforms to both the async iterable and the async Iterator Protocol
-      // iter.next() returns a promise fulfilling to an iterator result object
-      const iter: AsyncGenerator<void, void, unknown> = syncRunner();
-
-      // manuall iterate through the async generator's returned promises
-      // iter
-      //   .next()
-      //   .then(() => iter.next())
-      //   .then(() => iter.next());
-
-      // since iter is also an async iterable, we can use for await...of
+      // iter.next() returns a promise fulfilling to an iterator result object!!!
+      const iter: AsyncGenerator<void, void, unknown> = simRunner();
       try {
+        // Option 1: manually iterate through the async generator's returned promises
+        // iter
+        //   .next()
+        //   .then(() => iter.next())
+        //   .then(() => iter.next());
+
+        // Option 2: since iter is also an async iterable, we can use for await (promise of)
         // for await (const _ of iter) {
         //   // do nothing
         // }
 
-        // awaits each value yielded from the object sequentially!
-        await Array.fromAsync(iter, (_, index) => {
+        // Option 3: awaits a Promise fullfilling to an array of
+        // each value yielded from the iterator sequentially!
+        // as each promise fullfils, we can set the corresponding textDone state
+        await Array.fromAsync(iter, (_: void, index: number) => {
           const setDone: Dispatch<SetStateAction<boolean>> =
             setTextDoneArray[index];
           setDone(true);

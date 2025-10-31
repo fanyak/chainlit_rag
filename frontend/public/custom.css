@@ -202,6 +202,7 @@
 }
 .custom-pg .features {
   display: flex;
+  flex-direction: row;
   gap: 18px;
   margin-top: 22px;
   flex-wrap: wrap;
@@ -314,7 +315,7 @@
   border-radius: 8px;
   border: 1px solid #e6e9ee;
   font-size: 0.875rem;
-  vertical-align: middle;
+  align-content: center;
 }
 .custom-pg .search-box div:focus {
   outline: 3px solid var(--focus);
@@ -445,7 +446,8 @@
     font-size: 0.9rem;
   }
   .custom-pg .features {
-    flex-direction: row-reverse;
+    flex-direction: column-reverse;
+    flex-wrap: nowrap;
   }
   .chip.text-sm {
     font-size: 0.8rem !important;

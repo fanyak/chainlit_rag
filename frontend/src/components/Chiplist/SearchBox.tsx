@@ -5,11 +5,12 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 const PLACEHOLDER_TEXT =
-  'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε νέα ερώτηση...';
+  'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε εδώ νέα ερώτηση...';
 
 export default function SearchBox({ quickQuery }: { quickQuery: string }) {
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
+  const [inputText, setInputText] = useState('');
 
   function setDisplayText(
     text: string,
@@ -21,6 +22,18 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
     };
     return markup;
   }
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const inputValue = (e.currentTarget.textContent || '').trim();
+    setInputText(escapeHtml(inputValue));
+  };
+
+  const handleFocus = (_e: React.FocusEvent<HTMLDivElement>) => {
+    // if nothing has been typed yet, remove the placeholder on focus
+    if (!inputText.length && !quickQuery.trim().length) {
+      setQuickQueryHtml(setDisplayText('', false));
+    }
+  };
 
   useEffect(() => {
     if (!quickQuery.length) {
@@ -113,9 +126,13 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           id="quickQuery"
           contentEditable="true"
           aria-label="Ερώτηση"
+          onKeyUp={handleKeyUp}
+          onFocus={handleFocus}
           className={clsx(
             'text-sm',
-            quickQuery?.trim().length ? '' : 'text-muted-foreground'
+            quickQuery?.trim().length | inputText.length
+              ? ''
+              : 'opacity-70 italic'
           )}
           dangerouslySetInnerHTML={quickQueryHtml}
         />
@@ -126,9 +143,11 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           aria-label="Ερώτηση"
         /> */}
         <Button
-          variant="ghost"
+          variant={
+            quickQuery?.trim().length | inputText.length ? 'front' : 'ghost'
+          }
           size="sm"
-          className="small ghost"
+          className="small"
           type="button"
           id="askBtn"
           aria-label="Ρώτα"
