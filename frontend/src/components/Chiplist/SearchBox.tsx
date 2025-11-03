@@ -7,10 +7,17 @@ import { Button } from '@/components/ui/button';
 const PLACEHOLDER_TEXT =
   'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε εδώ νέα ερώτηση...';
 
-export default function SearchBox({ quickQuery }: { quickQuery: string }) {
+export default function SearchBox({
+  quickQuery,
+  onReset
+}: {
+  quickQuery: string;
+  onReset: () => void;
+}) {
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
   const [inputText, setInputText] = useState('');
+  const [usePlaceholder, setUsePlaceholder] = useState(true);
 
   function setDisplayText(
     text: string,
@@ -29,20 +36,32 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
   };
 
   const handleFocus = (_e: React.FocusEvent<HTMLDivElement>) => {
-    // if nothing has been typed yet, remove the placeholder on focus
+    // if nothing has been typed yet, remove the placeholder text on focus
     if (!inputText.length && !quickQuery.trim().length) {
       setQuickQueryHtml(setDisplayText('', false));
+    }
+    // reset the selected quickQuery so that it can be re-selected
+    if (quickQuery.length) {
+      onReset();
     }
   };
 
   useEffect(() => {
-    if (!quickQuery.length) {
+    // at this point the component has not re-rendered yet
+    // so the value of controller is still the previous one
+    // initialize - not after reset
+    if (!quickQuery.length && usePlaceholder) {
       setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
       return;
     }
     let ignore = false;
-    // initial paint
+    // this will update the value of controller to a new instance
+    setController(new AbortController());
+
+    // initial paint start over
     setQuickQueryHtml(setDisplayText('', false));
+
+    // this will use the latest controller instance
     async function typeText(speed: number, signal: AbortSignal) {
       // REF: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal#implementing_an_abortable_api
 
@@ -71,6 +90,8 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
               window.clearInterval(timer);
               window.setTimeout(() => {
                 setQuickQueryHtml(setDisplayText(quickQuery, false));
+                // help with button UI
+                setInputText(quickQuery);
                 resolve();
               }, 500);
             }
@@ -89,26 +110,30 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
         }
       );
     }
-    // this will update the value of controller to a new instance
-    setController(new AbortController());
-    // this will use the latest controller instance
 
     // Each time when an async function is called, it returns a new Promise
     // which will be resolved with the value returned by the async function,
-    // or rejected with an exception uncaught within the async function.
+    // or rejected if an exception is uncaught within the async function.
     // new microtask added to the JavaScript event loop
-    typeText(60, controller.signal).catch((e) => {
-      // catch the uncaught rejection inside the async function
-      // this will be called if the promise is rejected before being resolved
-      console.log('caught abort signal in unresolved promise', e);
-      // setQuickQueryHtml(setDisplayText(quickQuery, false));
-    });
+    typeText(60, controller.signal)
+      .catch((e) => {
+        // catch the uncaught rejection inside the async function
+        // this will be called if the promise is rejected before being resolved
+        console.log('caught abort signal in unresolved promise', e);
+        // setQuickQueryHtml(setDisplayText(quickQuery, false));
+      })
+      .finally(() => {
+        // if the promise resolves,
+        // then in any case abort the controller.
+        controller.abort();
+      });
 
     // cleanup function to abort on unmount
-    // this runs every time quickQuery changes
+    // this runs with the previous state every time quickQuery changes
     return () => {
       ignore = true;
       controller.abort();
+      setUsePlaceholder(false);
     };
   }, [quickQuery]);
 
@@ -143,9 +168,7 @@ export default function SearchBox({ quickQuery }: { quickQuery: string }) {
           aria-label="Ερώτηση"
         /> */}
         <Button
-          variant={
-            quickQuery?.trim().length | inputText.length ? 'front' : 'ghost'
-          }
+          variant={inputText.length ? 'front' : 'ghost'}
           size="sm"
           className="small"
           type="button"

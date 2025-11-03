@@ -89,7 +89,7 @@ export default function ChipList() {
           );
         })}
       </div>
-      <SearchBox quickQuery={quickQuery} />
+      <SearchBox quickQuery={quickQuery} onReset={() => setQuickQuery('')} />
     </>
   );
 }
