@@ -1,0 +1,45 @@
+# Robots.txt for Chainlit RAG Application
+# Only allow crawling of the login page
+
+User-agent: *
+Disallow: /
+Allow: /login
+
+# Specific restrictions for sensitive areas
+Disallow: /chat
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /assets/
+
+# Common crawlers - apply same rules
+User-agent: Googlebot
+Disallow: /
+Allow: /login
+
+User-agent: Bingbot
+Disallow: /
+Allow: /login
+
+User-agent: Slurp
+Disallow: /
+Allow: /login
+
+# Block AI training crawlers
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# Sitemap location (if you create one later)
+# Sitemap: https://yourdomain.com/sitemap.xml
