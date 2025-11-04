@@ -1,6 +1,6 @@
 import { escapeHtml } from '@/lib/utils';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -17,7 +17,8 @@ export default function SearchBox({
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
   const [inputText, setInputText] = useState('');
-  const [usePlaceholder, setUsePlaceholder] = useState(true);
+
+  const inputRef = useRef<HTMLDivElement>(null);
 
   function setDisplayText(
     text: string,
@@ -37,31 +38,45 @@ export default function SearchBox({
 
   const handleFocus = (_e: React.FocusEvent<HTMLDivElement>) => {
     // if nothing has been typed yet, remove the placeholder text on focus
-    if (!inputText.length && !quickQuery.trim().length) {
+    if (!inputText.length) {
       setQuickQueryHtml(setDisplayText('', false));
     }
     // reset the selected quickQuery so that it can be re-selected
     if (quickQuery.length) {
-      onReset();
+      onReset(); // this will re-render the parent component with empty quickQuery
     }
   };
 
   useEffect(() => {
-    // at this point the component has not re-rendered yet
-    // so the value of controller is still the previous one
-    // initialize - not after reset
-    if (!quickQuery.length && usePlaceholder) {
-      setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
+    //set up function
+    // after re-render, if dependency changed the setup runs with
+    // the latest state values and props
+
+    // The rule of thumb is that the user shouldn’t be able to distinguish
+    // between the setup being called once (as in production)
+    // and a setup → cleanup → setup sequence (as in development)
+
+    // short circuit if nothing typed or queried, and on reset
+    if (!quickQuery.length) {
+      if (!inputText.length) {
+        setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
+      } else {
+        setQuickQueryHtml(setDisplayText(inputText, false));
+        inputRef.current?.focus();
+      }
       return;
     }
     let ignore = false;
-    // this will update the value of controller to a new instance
+
+    // this will update the value of controller on the next render!
     setController(new AbortController());
 
-    // initial paint start over
+    // firnst initial paint start over on the next render
     setQuickQueryHtml(setDisplayText('', false));
+    setInputText('');
 
-    // this will use the latest controller instance
+    // this will use the current value of controller instance
+    // this will create new re-renders by changing the state
     async function typeText(speed: number, signal: AbortSignal) {
       // REF: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal#implementing_an_abortable_api
 
@@ -85,13 +100,14 @@ export default function SearchBox({
           let i = 0;
           const timer = window.setInterval(() => {
             i++;
-            setQuickQueryHtml(setDisplayText(quickQuery.slice(0, i), true));
+            const typeText = quickQuery.slice(0, i);
+            setQuickQueryHtml(setDisplayText(typeText, true));
+            // help with button UI
+            setInputText(typeText);
             if (i >= quickQuery.length) {
               window.clearInterval(timer);
               window.setTimeout(() => {
                 setQuickQueryHtml(setDisplayText(quickQuery, false));
-                // help with button UI
-                setInputText(quickQuery);
                 resolve();
               }, 500);
             }
@@ -132,8 +148,9 @@ export default function SearchBox({
     // this runs with the previous state every time quickQuery changes
     return () => {
       ignore = true;
+      // this doesnt' change the state!!!
+      // it just aborts the previous controller from last render
       controller.abort();
-      setUsePlaceholder(false);
     };
   }, [quickQuery]);
 
@@ -148,6 +165,7 @@ export default function SearchBox({
           Ερώτηση αναζήτησης
         </label>
         <div
+          ref={inputRef}
           id="quickQuery"
           contentEditable="true"
           aria-label="Ερώτηση"
@@ -155,9 +173,7 @@ export default function SearchBox({
           onFocus={handleFocus}
           className={clsx(
             'text-sm',
-            quickQuery?.trim().length | inputText.length
-              ? ''
-              : 'opacity-70 italic'
+            inputText.length ? '' : 'opacity-70 italic'
           )}
           dangerouslySetInnerHTML={quickQueryHtml}
         />

@@ -148,7 +148,12 @@ function BotSim() {
   return (
     // Updating state with setText{i} requests another render with the new state value
     <div
-      style={{ minHeight: '180px', backgroundColor: 'rgba(11, 78, 162, 0.02)' }}
+      style={{
+        minHeight: '180px',
+        backgroundColor: 'rgba(11, 78, 162, 0.02)',
+        borderBottom: '6px solid var(--accentb)',
+        borderRadius: '10px'
+      }}
     >
       {messages.map((msg, index) => (
         <Fragment key={index}>
