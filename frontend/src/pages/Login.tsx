@@ -152,7 +152,13 @@ export default function Login() {
             <strong id="samples-title" className="mt-4">
               Δείγματα ερωτήσεων
             </strong>
-            <ChipList />
+            <ChipList
+              callbackUrl="/"
+              providers={config?.oauthProviders || []}
+              onOAuthSignIn={async (provider: string) => {
+                window.location.href = apiClient.getOAuthEndpoint(provider);
+              }}
+            />
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center">

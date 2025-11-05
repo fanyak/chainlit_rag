@@ -1,3 +1,4 @@
+import { useAskContext } from '@/contexts/AskContext';
 import { cn } from '@/lib/utils';
 import React, {
   forwardRef,
@@ -52,11 +53,21 @@ const Input = forwardRef<InputMethods, Props>(
     },
     ref
   ) => {
+    // Use the Ask context (with error handling since it might not be available)
+    let askContext;
+    try {
+      askContext = useAskContext();
+      onChange(askContext.inputText);
+    } catch {
+      // Context not available, use default values
+      askContext = null;
+    }
+
     const commands = useRecoilValue(commandsState);
     const [isComposing, setIsComposing] = useState(false);
     const [showCommands, setShowCommands] = useState(false);
     const [commandInput, setCommandInput] = useState('');
-    const [value, setValue] = useState('');
+    const [value, setValue] = useState(askContext?.inputText || '');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const normalizedInput = commandInput.toLowerCase().slice(1);

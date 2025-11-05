@@ -18,7 +18,15 @@ const fetcher = (signal: AbortSignal): Promise<QueryItem[]> => {
     });
 };
 
-export default function ChipList() {
+export default function ChipList({
+  callbackUrl,
+  providers,
+  onOAuthSignIn
+}: {
+  callbackUrl: string;
+  providers: string[];
+  onOAuthSignIn?: (provider: string, callbackUrl: string) => Promise<any>;
+}) {
   const [queries, setQueries] = useState<QueryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +97,13 @@ export default function ChipList() {
           );
         })}
       </div>
-      <SearchBox quickQuery={quickQuery} onReset={() => setQuickQuery('')} />
+      <SearchBox
+        quickQuery={quickQuery}
+        onReset={() => setQuickQuery('')}
+        onAsk={() => {
+          onOAuthSignIn?.(providers[0], callbackUrl);
+        }}
+      />
     </>
   );
 }

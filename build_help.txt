@@ -20,8 +20,9 @@ SVGs, CSS, and other static assets
 Your custom components are NOT separate files - they're compiled into the JavaScript bundles in assets/
 
 
-To build the backend chainlit run `uv buind`
-*Solution Options*
+To build the backend chainlit run `uv build`
+
+*Solution For custom Ui*
 
 Option 1: Use Your Fork as the Pip Installation (Recommended)
 Install Chainlit from your forked repo instead of the official package:

@@ -1,6 +1,7 @@
+import { AskProvider } from '@/contexts/AskContext';
 import { escapeHtml } from '@/lib/utils';
 import clsx from 'clsx';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -9,16 +10,23 @@ const PLACEHOLDER_TEXT =
 
 export default function SearchBox({
   quickQuery,
-  onReset
+  onReset,
+  onAsk
 }: {
   quickQuery: string;
   onReset: () => void;
+  onAsk: () => void;
 }) {
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
   const [inputText, setInputText] = useState('');
 
   const inputRef = useRef<HTMLDivElement>(null);
+
+  // Context value for AskProvider
+  const askContextValue = {
+    inputText
+  };
 
   function setDisplayText(
     text: string,
@@ -45,6 +53,10 @@ export default function SearchBox({
     if (quickQuery.length) {
       onReset(); // this will re-render the parent component with empty quickQuery
     }
+  };
+
+  const handleAsk = () => {
+    onAsk();
   };
 
   useEffect(() => {
@@ -155,7 +167,7 @@ export default function SearchBox({
   }, [quickQuery]);
 
   return (
-    <>
+    <AskProvider value={askContextValue}>
       <form
         className="search-box"
         // onSubmit="return false;"
@@ -190,6 +202,8 @@ export default function SearchBox({
           type="button"
           id="askBtn"
           aria-label="Ρώτα"
+          disabled={!inputText.length}
+          onClick={handleAsk}
         >
           Ρώτα
         </Button>
@@ -204,6 +218,6 @@ export default function SearchBox({
         Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε και
         πατήστε "Ρώτα".
       </div> */}
-    </>
+    </AskProvider>
   );
 }

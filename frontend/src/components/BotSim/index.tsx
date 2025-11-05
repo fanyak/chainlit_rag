@@ -132,7 +132,7 @@ function BotSim() {
           setDone(true);
         });
       } catch (error) {
-        console.error('yielded rejected or aborted promise', error);
+        console.log('yielded rejected or aborted promise', error);
       }
     })();
 
