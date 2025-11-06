@@ -1,7 +1,8 @@
-import { useAskContext } from '@/contexts/AskContext';
+import { AskContext, handleAskContext } from '@/contexts/AskContext';
 import { cn } from '@/lib/utils';
 import React, {
   forwardRef,
+  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -54,10 +55,10 @@ const Input = forwardRef<InputMethods, Props>(
     ref
   ) => {
     // Use the Ask context (with error handling since it might not be available)
-    let askContext;
+    let askContext: null | { inputText: string };
     try {
-      askContext = useAskContext();
-      onChange(askContext.inputText);
+      askContext = useContext(AskContext) || handleAskContext();
+      console.log('askContext rerender:', askContext);
     } catch {
       // Context not available, use default values
       askContext = null;
@@ -69,6 +70,10 @@ const Input = forwardRef<InputMethods, Props>(
     const [commandInput, setCommandInput] = useState('');
     const [value, setValue] = useState(askContext?.inputText || '');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    if (askContext?.inputText) {
+      onChange(askContext.inputText);
+    }
 
     const normalizedInput = commandInput.toLowerCase().slice(1);
 
@@ -98,6 +103,9 @@ const Input = forwardRef<InputMethods, Props>(
     });
 
     const reset = () => {
+      if (askContext?.inputText) {
+        handleAskContext(true);
+      }
       setValue('');
       if (!selectedCommand?.persistent) {
         setSelectedCommand(undefined);

@@ -1,4 +1,4 @@
-import React, { ReactNode, createContext, useContext } from 'react';
+import React, { ReactNode, createContext } from 'react';
 
 // Define the context value type
 interface AskContextType {
@@ -6,13 +6,20 @@ interface AskContextType {
 }
 
 // Create the context
-const AskContext = createContext<AskContextType | undefined>(
-  sessionStorage.getItem('askContext')
-    ? JSON.parse(sessionStorage.getItem('askContext')!)
-    : undefined
+// if context provider is not found (ie because after login page is reloaded),
+// then default to session storage. More info:
+// Default is the value that you want the context to have when there
+// is no matching context provider in the tree above the component that reads context.
+// The default value is meant as a “last resort” fallback.
+// It is static and never changes over time.
+const AskContext = createContext<AskContextType | null>(
+  // if the key does not exist, the browser returns null
+  null
 );
 
-// Context provider component
+// Context provider component used in searchBox
+// this is a component!!!
+// this gets called whenever value prop changes in searchBox
 export const AskProvider: React.FC<{
   value: AskContextType;
   children: ReactNode;
@@ -21,13 +28,16 @@ export const AskProvider: React.FC<{
   return <AskContext.Provider value={value}>{children}</AskContext.Provider>;
 };
 
-// Custom hook to use the context
-export const useAskContext = () => {
-  const context = useContext(AskContext);
-  if (context === undefined) {
-    throw new Error('useAskContext must be used within an AskProvider');
+// handleAskContext
+export const handleAskContext = (reset = false): AskContextType | null => {
+  if (reset) {
+    // If there is no item associated with the given key, this method will do nothing.
+    sessionStorage.removeItem('askContext');
+    return null;
   }
-  return context;
+  return sessionStorage.getItem('askContext')
+    ? JSON.parse(sessionStorage.getItem('askContext')!)
+    : null;
 };
 
 export { AskContext };
