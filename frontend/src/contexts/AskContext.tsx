@@ -2,12 +2,12 @@ import React, { ReactNode, createContext } from 'react';
 
 // Define the context value type
 interface AskContextType {
-  inputText: string;
+  inputText?: string;
 }
 
 // Create the context
-// if context provider is not found (ie because after login page is reloaded),
-// then default to session storage. More info:
+// if context provider is not found (i.e because after login the page is reloaded),
+// then default to null. More info:
 // Default is the value that you want the context to have when there
 // is no matching context provider in the tree above the component that reads context.
 // The default value is meant as a “last resort” fallback.
@@ -28,16 +28,32 @@ export const AskProvider: React.FC<{
   return <AskContext.Provider value={value}>{children}</AskContext.Provider>;
 };
 
-// handleAskContext
-export const handleAskContext = (reset = false): AskContextType | null => {
-  if (reset) {
-    // If there is no item associated with the given key, this method will do nothing.
-    sessionStorage.removeItem('askContext');
-    return null;
-  }
-  return sessionStorage.getItem('askContext')
-    ? JSON.parse(sessionStorage.getItem('askContext')!)
-    : null;
+export const askContextSelector = (
+  obj: AskContextType | null,
+  attr: string
+): string => {
+  return obj ? obj[attr as keyof AskContextType] || '' : '';
 };
 
-export { AskContext };
+// handleAskContext closure to be use on useState
+export const handleAskContext = (
+  reset = false,
+  attr = 'inputText'
+): (() => string) => {
+  console.log('handleAskContext called with reset:', reset);
+  const existingContext = sessionStorage.getItem('askContext')
+    ? { ...JSON.parse(sessionStorage.getItem('askContext')!) }
+    : null;
+  if (reset) {
+    sessionStorage.removeItem('askContext');
+  }
+  // the function returned will be called twice during development if passed to useState
+  return function (): string {
+    // If there is no item associated with the given key, this method will do nothing.
+    return askContextSelector(existingContext, attr);
+  };
+};
+
+const askInputandResetContextHandler: () => string = handleAskContext(true);
+
+export { AskContext, askInputandResetContextHandler };

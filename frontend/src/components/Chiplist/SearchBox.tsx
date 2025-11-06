@@ -1,14 +1,14 @@
 import { AskProvider } from '@/contexts/AskContext';
 import { escapeHtml } from '@/lib/utils';
 import clsx from 'clsx';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
 const PLACEHOLDER_TEXT =
   'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε εδώ νέα ερώτηση...';
 
-export default function SearchBox({
+export default memo(function SearchBox({
   quickQuery,
   onReset,
   onAsk
@@ -220,4 +220,4 @@ export default function SearchBox({
       </div> */}
     </AskProvider>
   );
-}
+});

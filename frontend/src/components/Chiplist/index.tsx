@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import ButtonChip from '../ButtonChip';
 import SearchBox from './SearchBox';
@@ -31,6 +31,15 @@ export default function ChipList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quickQuery, setQuickQuery] = useState<string>('');
+
+  const handleReset = useCallback(() => {
+    setQuickQuery('');
+  }, [setQuickQuery]);
+
+  const handleAsk = useCallback(() => {
+    // Implement the logic to handle asking a question
+    onOAuthSignIn?.(providers[0], callbackUrl);
+  }, [onOAuthSignIn, providers, callbackUrl]);
 
   useEffect(() => {
     let mounted = true;
@@ -99,10 +108,8 @@ export default function ChipList({
       </div>
       <SearchBox
         quickQuery={quickQuery}
-        onReset={() => setQuickQuery('')}
-        onAsk={() => {
-          onOAuthSignIn?.(providers[0], callbackUrl);
-        }}
+        onReset={handleReset}
+        onAsk={handleAsk}
       />
     </>
   );

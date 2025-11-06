@@ -1,8 +1,7 @@
-import { AskContext, handleAskContext } from '@/contexts/AskContext';
+import { askInputandResetContextHandler } from '@/contexts/AskContext';
 import { cn } from '@/lib/utils';
 import React, {
   forwardRef,
-  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -54,25 +53,18 @@ const Input = forwardRef<InputMethods, Props>(
     },
     ref
   ) => {
-    // Use the Ask context (with error handling since it might not be available)
-    let askContext: null | { inputText: string };
-    try {
-      askContext = useContext(AskContext) || handleAskContext();
-      console.log('askContext rerender:', askContext);
-    } catch {
-      // Context not available, use default values
-      askContext = null;
-    }
-
     const commands = useRecoilValue(commandsState);
     const [isComposing, setIsComposing] = useState(false);
     const [showCommands, setShowCommands] = useState(false);
     const [commandInput, setCommandInput] = useState('');
-    const [value, setValue] = useState(askContext?.inputText || '');
+    // handleAsContext(true) will return a Function !!!!!!!!!
+    // If you pass a function to useState, React will only call it during initialization
+    // and not on every re-render!!
+    const [value, setValue] = useState(askInputandResetContextHandler);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    if (askContext?.inputText) {
-      onChange(askContext.inputText);
+    if (value) {
+      onChange(value);
     }
 
     const normalizedInput = commandInput.toLowerCase().slice(1);
@@ -103,9 +95,6 @@ const Input = forwardRef<InputMethods, Props>(
     });
 
     const reset = () => {
-      if (askContext?.inputText) {
-        handleAskContext(true);
-      }
       setValue('');
       if (!selectedCommand?.persistent) {
         setSelectedCommand(undefined);
