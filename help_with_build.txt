@@ -1,0 +1,84 @@
+I understand your situation. You have a forked Chainlit repo with custom frontend components, and you want to use these customizations in a separately installed Chainlit app via pip. Let me break down the solution:
+
+The Challenge
+When you pip install chainlit, you get the published package with the standard frontend build. Your custom components are only in your forked repo and won't be available to the installed package.
+
+
+The build process: When you run pnpm run buildUi:
+
+It builds the libraries first (pnpm build:libs)
+Then it builds the frontend with cd frontend && pnpm run build
+This runs Vite, which bundles ALL your source files in src including your custom components like:
+SearchBox.tsx
+ButtonChip.tsx
+All other components in components
+What ends up in dist/:
+
+index.html - the main app shell
+assets/ - bundled JavaScript and CSS (contains ALL your components compiled together)
+SVGs, CSS, and other static assets
+Your custom components are NOT separate files - they're compiled into the JavaScript bundles in assets/
+
+
+To build the backend chainlit run `uv build`
+
+*Solution For custom Ui*
+
+Option 1: Use Your Fork as the Pip Installation (Recommended)
+Install Chainlit from your forked repo instead of the official package:
+`pip install -e /path/to/your/chainlit_rag/backend`
+The -e flag installs it in "editable mode", meaning:
+
+Changes to Python code are immediately reflected
+The frontend build (pnpm buildUi) output is used directly
+Your custom components will be available
+Steps:
+In your forked repo: pnpm run buildUi (builds custom frontend)
+Install editably: pip install -e ./backend
+Now any Chainlit app using pip install chainlit will use your custom-built version
+
+
+Option 2: Build and Publish Your Custom Package
+Update pyproject.toml with your own package name/version
+Build: python -m build in the backend
+Install your custom wheel: pip install dist/your-package.whl
+
+
+Option 3: Copy Built Frontend Files
+If you want to keep the pip-installed version but add your customizations:
+
+Find where Chainlit is installed:
+`python -c "import chainlit; import os; print(os.path.dirname(chainlit.__file__))"`
+Replace the frontend files with your built versions:
+`cp -r ./backend/chainlit/frontend/dist/* ../chainlit/public/custom_build/`
+
+When you copy ./backend/chainlit/frontend/dist/* to the installed package's frontend folder, you're getting:
+
+✅ Your custom SearchBox component
+✅ Your custom ButtonChip component
+✅ All other custom components
+✅ All their styles and dependencies
+
+
+My Recommendation: Use Option 1 (Editable Install)
+This is the cleanest approach because:
+
+✅ Your custom components are always included
+✅ Python changes take effect immediately
+✅ Frontend rebuilds are picked up automatically
+✅ No manual file copying needed
+✅ Works across your entire machine
+
+Quick Implementation:
+
+# 1. Ensure your fork is fully built
+cd /path/to/chainlit_rag
+pnpm run buildUi
+
+# 2. Uninstall the pip version (if installed)
+pip uninstall chainlit -y
+
+# 3. Install from your fork in editable mode
+pip install -e ./backend
+
+# 4. Now use Chainlit normally with your custom components

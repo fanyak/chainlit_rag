@@ -1729,6 +1729,24 @@ async def serve(request: Request):
     return response
 
 
+@router.post("/order")
+async def create_order(
+    current_user: UserParam,
+):
+    """Create an order for premium features."""
+
+    from chainlit.order import create_viva_payment_order
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        order_code = await create_viva_payment_order(current_user)
+        return JSONResponse(content={"orderCode": order_code})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 app.include_router(router)
 
 import chainlit.socket  # noqa

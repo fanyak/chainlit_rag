@@ -49,3 +49,6 @@ uv run chainlit run .\chainlit\hello.py`
 
  you may open the Vite dev URL (usually http://localhost:5173) directly for instant frontend changes, 
  or adapt your setup to proxy if you want a single origin.
+
+ 3. Build for production and copy the custom frontend
+ uv build

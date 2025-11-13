@@ -1,6 +1,7 @@
 import getRouterBasename from '@/lib/router';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
+import Order from './pages/Order';
 import AuthCallback from 'pages/AuthCallback';
 import Element from 'pages/Element';
 import Env from 'pages/Env';
@@ -37,6 +38,10 @@ export const router = createBrowserRouter(
     {
       path: '/share/:id',
       element: <Thread />
+    },
+    {
+      path: '/order/',
+      element: <Order />
     },
     {
       path: '*',
