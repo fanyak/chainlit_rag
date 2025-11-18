@@ -52,3 +52,23 @@ uv run chainlit run .\chainlit\hello.py`
 
  3. Build for production and copy the custom frontend
  uv build
+
+
+
+
+ modified:   backend/chainlit/data/sql_alchemy.py
+        modified:   backend/chainlit/hello.py
+        modified:   backend/chainlit/user.py
+        new file:   backend/chainlit_b.py
+        new file:   backend/gcs_cors.json
+        new file:   backend/override_provider.py
+        modified:   backend/public/custom.css
+        modified:   backend/pyproject.toml
+        new file:   backend/token_usage.db-shm
+        new file:   backend/token_usage.db-wal
+        new file:   backend/user_token.py
+        new file:   backend/utils_b.py
+        modified:   backend/uv.lock
+        deleted:    build_help.txt
+        modified:   frontend/public/custom.css
+

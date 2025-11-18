@@ -30,6 +30,7 @@ class User(DataClassJsonMixin):
     identifier: str
     display_name: Optional[str] = None
     metadata: Dict = Field(default_factory=dict)
+    balance: Optional[float] = None
 
 
 @dataclass

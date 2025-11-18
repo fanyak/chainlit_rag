@@ -1,0 +1,11 @@
+// Apply CORS configuration to your bucke
+//Using gcloud CLI
+//gcloud storage buckets update gs://aade_chat_elements --cors-file=gcs_cors.json
+[
+  {
+    "origin": ["http://localhost:8000", "https://yourdomain.com"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "maxAgeSeconds": 3600
+  }
+]

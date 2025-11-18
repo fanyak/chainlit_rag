@@ -419,6 +419,11 @@
   white-space: nowrap;
   border: 0;
 }
+li {
+  margin-top: 0.25rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
 @media (max-width: 920px) {
   .custom-pg .wrap header nav.primary-nav {
     display: none;

@@ -23,6 +23,8 @@ __pycache__
 .ipynb_checkpoints
 
 *.db
+*.db-shm
+*.db-wal
 
 .mypy_cache
 
@@ -61,5 +63,5 @@ dist-ssr
 
 backend/README.md
 backend/.dmypy.json
-
+backend/models/
 .history

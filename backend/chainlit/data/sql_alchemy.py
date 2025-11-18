@@ -139,6 +139,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
                 id=user_data["id"],
                 identifier=user_data["identifier"],
                 createdAt=user_data["createdAt"],
+                balance=user_data.get("balance"),
                 metadata=metadata,
             )
         return None
@@ -191,7 +192,17 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             )  # We want to update the metadata
         return await self.get_user(user.identifier)
 
+    async def update_user_balance(self, identifier: str, balance_to_deduct: float):
+        if self.show_logger:
+            logger.info(f"SQLAlchemy: update_user_balance, identifier={identifier}")
+
+        query = "UPDATE users SET balance = balance - :balance WHERE identifier = :identifier"
+        parameters = {"identifier": identifier, "balance": balance_to_deduct}
+        await self.execute_sql(query=query, parameters=parameters)
+        return await self.get_user(identifier)
+
     ###### Threads ######
+
     async def get_thread_author(self, thread_id: str) -> str:
         if self.show_logger:
             logger.info(f"SQLAlchemy: get_thread_author, thread_id={thread_id}")
