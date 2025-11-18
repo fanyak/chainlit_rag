@@ -84,7 +84,7 @@ class db_object:
                         identifier TEXT NOT NULL UNIQUE,
                         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        balance REAL DEFAULT 100000.0,
+                        balance REAL DEFAULT 0.0,
                         metadata JSONB NOT NULL
                     );
                     """)

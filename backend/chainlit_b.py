@@ -337,7 +337,7 @@ async def print_insufficient_balance_message():
         # type: ignore
         cl.Text(
             name="",
-            content="[συνδρομή εδώ](https://storage.googleapis.com/aade_docs/assets/101_202/2149_2025.pdf)",
+            content="[συνδρομή εδώ](/order)",
             display="inline",
         )
     ]

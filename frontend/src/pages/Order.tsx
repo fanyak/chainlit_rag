@@ -4,12 +4,34 @@ import { toast } from 'sonner';
 
 import Page from 'pages/Page';
 
-import { useAuth } from '@chainlit/react-client';
+import { useApi, useAuth } from '@chainlit/react-client';
+
+import { useQuery } from 'hooks/query';
 
 export default function Order() {
   const { user } = useAuth();
+  const query = useQuery();
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
+
+  // Capture URL parameters on mount
+  const t = query.get('t');
+  const s = query.get('s');
+  const lang = query.get('lang');
+  const eventId = query.get('eventId');
+  const eci = query.get('eci');
+  if (t) {
+    console.log('Transaction ID:', t);
+    console.log('Status:', s);
+    console.log('Language:', lang);
+    console.log('Event ID:', eventId);
+    console.log('ECI:', eci);
+
+    // Handle payment callback here
+    // For example, verify the payment with your backend
+    // or show a success/failure message based on the status
+  }
+  useApi(t && s ? `/project/thread/${t}/element/${s}` : null);
 
   const handleCreateOrder = async () => {
     if (!user) {
