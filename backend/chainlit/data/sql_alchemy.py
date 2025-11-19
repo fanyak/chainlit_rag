@@ -233,6 +233,20 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         )
         return {"id": payment_id}
 
+    async def get_payment_by_transaction_id(
+        self, transaction_id: str, order_code: str
+    ) -> Optional[Dict[str, Any]]:
+        if self.show_logger:
+            logger.info(
+                f"SQLAlchemy: get_payment_by_transaction_id, transaction_id={transaction_id}"
+            )
+        query = "SELECT * FROM payments WHERE transaction_id = :transaction_id AND order_code = :order_code"
+        parameters = {"transaction_id": transaction_id, "order_code": order_code}
+        result = await self.execute_sql(query=query, parameters=parameters)
+        if result and isinstance(result, list) and len(result) > 0:
+            return result[0]
+        return None
+
     ###### Threads ######
 
     async def get_thread_author(self, thread_id: str) -> str:

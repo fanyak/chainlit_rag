@@ -39,8 +39,13 @@ export default function Order() {
     };
     (async () => {
       const payment = await apiClient.post('/payment', payment_info);
-      const obj = await payment.json();
-      console.log(obj.id);
+      const res = await payment.json();
+      if (res.detail) {
+        toast.error(res.detail);
+      } else {
+        toast.success('Payment processed successfully!');
+      }
+      console.log(res.id);
     })();
   }
 

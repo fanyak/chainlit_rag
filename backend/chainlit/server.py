@@ -59,7 +59,11 @@ from chainlit.data.acl import is_thread_author
 from chainlit.logger import logger
 from chainlit.markdown import get_markdown_str
 from chainlit.oauth_providers import get_oauth_provider
-from chainlit.order import UserPaymentInfo, create_viva_payment_order
+from chainlit.order import (
+    UserPaymentInfo,
+    create_viva_payment_order,
+    get_viva_payment_transaction_status,
+)
 from chainlit.secret import random_secret
 from chainlit.types import (
     AskFileSpec,
@@ -1776,9 +1780,36 @@ async def create_payment(
         payload["user_identifier"] = persisted_user.identifier
     else:
         payload["user_identifier"] = current_user.identifier
-
-    res = await data_layer.create_payment(payload)
-    return JSONResponse(content=res)
+    # Check transaction status before updated the database
+    transaction_status = await get_viva_payment_transaction_status(
+        payload["transaction_id"]
+    )
+    if transaction_status and (
+        str(payload["order_code"]) == str(transaction_status.get("orderCode"))
+    ):
+        if transaction_status.get("statusId") == "F":
+            # Check if payment already exists
+            existing_payment = await data_layer.get_payment_by_transaction_id(
+                transaction_id=payload["transaction_id"],
+                order_code=payload["order_code"],
+            )
+            if existing_payment:
+                return JSONResponse(content={"detail": "Payment already exists"})
+            res = await data_layer.create_payment(payload)
+            return JSONResponse(content=res)
+        else:
+            if transaction_status.get("statusId") == "E":
+                raise HTTPException(status_code=400, detail="Payment was unsuccessful")
+            raise HTTPException(
+                status_code=400,
+                detail="Payment not completed with statusId {error}".format(
+                    error=transaction_status.get("statusId")
+                ),
+            )
+    else:
+        raise HTTPException(
+            status_code=400, detail="Transaction status could not be verified"
+        )
 
 
 app.include_router(router)

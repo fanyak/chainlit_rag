@@ -1,3 +1,5 @@
+# ruff: noqa: RUF001
+
 import os
 from typing import TypedDict
 
@@ -16,14 +18,28 @@ class UserPaymentInfo(TypedDict):
     eci: int
 
 
-async def create_viva_payment_order(user: User):
+def get_viva_payment_token() -> str | None:
+    """Get Viva Payments token from environment variable."""
+    token = None
+    print(APP_ROOT)
+    for path in [
+        os.path.join(APP_ROOT, "vt.txt"),
+    ]:
+        if os.path.exists(path):
+            with open(path) as f:
+                token = f.read().strip()
+            break
+    return token
+
+
+async def create_viva_payment_order(user: User) -> str:
     """Create a new order."""
     # Here you would add logic to process the order
-    token = None
     orderCode = None
+    token = get_viva_payment_token()
     payload = {
-        "amount": 1234,
-        "customerTrns": "string",
+        "amount": 10000,  # amount in euros cents (1 euro = 100 cents)
+        "customerTrns": "αγορά από Chainlit RAG για tokens αξίας 10 ευρώ",
         "customer": {
             "email": "",
             "fullName": f"{user.identifier}",
@@ -47,14 +63,7 @@ async def create_viva_payment_order(user: User):
     }
     # this is defaults to cwd
     # which is : C:\Users\fanyak\chainlit_rag\backend
-    print(APP_ROOT)
-    for path in [
-        os.path.join(APP_ROOT, "vt.txt"),
-    ]:
-        if os.path.exists(path):
-            with open(path) as f:
-                token = f.read().strip()
-            break
+
     if token:
         url = os.getenv(
             "VIVA_PAYMENTS_ORDER_URL",
@@ -78,5 +87,31 @@ async def create_viva_payment_order(user: User):
                     status_code=400, detail="Failed to get the order code"
                 )
         return orderCode
+
+    raise HTTPException(status_code=500, detail="Viva Payments token not found")
+
+
+async def get_viva_payment_transaction_status(transaction_id: str) -> dict:
+    """Get the status of an existing order."""
+    token = get_viva_payment_token()
+    if token:
+        url = os.getenv(
+            "VIVA_RETRIEVE_TRANSACTION_URL",
+            "https://demo-api.vivapayments.com/checkout/v2/transactions",
+        )
+        transaction_url = f"{url}/{transaction_id}"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                transaction_url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+            print("viva response", response.status_code, response.json())
+            response.raise_for_status()
+            res = response.json()
+            return res
 
     raise HTTPException(status_code=500, detail="Viva Payments token not found")
