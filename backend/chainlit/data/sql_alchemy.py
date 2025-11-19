@@ -209,9 +209,14 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             logger.info(f"SQLAlchemy: create_payment, payment_info={payment_info}")
 
         payment_id = str(uuid.uuid4())
+        user_identifier = payment_info.get("user_identifier")
+
+        if not user_identifier:
+            raise ValueError("user_identifier is required in payment_info")
+
         payment_dict: Dict[str, Any] = {
             "id": payment_id,
-            "user_id": payment_info.get("user_identifier"),
+            "user_id": user_identifier,
             "transaction_id": payment_info.get("transaction_id"),
             "order_code": payment_info.get("order_code"),
             "event_id": payment_info.get("event_id"),
@@ -223,7 +228,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
                    VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :created_at)"""
         await self.execute_sql(query=query, parameters=payment_dict)
         await self.update_user_balance(
-            identifier=payment_info.get("user_identifier"),
+            identifier=user_identifier,
             balance_to_deduct=-10000,  # Example amount to deduct
         )
         return {"id": payment_id}
