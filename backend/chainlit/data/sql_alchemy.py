@@ -17,6 +17,7 @@ from chainlit.data.storage_clients.base import BaseStorageClient
 from chainlit.data.utils import queue_until_user_message
 from chainlit.element import ElementDict
 from chainlit.logger import logger
+from chainlit.order import UserPaymentInfo
 from chainlit.step import StepDict
 from chainlit.types import (
     Feedback,
@@ -200,6 +201,32 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         parameters = {"identifier": identifier, "balance": balance_to_deduct}
         await self.execute_sql(query=query, parameters=parameters)
         return await self.get_user(identifier)
+
+    async def create_payment(
+        self, payment_info: UserPaymentInfo
+    ) -> Optional[Dict[str, Any]]:
+        if self.show_logger:
+            logger.info(f"SQLAlchemy: create_payment, payment_info={payment_info}")
+
+        payment_id = str(uuid.uuid4())
+        payment_dict: Dict[str, Any] = {
+            "id": payment_id,
+            "user_id": payment_info.get("user_identifier"),
+            "transaction_id": payment_info.get("transaction_id"),
+            "order_code": payment_info.get("order_code"),
+            "event_id": payment_info.get("event_id"),
+            "eci": payment_info.get("eci"),
+            "created_at": await self.get_current_timestamp(),
+        }
+
+        query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci", "created_at")
+                   VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :created_at)"""
+        await self.execute_sql(query=query, parameters=payment_dict)
+        await self.update_user_balance(
+            identifier=payment_info.get("user_identifier"),
+            balance_to_deduct=-10000,  # Example amount to deduct
+        )
+        return {"id": payment_id}
 
     ###### Threads ######
 

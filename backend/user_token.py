@@ -173,7 +173,7 @@ class db_object:
                     CREATE INDEX IF NOT EXISTS step_name
                                ON steps(threadId, start, end);
                     """)
-                cursor.execute(""" 
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS elements(
                         id UUID PRIMARY KEY,
                         threadId UUID,
@@ -214,7 +214,7 @@ class db_object:
                         value INT NOT NULL DEFAULT 0,
                         name TEXT NOT NULL DEFAULT 'default',
                         comment TEXT,
-                        FOREIGN KEY (threadId) REFERENCES threads(id) ON DELETE CASCADE                               
+                        FOREIGN KEY (threadId) REFERENCES threads(id) ON DELETE CASCADE
                         );
                     """)
                 cursor.execute("""
@@ -227,6 +227,28 @@ class db_object:
                     """)
 
                 #####################################
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS payments(
+                        id UUID PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        transaction_id UUID NOT NULL,
+                        order_code TEXT NOT NULL,
+                        event_id INT NOT NULL,
+                        eci INT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(identifier) ON DELETE NO ACTION
+                    )
+                """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS payments_userId_index    
+                                 ON payments(user_id);
+                      """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS transaction_id_index    
+                                 ON payments(transaction_id);    
+                      """)
+                ####################################
 
                 # Set default balance to 1.0 USD so that
                 # new users can start using the service immediately

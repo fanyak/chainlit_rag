@@ -59,6 +59,7 @@ from chainlit.data.acl import is_thread_author
 from chainlit.logger import logger
 from chainlit.markdown import get_markdown_str
 from chainlit.oauth_providers import get_oauth_provider
+from chainlit.order import UserPaymentInfo, create_viva_payment_order
 from chainlit.secret import random_secret
 from chainlit.types import (
     AskFileSpec,
@@ -1733,9 +1734,16 @@ async def serve(request: Request):
 async def create_order(
     current_user: UserParam,
 ):
-    """Create an order for premium features."""
-
-    from chainlit.order import create_viva_payment_order
+    """Create an order for premium features.
+    @param current_user: The current authenticated user.
+    FastApi extracts the value from the type Annotation
+    by actually calling get_current_user based on this line:
+    UserParam = Annotated[GenericUser, Depends(get_current_user)]
+    Whenever a new request arrives, FastAPI will take care of:
+    - Calling your dependency ("dependable") function with the correct parameters.
+    - Get the result from your function.
+    - Assign that result to the parameter in your path operation function.
+    """
 
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -1745,6 +1753,32 @@ async def create_order(
         return JSONResponse(content={"orderCode": order_code})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/payment")
+async def create_payment(
+    payment: UserPaymentInfo,
+    current_user: UserParam,
+):
+    """create a payment by user."""
+    payload = payment
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not isinstance(current_user, PersistedUser):
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+        if not persisted_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        payload["user_identifier"] = persisted_user.identifier
+    else:
+        payload["user_identifier"] = current_user.identifier
+
+    res = await data_layer.create_payment(payload)
+    return JSONResponse(content=res)
 
 
 app.include_router(router)

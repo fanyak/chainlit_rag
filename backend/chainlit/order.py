@@ -1,10 +1,19 @@
 import os
+from typing import TypedDict
 
 import httpx
 from fastapi import HTTPException
 
 from chainlit.config import APP_ROOT
 from chainlit.user import User
+
+
+class UserPaymentInfo(TypedDict):
+    user_identifier: str
+    transaction_id: str
+    order_code: str  # big int in viva payments
+    event_id: int
+    eci: int
 
 
 async def create_viva_payment_order(user: User):

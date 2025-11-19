@@ -143,14 +143,19 @@ const Markdown = ({
         a({ children, ...props }) {
           const name = children as string;
           const element = refElements?.find((e) => e.name === name);
+
           if (element) {
             return <ElementRef element={element} />;
           } else {
+            const isInternal =
+              props.href &&
+              (props.href.startsWith('/') || props.href.startsWith('#'));
+            const target = isInternal ? '_self' : '_blank';
             return (
               <a
+                target={target}
                 {...props}
                 className="text-primary hover:underline"
-                target="_blank"
               >
                 {children}
               </a>
