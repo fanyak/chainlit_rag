@@ -2,8 +2,7 @@ import { apiClient } from 'api';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import Page from 'pages/Page';
-
+// import Page from 'pages/Page';
 import { useAuth } from '@chainlit/react-client';
 
 import { useQuery } from 'hooks/query';
@@ -44,6 +43,9 @@ export default function Order() {
         toast.error(res.detail);
       } else {
         toast.success('Payment processed successfully!');
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 1000);
       }
       console.log(res.id);
     })();
@@ -86,37 +88,37 @@ export default function Order() {
   };
 
   return (
-    <Page>
-      <div className="flex flex-col items-center justify-center h-full w-full p-8 space-y-6">
-        <h1 className="text-3xl font-bold">Create Viva Payment Order</h1>
+    //<Page>
+    <div className="custom-pg flex flex-col items-center justify-center h-full w-full p-8 space-y-6">
+      <h1 className="text-3xl font-bold">Create Viva Payment Order</h1>
 
-        {user ? (
-          <div className="bg-gray-100 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Logged in as:</p>
-            <p className="font-semibold text-gray-600">{user.identifier}</p>
-          </div>
-        ) : (
-          <p className="text-red-500">Please log in to create an order</p>
-        )}
+      {user ? (
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <p className="text-sm text-gray-600">Logged in as:</p>
+          <p className="font-semibold text-gray-600">{user.identifier}</p>
+        </div>
+      ) : (
+        <p className="text-red-500">Please log in to create an order</p>
+      )}
 
-        <button
-          onClick={handleCreateOrder}
-          disabled={loading || !user}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Creating Order...' : 'Create Order'}
-        </button>
+      <button
+        onClick={handleCreateOrder}
+        disabled={loading || !user}
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+      >
+        {loading ? 'Creating Order...' : 'Create Order'}
+      </button>
 
-        {orderCode && (
-          <div className="bg-green-50 border border-green-200 p-6 rounded-lg space-y-2">
-            <p className="text-green-800 font-semibold">Order Created!</p>
-            <p className="text-sm text-gray-700">Order Code:</p>
-            <code className="block bg-white p-2 rounded border text-sm text-gray-900">
-              {orderCode}
-            </code>
-          </div>
-        )}
-      </div>
-    </Page>
+      {orderCode && (
+        <div className="bg-green-50 border border-green-200 p-6 rounded-lg space-y-2">
+          <p className="text-green-800 font-semibold">Order Created!</p>
+          <p className="text-sm text-gray-700">Order Code:</p>
+          <code className="block bg-white p-2 rounded border text-sm text-gray-900">
+            {orderCode}
+          </code>
+        </div>
+      )}
+    </div>
+    // </Page>
   );
 }

@@ -616,20 +616,24 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         # input_tokens = usage_metadata["input_tokens"]
         # output_tokens = usage_metadata["output_tokens"]
         total_tokens = usage_metadata["total_tokens"]
+        input_tokens = usage_metadata["input_tokens"]
+        output_tokens = usage_metadata["output_tokens"]
         cb_data = {
-            "input_tokens": usage_metadata["input_tokens"],
-            "output_tokens": usage_metadata["output_tokens"],
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
             "total_tokens": total_tokens
         }
-        last_tokens = await get_data_layer().get_thread(thread_id=cl.context.session.thread_id)  # type: ignore[attr-defined]   
+        thread = await get_data_layer().get_thread(thread_id=cl.context.session.thread_id)  # type: ignore[attr-defined]   
         balance_to_deduct = 0.0
-        print(f"LAST TOKENS: {last_tokens}")
-        if last_tokens is not None:
-            metadata = last_tokens["metadata"] or dict() 
-            old_total = metadata.get("total_tokens", 0)
-            turn_tokens = total_tokens - old_total  
-            charge_per_token: float = float(os.environ.get("CHARGE_PER_TOKEN", 0.0001))
-            balance_to_deduct = charge_per_token * turn_tokens
+        print(f"thread: {thread}")
+        if thread is not None:
+            # metadata = thread["metadata"] or dict() 
+            # old_total = metadata.get("total_tokens", 0)
+            # turn_tokens = total_tokens - old_total  
+            units = 1000000  # tokens per million
+            charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", 0.30/units))
+            charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.0/units))
+            balance_to_deduct = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
         await get_data_layer().update_thread(thread_id=cl.context.session.thread_id, metadata=cb_data)  # type: ignore[attr-defined]
         updated_user: PersistedUser = await get_data_layer().update_user_balance(identifier=user_id, balance_to_deduct=balance_to_deduct)  # type: ignore[attr-defined]
         if updated_user is None:

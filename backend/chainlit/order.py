@@ -1,7 +1,7 @@
 # ruff: noqa: RUF001
 
 import os
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 import httpx
 from fastapi import HTTPException
@@ -38,7 +38,7 @@ async def create_viva_payment_order(user: User) -> str:
     orderCode = None
     token = get_viva_payment_token()
     payload = {
-        "amount": 10000,  # amount in euros cents (1 euro = 100 cents)
+        "amount": 1000,  # amount in euros cents (1 euro = 100 cents)
         "customerTrns": "αγορά από Chainlit RAG για tokens αξίας 10 ευρώ",
         "customer": {
             "email": "",
@@ -91,7 +91,7 @@ async def create_viva_payment_order(user: User) -> str:
     raise HTTPException(status_code=500, detail="Viva Payments token not found")
 
 
-async def get_viva_payment_transaction_status(transaction_id: str) -> dict:
+async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[dict]:
     """Get the status of an existing order."""
     token = get_viva_payment_token()
     if token:
@@ -102,16 +102,22 @@ async def get_viva_payment_transaction_status(transaction_id: str) -> dict:
         transaction_url = f"{url}/{transaction_id}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                transaction_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {token}",
-                },
-            )
-            print("viva response", response.status_code, response.json())
-            response.raise_for_status()
-            res = response.json()
-            return res
+            try:
+                response = await client.get(
+                    transaction_url,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {token}",
+                    },
+                )
+                response.raise_for_status()
+                res = response.json()
+                return res
+            except httpx.HTTPStatusError:
+                raise HTTPException(status_code=409, detail="Transaction not found")
+            except Exception:
+                raise HTTPException(
+                    status_code=500, detail="Error occured while retrieving transaction"
+                )
 
-    raise HTTPException(status_code=500, detail="Viva Payments token not found")
+    raise HTTPException(status_code=409, detail="Viva Payments token not found")

@@ -1780,10 +1780,19 @@ async def create_payment(
         payload["user_identifier"] = persisted_user.identifier
     else:
         payload["user_identifier"] = current_user.identifier
+
     # Check transaction status before updated the database
+    # Note: In FastAPI, if you you are inside a utility function
+    # that you are calling inside of your path operation function,
+    # and you raise the HTTPException from inside of that utility function,
+    # it won't run the rest of the code in the path operation function,
+    # it will terminate that request right away and send the HTTP error from the HTTPException
+    #  to the client!!!!! (so this path operation function will stop executing at that point
+    # and it will return the json with the detail)
     transaction_status = await get_viva_payment_transaction_status(
         payload["transaction_id"]
     )
+    print(f"Transaction status: {transaction_status}")
     if transaction_status and (
         str(payload["order_code"]) == str(transaction_status.get("orderCode"))
     ):
