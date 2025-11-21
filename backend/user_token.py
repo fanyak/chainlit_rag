@@ -255,7 +255,7 @@ class db_object:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS user_balance (
                         user_id TEXT PRIMARY KEY,
-                        balance REAL DEFAULT 100000.0,
+                        balance REAL DEFAULT 1.0,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)

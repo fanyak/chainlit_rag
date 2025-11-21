@@ -632,7 +632,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
             # turn_tokens = total_tokens - old_total  
             units = 1000000  # tokens per million
             charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", 0.30/units))
-            charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.0/units))
+            charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.5/units))
             balance_to_deduct = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
         await get_data_layer().update_thread(thread_id=cl.context.session.thread_id, metadata=cb_data)  # type: ignore[attr-defined]
         updated_user: PersistedUser = await get_data_layer().update_user_balance(identifier=user_id, balance_to_deduct=balance_to_deduct)  # type: ignore[attr-defined]

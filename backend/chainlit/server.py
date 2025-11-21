@@ -63,6 +63,7 @@ from chainlit.order import (
     UserPaymentInfo,
     create_viva_payment_order,
     get_viva_payment_transaction_status,
+    get_viva_webhook_key,
 )
 from chainlit.secret import random_secret
 from chainlit.types import (
@@ -1722,18 +1723,6 @@ def status_check():
     return {"message": "Site is operational"}
 
 
-@router.get("/{full_path:path}")
-async def serve(request: Request):
-    """Serve the UI files."""
-    root_path = os.getenv("CHAINLIT_PARENT_ROOT_PATH", "") + os.getenv(
-        "CHAINLIT_ROOT_PATH", ""
-    )
-    html_template = get_html_template(root_path)
-    response = HTMLResponse(content=html_template, status_code=200)
-
-    return response
-
-
 @router.post("/order")
 async def create_order(
     current_user: UserParam,
@@ -1753,6 +1742,7 @@ async def create_order(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
+        # this is a utility function that is called inside the path operation function
         order_code = await create_viva_payment_order(current_user)
         return JSONResponse(content={"orderCode": order_code})
     except Exception as e:
@@ -1782,7 +1772,8 @@ async def create_payment(
         payload["user_identifier"] = current_user.identifier
 
     # Check transaction status before updated the database
-    # Note: In FastAPI, if you you are inside a utility function
+    # Note: In FastAPI, if you are inside a utility function,
+    #  (i.e get_viva_payment_transaction_status)
     # that you are calling inside of your path operation function,
     # and you raise the HTTPException from inside of that utility function,
     # it won't run the rest of the code in the path operation function,
@@ -1798,6 +1789,7 @@ async def create_payment(
     ):
         if transaction_status.get("statusId") == "F":
             # Check if payment already exists
+            # this is a utility function that is called inside the path operation function
             existing_payment = await data_layer.get_payment_by_transaction_id(
                 transaction_id=payload["transaction_id"],
                 order_code=payload["order_code"],
@@ -1819,6 +1811,33 @@ async def create_payment(
         raise HTTPException(
             status_code=400, detail="Transaction status could not be verified"
         )
+
+
+@router.get("/payment/webhook")
+async def verify_payment_webhook(request: Request):
+    """Viva Payments webhook endpoint to receive payment notifications."""
+    hook_key = get_viva_webhook_key()
+    return JSONResponse(content=hook_key)
+
+
+@router.post("/payment/webhook")
+async def payment_webhook(request: Request):
+    """Viva Payments webhook endpoint to receive payment notifications."""
+    payload = await request.json()
+    print(f"Received webhook payload: {payload}")
+    return JSONResponse(status_code=200, content={"message": "ok"})
+
+
+@router.get("/{full_path:path}")
+async def serve(request: Request):
+    """Serve the UI files."""
+    root_path = os.getenv("CHAINLIT_PARENT_ROOT_PATH", "") + os.getenv(
+        "CHAINLIT_ROOT_PATH", ""
+    )
+    html_template = get_html_template(root_path)
+    response = HTMLResponse(content=html_template, status_code=200)
+
+    return response
 
 
 app.include_router(router)

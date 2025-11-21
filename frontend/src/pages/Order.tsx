@@ -19,8 +19,8 @@ export default function Order() {
   //const lang = query.get('lang');
   const eventId = query.get('eventId');
   const eci = query.get('eci');
-  console.log('t:', t);
-  if (t) {
+  const isPaymentCallback = t && s && eventId && eci ? true : false;
+  if (isPaymentCallback) {
     console.log('Transaction ID:', t);
     console.log('Order Code:', s);
     console.log('Event ID:', eventId);

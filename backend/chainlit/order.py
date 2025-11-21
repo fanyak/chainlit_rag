@@ -1,5 +1,6 @@
 # ruff: noqa: RUF001
 
+import json
 import os
 from typing import Optional, TypedDict
 
@@ -30,6 +31,19 @@ def get_viva_payment_token() -> str | None:
                 token = f.read().strip()
             break
     return token
+
+
+def get_viva_webhook_key() -> dict | None:
+    """Get Viva Payments webhook secret from environment variable"""
+    key = None
+    print(APP_ROOT)
+    for path in [
+        os.path.join(APP_ROOT, "response_hook.json"),
+    ]:
+        if os.path.exists(path):
+            key = json.load(open(path))
+            break
+    return key
 
 
 async def create_viva_payment_order(user: User) -> str:
@@ -83,6 +97,8 @@ async def create_viva_payment_order(user: User) -> str:
             res = response.json()
             orderCode = res.get("orderCode")
             if not orderCode:
+                # fastapi exception handling - returns a json with the details
+                # it is handled in the calling path operation function
                 raise HTTPException(
                     status_code=400, detail="Failed to get the order code"
                 )
@@ -114,6 +130,8 @@ async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[d
                 res = response.json()
                 return res
             except httpx.HTTPStatusError:
+                # fastapi exception handling - returns a json with the details
+                # it is handled in the calling path operation function
                 raise HTTPException(status_code=409, detail="Transaction not found")
             except Exception:
                 raise HTTPException(
