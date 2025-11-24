@@ -1733,20 +1733,19 @@ async def create_order(
     by actually calling get_current_user based on this line:
     UserParam = Annotated[GenericUser, Depends(get_current_user)]
     Whenever a new request arrives, FastAPI will take care of:
-    - Calling your dependency ("dependable") function with the correct parameters.
+    - Calling the Depends ("get_current_user") function.
     - Get the result from your function.
     - Assign that result to the parameter in your path operation function.
     """
 
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-    try:
-        # this is a utility function that is called inside the path operation function
-        order_code = await create_viva_payment_order(current_user)
-        return JSONResponse(content={"orderCode": order_code})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    # this is a utility function that is called inside the path operation function
+    # if the utility function raises an fastAPI HTTPException,
+    # then the path operation function will stop executing at that point
+    # and fastAPI will return an HTTP error response with the detail
+    order_code = await create_viva_payment_order(current_user)
+    return JSONResponse(content={"orderCode": order_code})
 
 
 @router.post("/payment")
@@ -1767,19 +1766,17 @@ async def create_payment(
         persisted_user = await data_layer.get_user(identifier=current_user.identifier)
         if not persisted_user:
             raise HTTPException(status_code=404, detail="User not found")
-        payload["user_identifier"] = persisted_user.identifier
-    else:
-        payload["user_identifier"] = current_user.identifier
+    if payload["user_identifier"] != current_user.identifier:
+        raise HTTPException(status_code=403, detail="User identifier does not match")
 
     # Check transaction status before updated the database
     # Note: In FastAPI, if you are inside a utility function,
     #  (i.e get_viva_payment_transaction_status)
     # that you are calling inside of your path operation function,
-    # and you raise the HTTPException from inside of that utility function,
+    # and you raise the fastapi HTTPException from inside of that utility function,
     # it won't run the rest of the code in the path operation function,
-    # it will terminate that request right away and send the HTTP error from the HTTPException
-    #  to the client!!!!! (so this path operation function will stop executing at that point
-    # and it will return the json with the detail)
+    # it will terminate that request right away and send an HTTP error response
+    # with the detail to the client!!!!!
     transaction_status = await get_viva_payment_transaction_status(
         payload["transaction_id"]
     )
@@ -1794,8 +1791,14 @@ async def create_payment(
                 transaction_id=payload["transaction_id"],
                 order_code=payload["order_code"],
             )
-            if existing_payment:
-                return JSONResponse(content={"detail": "Payment already exists"})
+            # if  None, then there was sql error
+            if existing_payment is None:
+                raise HTTPException(
+                    status_code=500, detail="Error checking existing payment"
+                )
+            # if we didn't get empty result object ==> payment exists
+            if existing_payment.get("transaction_id"):
+                raise HTTPException(status_code=409, detail="Payment already exists")
             res = await data_layer.create_payment(payload)
             return JSONResponse(content=res)
         else:
@@ -1817,7 +1820,7 @@ async def create_payment(
 async def verify_payment_webhook(request: Request):
     """Viva Payments webhook endpoint to receive payment notifications."""
     hook_key = get_viva_webhook_key()
-    return JSONResponse(content=hook_key)
+    return JSONResponse(status_code=200, content=hook_key)
 
 
 @router.post("/payment/webhook")

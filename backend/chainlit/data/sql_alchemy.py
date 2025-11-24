@@ -199,7 +199,9 @@ class SQLAlchemyDataLayer(BaseDataLayer):
 
         query = "UPDATE users SET balance = balance - :balance WHERE identifier = :identifier"
         parameters = {"identifier": identifier, "balance": balance_to_deduct}
-        await self.execute_sql(query=query, parameters=parameters)
+        rowcount = await self.execute_sql(query=query, parameters=parameters)
+        assert rowcount  # if this is None, then there was an error updating the balance
+        # if the user did not exist, rowcount would be 0 which would raise an assertion error
         return await self.get_user(identifier)
 
     async def create_payment(
@@ -226,12 +228,15 @@ class SQLAlchemyDataLayer(BaseDataLayer):
 
         query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci", "created_at")
                    VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :created_at)"""
-        await self.execute_sql(query=query, parameters=payment_dict)
-        await self.update_user_balance(
+        rowcount = await self.execute_sql(query=query, parameters=payment_dict)
+        assert (
+            rowcount == 1
+        )  # if this is None, then there was an error inserting the payment
+        user = await self.update_user_balance(  # this contains assertion
             identifier=user_identifier,
             balance_to_deduct=-10000,  # Example amount to deduct
         )
-        return {"id": payment_id}
+        return {"id": payment_id, "balance": user.balance}
 
     async def get_payment_by_transaction_id(
         self, transaction_id: str, order_code: str
@@ -243,8 +248,10 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         query = "SELECT * FROM payments WHERE transaction_id = :transaction_id AND order_code = :order_code"
         parameters = {"transaction_id": transaction_id, "order_code": order_code}
         result = await self.execute_sql(query=query, parameters=parameters)
-        if result and isinstance(result, list) and len(result) > 0:
-            return result[0]
+        if result is not None:  # None is when an error has occured
+            if isinstance(result, list) and len(result) > 0:
+                return result[0]
+            return {}
         return None
 
     ###### Threads ######

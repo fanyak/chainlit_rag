@@ -37,17 +37,22 @@ export default function Order() {
       eci: eci
     };
     (async () => {
-      const payment = await apiClient.post('/payment', payment_info);
-      const res = await payment.json();
-      if (res.detail) {
-        toast.error(res.detail);
-      } else {
+      try {
+        const payment = await apiClient.post('/payment', payment_info);
+        const res = await payment.json();
         toast.success('Payment processed successfully!');
+        console.log('payment id', res.id);
+
+        // go back to home after 1 second
         setTimeout(() => {
           window.location.replace('/');
         }, 1000);
+      } catch (error) {
+        // the apiClient throws an error if the response is not ok!!!
+        // it also shows a toast with the error message
+        // so no need to show another toast here
+        console.error('Error processing payment:', error);
       }
-      console.log(res.id);
     })();
   }
 
@@ -56,33 +61,35 @@ export default function Order() {
       toast.error('You must be logged in to create an order');
       return;
     }
-
     setLoading(true);
+    // use try because the apiClient throws an error if the response is not ok!!!
     try {
       const response = await apiClient.post('/order', {});
       const data = await response.json();
+      //Note:  we don't need to check if orderCode is present in the response
+      // because it is done in the backend (order.py) and it raises an Error Response if not
+      const orderCode = data.orderCode;
+      toast.success('Redirecting to payment page...');
 
-      if (data.orderCode) {
-        setOrderCode(data.orderCode);
-        toast.success('Redirecting to payment page...');
+      // Redirect to Viva Payments Smart Checkout
+      // Use demo URL for testing, change to production URL when going live
+      const checkoutUrl = `https://demo.vivapayments.com/web/checkout?ref=${orderCode}`;
+      // For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
 
-        // Redirect to Viva Payments Smart Checkout
-        // Use demo URL for testing, change to production URL when going live
-        const checkoutUrl = `https://demo.vivapayments.com/web/checkout?ref=${data.orderCode}`;
-        // For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
+      // Redirect after a short delay to show the success message
+      // Using replace() instead of href to prevent back navigation and duplicate orders
+      setTimeout(() => {
+        window.location.replace(checkoutUrl);
+      }, 1000);
 
-        // Redirect after a short delay to show the success message
-        // Using replace() instead of href to prevent back navigation and duplicate orders
-        setTimeout(() => {
-          window.location.replace(checkoutUrl);
-        }, 1000);
-      } else {
-        toast.error('Failed to create order');
-      }
+      setOrderCode(orderCode);
     } catch (error: any) {
+      // The apiClient throws an error if the response is not ok (it is an HTTP error response)!!!
+      // it also shows a toast with the error message
+      // so no need to show another toast here
       console.error('Error creating order:', error);
-      toast.error(error.message || 'Failed to create order');
     } finally {
+      // update state
       setLoading(false);
     }
   };

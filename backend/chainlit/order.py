@@ -79,31 +79,48 @@ async def create_viva_payment_order(user: User) -> str:
     # which is : C:\Users\fanyak\chainlit_rag\backend
 
     if token:
-        url = os.getenv(
-            "VIVA_PAYMENTS_ORDER_URL",
-            "https://demo-api.vivapayments.com/checkout/v2/orders",
-        )
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {token}",
-                },
-                json=payload,
+        try:
+            url = os.getenv(
+                "VIVA_PAYMENTS_ORDER_URL",
+                "https://demo-api.vivapayments.com/checkout/v2/orders",
             )
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {token}",
+                    },
+                    json=payload,
+                )
+            # The HTTPStatusError class is raised by response.raise_for_status()
+            # on responses which are not a 2xx success code.
+            # These exceptions include both a .request and a .response attribute.
             response.raise_for_status()
             res = response.json()
             orderCode = res.get("orderCode")
             if not orderCode:
-                # fastapi exception handling - returns a json with the details
+                # use fastapi exception handling - returns an HTTP error response with the details
                 # it is handled in the calling path operation function
                 raise HTTPException(
                     status_code=400, detail="Failed to get the order code"
                 )
-        return orderCode
-
+            return orderCode
+        except httpx.HTTPStatusError:
+            # use fastapi exception handling - returns an HTTP error response with the details
+            # it is handled in the calling path operation function
+            raise HTTPException(status_code=400, detail="Failed to create order")
+        except httpx.RequestError:
+            raise HTTPException(
+                status_code=500, detail="Failed to reach Viva Payments API"
+            )
+        except HTTPException as e:
+            raise e
+        except Exception:
+            raise HTTPException(
+                status_code=500, detail="Error occured while retrieving transaction"
+            )
     raise HTTPException(status_code=500, detail="Viva Payments token not found")
 
 
@@ -116,9 +133,8 @@ async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[d
             "https://demo-api.vivapayments.com/checkout/v2/transactions",
         )
         transaction_url = f"{url}/{transaction_id}"
-
-        async with httpx.AsyncClient() as client:
-            try:
+        try:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(
                     transaction_url,
                     headers={
@@ -129,13 +145,16 @@ async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[d
                 response.raise_for_status()
                 res = response.json()
                 return res
-            except httpx.HTTPStatusError:
-                # fastapi exception handling - returns a json with the details
-                # it is handled in the calling path operation function
-                raise HTTPException(status_code=409, detail="Transaction not found")
-            except Exception:
-                raise HTTPException(
-                    status_code=500, detail="Error occured while retrieving transaction"
-                )
-
-    raise HTTPException(status_code=409, detail="Viva Payments token not found")
+        except httpx.HTTPStatusError:
+            # use fastapi exception handling - returns an HTTP error response with the details
+            # it is handled in the calling path operation function
+            raise HTTPException(status_code=409, detail="Transaction not found")
+        except httpx.RequestError:
+            raise HTTPException(
+                status_code=500, detail="Failed to reach Viva Payments API"
+            )
+        except Exception:
+            raise HTTPException(
+                status_code=500, detail="Error occured while retrieving transaction"
+            )
+    raise HTTPException(status_code=500, detail="Viva Payments token not found")
