@@ -61,6 +61,8 @@ from chainlit.markdown import get_markdown_str
 from chainlit.oauth_providers import get_oauth_provider
 from chainlit.order import (
     UserPaymentInfo,
+    VivaWebhookPayload,
+    convert_hook_to_UserPaymentInfo,
     create_viva_payment_order,
     get_viva_payment_transaction_status,
     get_viva_webhook_key,
@@ -768,7 +770,11 @@ async def set_session_cookie(request: Request, response: Response):
     body = await request.json()
     session_id = body.get("session_id")
 
-    is_local = request.client and request.client.host in ["127.0.0.1", "localhost"]
+    is_local = request.client and request.client.host in [
+        "127.0.0.1",
+        "localhost",
+        "https://shamefully-nonsudsing-edmond.ngrok-free.dev",
+    ]
 
     response.set_cookie(
         key="X-Chainlit-Session-id",
@@ -1787,9 +1793,10 @@ async def create_payment(
         if transaction_status.get("statusId") == "F":
             # Check if payment already exists
             # this is a utility function that is called inside the path operation function
-            existing_payment = await data_layer.get_payment_by_transaction_id(
+            existing_payment = await data_layer.get_payment_by_transaction(
                 transaction_id=payload["transaction_id"],
                 order_code=payload["order_code"],
+                user_id=payload["user_identifier"],
             )
             # if  None, then there was sql error
             if existing_payment is None:
@@ -1826,9 +1833,91 @@ async def verify_payment_webhook(request: Request):
 @router.post("/payment/webhook")
 async def payment_webhook(request: Request):
     """Viva Payments webhook endpoint to receive payment notifications."""
-    payload = await request.json()
-    print(f"Received webhook payload: {payload}")
+    data_layer = get_data_layer()
+    # if not current_user:
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+    # print("1111!!!!!!!!!!!!!!", current_user)
+
+    # if not isinstance(current_user, PersistedUser):
+    #     persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+    #     if not persisted_user:
+    #         raise HTTPException(status_code=404, detail="User not found")
+
+    payload: VivaWebhookPayload = await request.json()
+    print(111111111111111111111, payload)
+    eventData = payload.get("EventData", {})
+    statusId = eventData.get("StatusId")
+    # TODO: change identifier to current_user.identifier
+    identifier = eventData.get("FullName", "")
+    if not statusId:
+        raise HTTPException(
+            status_code=400, detail="Invalid webhook payload: missing StatusId"
+        )
+    if statusId != "F":
+        raise HTTPException(
+            status_code=400, detail="Payment not completed successfully"
+        )
+    # user = await get_current_user()
+    # print(11111, user)
+    payment_payload = convert_hook_to_UserPaymentInfo(
+        # TODO: change identifier to current_user.identifier
+        payload,
+        {"identifier": identifier},
+    )
+    try:
+        # this is a utility function that is called inside the path operation function
+        existing_payment = await data_layer.get_payment_by_transaction(
+            transaction_id=payment_payload["transaction_id"],
+            order_code=payment_payload["order_code"],
+            user_id=identifier,
+        )
+        # if  None, then there was sql error
+        if existing_payment is None:
+            raise HTTPException(
+                status_code=500, detail="Error checking existing payment"
+            )
+        # if we didn't get empty result object ==> payment exists
+        if existing_payment.get("transaction_id"):
+            raise HTTPException(status_code=409, detail="Payment already exists")
+        await data_layer.create_payment(payment_payload)
+    except HTTPException as e:
+        print(f"Webhook processing error: {e.detail}")
+    except Exception as e:
+        print(f"database error processing webhook: {e}")
+    # finally:
+    # notify Viva Payments that we received the webhook
     return JSONResponse(status_code=200, content={"message": "ok"})
+
+
+# http://127.0.0.1:8000/items/?transaction_id=0&order_id=order_code
+@router.get("/transaction")
+async def get_transaction(
+    transaction_id: str,
+    order_code: str,
+    current_user: UserParam,
+):
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not isinstance(current_user, PersistedUser):
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+        if not persisted_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    existing_payment = await data_layer.get_payment_by_transaction(
+        transaction_id=transaction_id,
+        order_code=str(order_code),
+        user_id=current_user.identifier,
+    )
+    # if  None, then there was sql error
+    if existing_payment is None:
+        raise HTTPException(status_code=500, detail="Error checking existing payment")
+
+    return JSONResponse(status_code=200, content=existing_payment)
 
 
 @router.get("/{full_path:path}")

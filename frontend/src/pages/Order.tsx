@@ -7,6 +7,15 @@ import { useAuth } from '@chainlit/react-client';
 
 import { useQuery } from 'hooks/query';
 
+interface TransactionResponse {
+  transaction_id: string;
+  order_code: string;
+  user_id: string;
+  event_id: number;
+  eci: number;
+  created_at: string;
+}
+
 export default function Order() {
   const { user } = useAuth();
   const query = useQuery();
@@ -19,6 +28,10 @@ export default function Order() {
   //const lang = query.get('lang');
   const eventId = query.get('eventId');
   const eci = query.get('eci');
+  const failure = query.get('failure');
+  if (failure && failure === '1') {
+    toast.error('Payment failed or was cancelled.');
+  }
   const isPaymentCallback = t && s && eventId && eci ? true : false;
   if (isPaymentCallback) {
     console.log('Transaction ID:', t);
@@ -29,19 +42,29 @@ export default function Order() {
     // Handle payment callback here
     // For example, verify the payment with your backend
     // or show a success/failure message based on the status
-    const payment_info = {
-      user_identifier: user?.identifier,
-      transaction_id: t,
-      order_code: s,
-      event_id: eventId,
-      eci: eci
-    };
+    // const payment_info = {
+    //   user_identifier: user?.identifier,
+    //   transaction_id: t,
+    //   order_code: s,
+    //   event_id: eventId,
+    //   eci: eci
+    // };
     (async () => {
       try {
-        const payment = await apiClient.post('/payment', payment_info);
-        const res = await payment.json();
+        const response = await apiClient.get(
+          `/transaction?transaction_id=${t}&order_code=${s}`
+        );
+        const transaction: TransactionResponse = await response.json();
+        console.log('Transaction details:', transaction);
+        if (transaction.user_id !== user?.identifier) {
+          toast.error('Failed to verify payment user.');
+          return;
+        }
+        if (transaction.transaction_id !== t || transaction.order_code !== s) {
+          toast.error('Payment was not successful.');
+          return;
+        }
         toast.success('Payment processed successfully!');
-        console.log('payment id', res.id);
 
         // go back to home after 1 second
         setTimeout(() => {

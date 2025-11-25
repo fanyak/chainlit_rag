@@ -17,6 +17,45 @@ class UserPaymentInfo(TypedDict):
     order_code: str  # big int in viva payments
     event_id: int
     eci: int
+    created: Optional[str]
+
+
+class TransactionStatusInfo(TypedDict):
+    email: str
+    amount: float
+    orderCode: int
+    statusId: str
+    fullName: str
+    insDate: str
+    cardNumber: str
+    currencyCode: str
+    cardTypeId: int
+
+
+class WebHookEventData(TypedDict):
+    TransactionId: str
+    OrderCode: str
+    ElectronicCommerceIndicator: int
+
+
+class VivaWebhookPayload(TypedDict):
+    url: str
+    EventData: WebHookEventData
+    EventTypeId: int
+    Created: str
+
+
+def convert_hook_to_UserPaymentInfo(
+    data: VivaWebhookPayload, persisted_user
+) -> UserPaymentInfo:
+    return UserPaymentInfo(
+        user_identifier=persisted_user["identifier"],
+        transaction_id=data["EventData"]["TransactionId"],
+        order_code=str(data["EventData"]["OrderCode"]),
+        event_id=data["EventTypeId"],
+        eci=data["EventData"]["ElectronicCommerceIndicator"],
+        created=data["Created"],
+    )
 
 
 def get_viva_payment_token() -> str | None:

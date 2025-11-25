@@ -223,7 +223,8 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             "order_code": payment_info.get("order_code"),
             "event_id": payment_info.get("event_id"),
             "eci": payment_info.get("eci"),
-            "created_at": await self.get_current_timestamp(),
+            "created_at": payment_info.get("created")
+            or await self.get_current_timestamp(),
         }
 
         query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci", "created_at")
@@ -238,15 +239,23 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         )
         return {"id": payment_id, "balance": user.balance}
 
-    async def get_payment_by_transaction_id(
-        self, transaction_id: str, order_code: str
+    async def get_payment_by_transaction(
+        self, transaction_id: str, order_code: str, user_id: str
     ) -> Optional[Dict[str, Any]]:
         if self.show_logger:
             logger.info(
-                f"SQLAlchemy: get_payment_by_transaction_id, transaction_id={transaction_id}"
+                f"SQLAlchemy: get_payment_by_transaction, transaction_id={transaction_id}"
             )
-        query = "SELECT * FROM payments WHERE transaction_id = :transaction_id AND order_code = :order_code"
-        parameters = {"transaction_id": transaction_id, "order_code": order_code}
+        query = """SELECT * FROM payments WHERE 
+            transaction_id = :transaction_id 
+            AND order_code = :order_code 
+            AND user_id = :user_id"""
+
+        parameters = {
+            "transaction_id": transaction_id,
+            "order_code": order_code,
+            "user_id": user_id,
+        }
         result = await self.execute_sql(query=query, parameters=parameters)
         if result is not None:  # None is when an error has occured
             if isinstance(result, list) and len(result) > 0:
