@@ -1,0 +1,43 @@
+To Merge changes from the Original Repo:
+1. Add the Original Repo as "Upstream" Remote
+If you haven't already, add the original repository as a remote called upstream:
+bash
+git remote add upstream https://github.com/Chainlit/chainlit.git
+
+Now there are 2 remotes (origin for the forked repo and upstream for the original repo)
+You can see the remotes with:
+bash
+git remote -v 
+  origin    https://github.com/fanyak/chainlit_rag.git (fetch)
+  origin    https://github.com/fanyak/chainlit_rag.git (push)
+  upstream  https://github.com/ORIGINAL_OWNER/chainlit_rag.git (fetch)
+  upstream  https://github.com/ORIGINAL_OWNER/chainlit_rag.git (push)
+
+Process:
+You *push* changes to origin (your fork). (git push -u origin main the 1st time and then git push)
+You *fetch* updates from upstream.
+You *merge* from upstream/main into your local branches as needed.
+
+2. Fetch Changes from Upstream
+bash
+git fetch upstream
+
+3. Checkout Your Local Main (or master) Branch
+bash
+git checkout main
+
+4. Merge Upstream Changes Into Your Branch
+bash
+git merge upstream/main
+
+This will attempt to merge updates from upstream/main into your local main branch.
+
+5. Resolve Any Merge Conflicts
+Open each conflicted file noted by Git.
+Edit the files to resolve conflicts (look for conflict markers: <<<<<<<, =======, >>>>>>>).
+6. Commit the Merge Resolution
+bash
+git commit
+7. Push the Updates to Your Fork
+bash
+git push origin main
