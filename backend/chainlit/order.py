@@ -103,7 +103,7 @@ async def create_viva_payment_order(user: User, amount_cents: int) -> str:
             "fullName": "",
             "phone": "",
             "countryCode": "GR",
-            "requestLang": "gr-GR",
+            "requestLang": "el-GR",
         },
         "dynamicDescriptor": "viva payment",
         "paymentTimeout": 1800,

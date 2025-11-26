@@ -23,13 +23,22 @@ export default function Order() {
   const [orderCode, setOrderCode] = useState<string | null>(null);
 
   useEffect(() => {
+    let t: string | null = null;
+    let s: string | null = null;
+    let eventId: string | null = null;
+    let eci: string | null = null;
+    let failure: string | null = null;
     // Capture URL parameters on mount
-    const t = query.get('t');
-    const s = query.get('s');
-    //const lang = query.get('lang');
-    const eventId = query.get('eventId');
-    const eci = query.get('eci');
-    const failure = query.get('failure');
+    try {
+      t = query.get('t');
+      s = query.get('s');
+      //const lang = query.get('lang');
+      eventId = query.get('eventId');
+      eci = query.get('eci');
+      failure = query.get('failure');
+    } catch (error) {
+      console.error('Error parsing URL parameters:', error);
+    }
     if (failure && String(failure) === '1') {
       console.log('Payment failed or was cancelled.');
       toast.error('Payment failed or was cancelled.');
@@ -41,16 +50,6 @@ export default function Order() {
       console.log('Event ID:', eventId);
       console.log('ECI:', eci);
 
-      // Handle payment callback here
-      // For example, verify the payment with your backend
-      // or show a success/failure message based on the status
-      // const payment_info = {
-      //   user_identifier: user?.identifier,
-      //   transaction_id: t,
-      //   order_code: s,
-      //   event_id: eventId,
-      //   eci: eci
-      // };
       (async () => {
         // the apiClient throws an error if the response is not ok!!!
         try {
@@ -84,7 +83,7 @@ export default function Order() {
         }
       })();
     }
-  }, [query]); // query is stable due to useMemo, so this runs once on mount
+  }, [useQuery]); // so this runs once on mount and if queryParameters change
 
   const handleCreateOrder = async () => {
     if (!user) {

@@ -58,7 +58,7 @@ const Input = forwardRef<InputMethods, Props>(
     const [isComposing, setIsComposing] = useState(false);
     const [showCommands, setShowCommands] = useState(false);
     const [commandInput, setCommandInput] = useState('');
-    // handleAsContext(true) will return a Function !!!!!!!!!
+    // askInputandResetContextHandler is a Function !!!!!!!!!
     // If you pass a function to useState, React will only call it during initialization
     // and not on every re-render!!
     const [value, setValue] = useState(askInputandResetContextHandler);
