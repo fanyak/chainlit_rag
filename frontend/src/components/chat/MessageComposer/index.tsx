@@ -1,7 +1,9 @@
+import { askInputandResetContextHandler } from '@/contexts/AskContext';
 import {
   MutableRefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react';
@@ -69,10 +71,11 @@ export default function MessageComposer({
 
   const isMobile = useIsMobile();
 
+  const contextInput: string = useMemo(askInputandResetContextHandler, []); // call the function to get the initial value
   let promptValue = '';
   try {
     const query = useQuery();
-    promptValue = query.get('prompt') || '';
+    promptValue = query.get('prompt') || contextInput;
   } catch {
     console.warn('Could not parse query parameters');
   }

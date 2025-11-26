@@ -1,4 +1,3 @@
-import { askInputandResetContextHandler } from '@/contexts/AskContext';
 import { cn } from '@/lib/utils';
 import React, {
   forwardRef,
@@ -58,15 +57,11 @@ const Input = forwardRef<InputMethods, Props>(
     const [isComposing, setIsComposing] = useState(false);
     const [showCommands, setShowCommands] = useState(false);
     const [commandInput, setCommandInput] = useState('');
-    // askInputandResetContextHandler is a Function !!!!!!!!!
     // If you pass a function to useState, React will only call it during initialization
     // and not on every re-render!!
-    const [value, setValue] = useState(askInputandResetContextHandler);
+    // otherwise useState is a function  => it is called on every render, though only the first call result is used
+    const [value, setValue] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-    if (value) {
-      onChange(value);
-    }
 
     const normalizedInput = commandInput.toLowerCase().slice(1);
 
