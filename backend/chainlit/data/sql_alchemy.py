@@ -223,19 +223,21 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             "order_code": payment_info.get("order_code"),
             "event_id": payment_info.get("event_id"),
             "eci": payment_info.get("eci"),
+            "amount": payment_info.get("amount"),
             "created_at": payment_info.get("created")
             or await self.get_current_timestamp(),
         }
 
-        query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci", "created_at")
-                   VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :created_at)"""
+        query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci",  "amount", "created_at")
+                   VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :amount, :created_at)"""
         rowcount = await self.execute_sql(query=query, parameters=payment_dict)
         assert (
             rowcount == 1
         )  # if this is None, then there was an error inserting the payment
         user = await self.update_user_balance(  # this contains assertion
             identifier=user_identifier,
-            balance_to_deduct=-10000,  # Example amount to deduct
+            # amount to deduct (use negative amount to add balance)
+            balance_to_deduct=-int(payment_info.get("amount", 0)),
         )
         return {"id": payment_id, "balance": user.balance}
 

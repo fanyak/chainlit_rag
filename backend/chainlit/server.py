@@ -1730,9 +1730,7 @@ def status_check():
 
 
 @router.post("/order")
-async def create_order(
-    current_user: UserParam,
-):
+async def create_order(current_user: UserParam, amount_cents: int = 1000):
     """Create an order for premium features.
     @param current_user: The current authenticated user.
     FastApi extracts the value from the type Annotation
@@ -1750,7 +1748,7 @@ async def create_order(
     # if the utility function raises an fastAPI HTTPException,
     # then the path operation function will stop executing at that point
     # and fastAPI will return an HTTP error response with the detail
-    order_code = await create_viva_payment_order(current_user)
+    order_code = await create_viva_payment_order(current_user, amount_cents)
     return JSONResponse(content={"orderCode": order_code})
 
 
@@ -1848,7 +1846,10 @@ async def payment_webhook(request: Request):
     eventData = payload.get("EventData", {})
     statusId = eventData.get("StatusId")
     # TODO: change identifier to current_user.identifier
-    identifier = eventData.get("FullName", "")
+    identifier = eventData.get("MerchantTrns", "")
+    persisted_user = await data_layer.get_user(identifier=identifier)
+    if not persisted_user:
+        raise HTTPException(status_code=404, detail="User not found")
     if not statusId:
         raise HTTPException(
             status_code=400, detail="Invalid webhook payload: missing StatusId"
@@ -1862,14 +1863,14 @@ async def payment_webhook(request: Request):
     payment_payload = convert_hook_to_UserPaymentInfo(
         # TODO: change identifier to current_user.identifier
         payload,
-        {"identifier": identifier},
+        persisted_user,
     )
     try:
         # this is a utility function that is called inside the path operation function
         existing_payment = await data_layer.get_payment_by_transaction(
             transaction_id=payment_payload["transaction_id"],
             order_code=payment_payload["order_code"],
-            user_id=identifier,
+            user_id=persisted_user.identifier,
         )
         # if  None, then there was sql error
         if existing_payment is None:

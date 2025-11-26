@@ -1,5 +1,5 @@
 import { apiClient } from 'api';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // import Page from 'pages/Page';
@@ -22,62 +22,69 @@ export default function Order() {
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
 
-  // Capture URL parameters on mount
-  const t = query.get('t');
-  const s = query.get('s');
-  //const lang = query.get('lang');
-  const eventId = query.get('eventId');
-  const eci = query.get('eci');
-  const failure = query.get('failure');
-  if (failure && failure === '1') {
-    toast.error('Payment failed or was cancelled.');
-  }
-  const isPaymentCallback = t && s && eventId && eci ? true : false;
-  if (isPaymentCallback) {
-    console.log('Transaction ID:', t);
-    console.log('Order Code:', s);
-    console.log('Event ID:', eventId);
-    console.log('ECI:', eci);
+  useEffect(() => {
+    // Capture URL parameters on mount
+    const t = query.get('t');
+    const s = query.get('s');
+    //const lang = query.get('lang');
+    const eventId = query.get('eventId');
+    const eci = query.get('eci');
+    const failure = query.get('failure');
+    if (failure && String(failure) === '1') {
+      console.log('Payment failed or was cancelled.');
+      toast.error('Payment failed or was cancelled.');
+    }
+    const isPaymentCallback = t && s && eventId && eci ? true : false;
+    if (!failure && isPaymentCallback) {
+      console.log('Transaction ID:', t);
+      console.log('Order Code:', s);
+      console.log('Event ID:', eventId);
+      console.log('ECI:', eci);
 
-    // Handle payment callback here
-    // For example, verify the payment with your backend
-    // or show a success/failure message based on the status
-    // const payment_info = {
-    //   user_identifier: user?.identifier,
-    //   transaction_id: t,
-    //   order_code: s,
-    //   event_id: eventId,
-    //   eci: eci
-    // };
-    (async () => {
-      try {
-        const response = await apiClient.get(
-          `/transaction?transaction_id=${t}&order_code=${s}`
-        );
-        const transaction: TransactionResponse = await response.json();
-        console.log('Transaction details:', transaction);
-        if (transaction.user_id !== user?.identifier) {
-          toast.error('Failed to verify payment user.');
-          return;
-        }
-        if (transaction.transaction_id !== t || transaction.order_code !== s) {
-          toast.error('Payment was not successful.');
-          return;
-        }
-        toast.success('Payment processed successfully!');
-
-        // go back to home after 1 second
-        setTimeout(() => {
-          window.location.replace('/');
-        }, 1000);
-      } catch (error) {
+      // Handle payment callback here
+      // For example, verify the payment with your backend
+      // or show a success/failure message based on the status
+      // const payment_info = {
+      //   user_identifier: user?.identifier,
+      //   transaction_id: t,
+      //   order_code: s,
+      //   event_id: eventId,
+      //   eci: eci
+      // };
+      (async () => {
         // the apiClient throws an error if the response is not ok!!!
-        // it also shows a toast with the error message
-        // so no need to show another toast here
-        console.error('Error processing payment:', error);
-      }
-    })();
-  }
+        try {
+          const response = await apiClient.get(
+            `/transaction?transaction_id=${t}&order_code=${s}`
+          );
+          const transaction: TransactionResponse = await response.json();
+          console.log('Transaction details:', transaction);
+          // if (transaction.user_id !== user?.identifier) {
+          //   toast.error('Failed to verify payment user.');
+          //   return;
+          // }
+          if (
+            transaction.transaction_id !== t ||
+            transaction.order_code !== s
+          ) {
+            toast.error('Payment was not successful.');
+            return;
+          }
+          toast.success('Payment processed successfully!');
+
+          // go back to home after 1 second
+          setTimeout(() => {
+            window.location.replace('/');
+          }, 1000);
+        } catch (error) {
+          // the apiClient throws an error if the response is not ok!!!
+          // it also shows a toast with the error message
+          // so no need to show another toast here
+          console.error('Error processing payment:', error);
+        }
+      })();
+    }
+  }, [query]); // query is stable due to useMemo, so this runs once on mount
 
   const handleCreateOrder = async () => {
     if (!user) {
@@ -87,7 +94,7 @@ export default function Order() {
     setLoading(true);
     // use try because the apiClient throws an error if the response is not ok!!!
     try {
-      const response = await apiClient.post('/order', {});
+      const response = await apiClient.post('/order', { amount_cents: 1000 }); // 10 euros in cents
       const data = await response.json();
       //Note:  we don't need to check if orderCode is present in the response
       // because it is done in the backend (order.py) and it raises an Error Response if not

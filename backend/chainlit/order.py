@@ -8,7 +8,7 @@ import httpx
 from fastapi import HTTPException
 
 from chainlit.config import APP_ROOT
-from chainlit.user import User
+from chainlit.user import PersistedUser, User
 
 
 class UserPaymentInfo(TypedDict):
@@ -17,6 +17,7 @@ class UserPaymentInfo(TypedDict):
     order_code: str  # big int in viva payments
     event_id: int
     eci: int
+    amount: int
     created: Optional[str]
 
 
@@ -36,6 +37,7 @@ class WebHookEventData(TypedDict):
     TransactionId: str
     OrderCode: str
     ElectronicCommerceIndicator: int
+    Amount: int
 
 
 class VivaWebhookPayload(TypedDict):
@@ -46,14 +48,15 @@ class VivaWebhookPayload(TypedDict):
 
 
 def convert_hook_to_UserPaymentInfo(
-    data: VivaWebhookPayload, persisted_user
+    data: VivaWebhookPayload, persisted_user: PersistedUser
 ) -> UserPaymentInfo:
     return UserPaymentInfo(
-        user_identifier=persisted_user["identifier"],
+        user_identifier=persisted_user.identifier,
         transaction_id=data["EventData"]["TransactionId"],
         order_code=str(data["EventData"]["OrderCode"]),
         event_id=data["EventTypeId"],
         eci=data["EventData"]["ElectronicCommerceIndicator"],
+        amount=data["EventData"]["Amount"],
         created=data["Created"],
     )
 
@@ -85,22 +88,24 @@ def get_viva_webhook_key() -> dict | None:
     return key
 
 
-async def create_viva_payment_order(user: User) -> str:
+async def create_viva_payment_order(user: User, amount_cents: int) -> str:
     """Create a new order."""
     # Here you would add logic to process the order
     orderCode = None
     token = get_viva_payment_token()
     payload = {
-        "amount": 1000,  # amount in euros cents (1 euro = 100 cents)
-        "customerTrns": "αγορά από Chainlit RAG για tokens αξίας 10 ευρώ",
+        # FOR FAILURE: 99.06 euros in cents (1 euro = 100 cents)
+        # "amount": 9906,
+        "amount": amount_cents,  # amount in cents (1 euro = 100 cents)
+        "customerTrns": f"αγορά από Chainlit RAG για tokens αξίας {amount_cents / 100} ευρώ από τον χρήστη {user.identifier}",
         "customer": {
             "email": "",
-            "fullName": f"{user.identifier}",
+            "fullName": "",
             "phone": "",
             "countryCode": "GR",
             "requestLang": "gr-GR",
         },
-        "dynamicDescriptor": "viva payments",
+        "dynamicDescriptor": "viva payment",
         "paymentTimeout": 1800,
         "currencyCode": 978,
         "preauth": False,
@@ -110,9 +115,10 @@ async def create_viva_payment_order(user: User) -> str:
         "paymentNotification": False,
         "tipAmount": 0,
         "disableExactAmount": False,
-        "disableCash": False,
+        "disableCash": True,
         "disableWallet": False,
         "sourceCode": "Default",
+        "merchantTrns": f"{user.identifier}",
     }
     # this is defaults to cwd
     # which is : C:\Users\fanyak\chainlit_rag\backend

@@ -236,6 +236,7 @@ class db_object:
                         order_code TEXT NOT NULL,
                         event_id INT NOT NULL,
                         eci INT NOT NULL,
+                        amount REAL NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (user_id) REFERENCES users(identifier) ON DELETE NO ACTION
                     )
