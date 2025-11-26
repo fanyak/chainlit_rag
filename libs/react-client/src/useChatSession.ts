@@ -146,7 +146,8 @@ const useChatSession = () => {
               promise = client.connectStreamableHttpMCP(
                 sessionId,
                 mcp.name,
-                mcp.url!
+                mcp.url!,
+                mcp.headers || {}
               );
             } else {
               promise = client.connectStdioMCP(
@@ -241,7 +242,9 @@ const useChatSession = () => {
       });
 
       socket.on('resume_thread', (thread: IThread) => {
-        const isReadOnlyView = Boolean((thread as any)?.metadata?.viewer_read_only);
+        const isReadOnlyView = Boolean(
+          (thread as any)?.metadata?.viewer_read_only
+        );
         if (!isReadOnlyView && idToResume && thread.id !== idToResume) {
           window.location.href = `/thread/${thread.id}`;
         }
