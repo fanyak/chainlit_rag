@@ -180,9 +180,7 @@ export default function Login() {
           </div>
         </div>
         <footer>
-          <div style={{ marginTop: '16px', color: 'var(--muted)' }}>
-            Ανάπτυξη · Φορολογικός Βοηθός — Foros Chatbot
-          </div>
+          <div>Ανάπτυξη · Φορολογικός Βοηθός — Foros Chatbot</div>
         </footer>
       </main>
     </div>
