@@ -413,6 +413,11 @@
   color: var(--muted);
 }
 
+.custom-pg footer div {
+  margin: 1rem 1.2rem;
+  color: var(--muted);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -480,5 +485,202 @@ li {
 @media (max-width: 599px) {
   .chip.text-sm {
     font-size: 0.75rem !important;
+  }
+}
+
+/* Pricing Plans CSS */
+
+.pricing-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.pricing-container .intro {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.pricing-container .intro h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.pricing-container.intro p {
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+  color: #5f6368;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.pricing-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #dadce0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+}
+
+.pricing-card .featured {
+  border: 2px solid #1a73e8;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+}
+
+.pricing-card .card-header {
+  padding: 2rem 1.5rem;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.pricing-card .card-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.pricing-card .card-price {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #1a73e8;
+  margin-bottom: 0.5rem;
+}
+
+.pricing-card .card-price span {
+  font-size: 1rem;
+  color: #5f6368;
+}
+.pricing-card .card-description {
+  font-size: 0.875rem;
+  color: #5f6368;
+}
+
+.pricing-card .card-body {
+  padding: 1.5rem;
+}
+
+.pricing-card .features-list {
+  list-style: none;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-card .features-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e8eaed;
+  font-size: 0.95rem;
+  color: #3c4043;
+}
+
+.pricing-card.features-list li:last-child {
+  border-bottom: none;
+}
+
+.pricing-card .features-list li::before {
+  content: '✓ ';
+  color: #1a73e8;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.pricing-card .card-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e8eaed;
+}
+
+.pricing-card .card-footer .btn {
+  display: inline-block;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.pricing-card .card-footer .btn-primary {
+  background: #1a73e8;
+  color: white;
+}
+
+.pricing-card .card-footer .btn-primary:hover {
+  background: #0043b2;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.pricing-card .card-footer.btn-secondary {
+  background: #f8f9fa;
+  color: #1a73e8;
+  border: 1px solid #dadce0;
+}
+
+.pricing-card .card-footer .btn-secondary:hover {
+  background: #f1f3f4;
+  border-color: #cce0fc;
+}
+
+.pricing-comparison-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.pricing-comparison-section .comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.pricing-comparison-section .comparison-table th,
+.pricing-comparison-section .comparison-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.pricing-comparison-section .comparison-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.pricing-comparison-section .comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pricing-comparison-section .feature-name {
+  font-weight: 500;
+  width: 40%;
+}
+
+@media (max-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-card header h1 {
+    font-size: 1.5rem;
+  }
+
+  .pricing-card .card-price {
+    font-size: 1.5rem;
   }
 }

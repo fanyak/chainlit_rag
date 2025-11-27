@@ -46,7 +46,8 @@ export default function AppWrapper() {
     isReady &&
     !isAuthenticated &&
     window.location.pathname !== getRouterBasename() + '/login' &&
-    window.location.pathname !== getRouterBasename() + '/login/callback'
+    window.location.pathname !== getRouterBasename() + '/login/callback' &&
+    window.location.pathname !== getRouterBasename() + '/order'
   ) {
     window.location.href = getRouterBasename() + '/login';
   }
