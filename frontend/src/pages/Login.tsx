@@ -83,10 +83,10 @@ export default function Login() {
   return (
     <div className="custom-pg">
       <main className="wrap" role="main" aria-labelledby="app-title">
-        <header className="header" role="banner" aria-label="Top navigation">
+        <header role="banner" aria-label="Top navigation">
           <div className="brand">
             <div className="logo-img-container">
-              <Logo className="w-[60px]" />
+              <Logo className="w-[50px]" />
             </div>
             <div className="brand-title">
               <p className="title" id="app-title">

@@ -74,8 +74,8 @@ export default memo(function SearchBox({
         setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
       } else {
         setQuickQueryHtml(setDisplayText(inputText, false));
-        inputRef.current?.focus();
       }
+      inputRef.current?.focus();
       return;
     }
     let ignore = false;
