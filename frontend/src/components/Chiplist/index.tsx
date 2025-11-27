@@ -21,10 +21,12 @@ const fetcher = (signal: AbortSignal): Promise<QueryItem[]> => {
 export default function ChipList({
   callbackUrl,
   providers,
+  inputref,
   onOAuthSignIn
 }: {
   callbackUrl: string;
   providers: string[];
+  inputref: React.RefObject<HTMLDivElement>;
   onOAuthSignIn?: (provider: string, callbackUrl: string) => Promise<any>;
 }) {
   const [queries, setQueries] = useState<QueryItem[]>([]);
@@ -107,6 +109,7 @@ export default function ChipList({
         })}
       </div>
       <SearchBox
+        inputRef={inputref}
         quickQuery={quickQuery}
         onReset={handleReset}
         onAsk={handleAsk}

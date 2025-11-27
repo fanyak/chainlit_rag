@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Dispatch, Fragment, SetStateAction, useEffect, useState } from 'react';
 
-function BotSim() {
+function BotSim({ inputRef }: { inputRef: React.RefObject<HTMLDivElement> }) {
   const messages: string[] = [
     'Χαίρεται! Είμαι ο Φορολογικός Βοηθός',
     'Είμαι bot ειδικά εκπαιδευμένο να απαντά σε ερωτήσεις σχετικά με την ελληνική φορολογική νομοθεσία.',
@@ -133,6 +133,8 @@ function BotSim() {
         });
       } catch (error) {
         console.log('yielded rejected or aborted promise', error);
+      } finally {
+        inputRef.current?.focus();
       }
     })();
 

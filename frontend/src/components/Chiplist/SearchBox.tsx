@@ -1,7 +1,7 @@
 import { AskProvider } from '@/contexts/AskContext';
 import { escapeHtml } from '@/lib/utils';
 import clsx from 'clsx';
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -10,18 +10,18 @@ const PLACEHOLDER_TEXT =
 
 export default memo(function SearchBox({
   quickQuery,
+  inputRef,
   onReset,
   onAsk
 }: {
   quickQuery: string;
+  inputRef: React.RefObject<HTMLDivElement>;
   onReset: () => void;
   onAsk: () => void;
 }) {
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
   const [inputText, setInputText] = useState('');
-
-  const inputRef = useRef<HTMLDivElement>(null);
 
   // Context value for AskProvider
   const askContextValue = {
@@ -74,8 +74,8 @@ export default memo(function SearchBox({
         setQuickQueryHtml(setDisplayText(PLACEHOLDER_TEXT, false));
       } else {
         setQuickQueryHtml(setDisplayText(inputText, false));
+        inputRef.current?.focus();
       }
-      inputRef.current?.focus();
       return;
     }
     let ignore = false;

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import BotSim from '@/components/BotSim';
@@ -20,6 +20,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const apiClient = useContext(ChainlitContext);
   const navigate = useNavigate();
+
+  const inputRef = useRef<HTMLDivElement>(null);
 
   const handleCookieAuth = (json: any): void => {
     if (json?.success != true) throw LoginError;
@@ -148,13 +150,14 @@ export default function Login() {
           </div>
 
           <div className="card" aria-labelledby="samples-title">
-            <BotSim />
+            <BotSim inputRef={inputRef} />
             <strong id="samples-title" className="mt-4">
               Δείγματα ερωτήσεων
             </strong>
             <ChipList
               callbackUrl="/"
               providers={config?.oauthProviders || []}
+              inputref={inputRef}
               onOAuthSignIn={async (provider: string) => {
                 window.location.href = apiClient.getOAuthEndpoint(provider);
               }}
