@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 // import Page from 'pages/Page';
 import { useAuth } from '@chainlit/react-client';
 
+import { CustomHeader } from '@/components/CustomHeader';
 import PaymentPlants from '@/components/PaymentPlants';
+import { ProviderButton } from '@/components/ProviderButton';
 
 import { useQuery } from 'hooks/query';
 
@@ -19,10 +21,16 @@ interface TransactionResponse {
 }
 
 export default function Order() {
-  const { user } = useAuth();
+  const { data: config, user } = useAuth();
   const query = useQuery();
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
+
+  const oAuthReady = config?.oauthProviders.length;
+  const providers = config?.oauthProviders || [];
+  const onOAuthSignIn = async (provider: string) => {
+    window.location.href = apiClient.getOAuthEndpoint(provider);
+  };
 
   useEffect(() => {
     let t: string | null = null;
@@ -87,7 +95,7 @@ export default function Order() {
     }
   }, [useQuery]); // so this runs once on mount and if queryParameters change
 
-  const handleCreateOrder = async () => {
+  const handleCreateOrder = async (amount = 1000) => {
     if (!user) {
       toast.error('You must be logged in to create an order');
       return;
@@ -95,7 +103,7 @@ export default function Order() {
     setLoading(true);
     // use try because the apiClient throws an error if the response is not ok!!!
     try {
-      const response = await apiClient.post('/order', { amount_cents: 1000 }); // 10 euros in cents
+      const response = await apiClient.post('/order', { amount_cents: amount }); // 10 euros in cents
       const data = await response.json();
       //Note:  we don't need to check if orderCode is present in the response
       // because it is done in the backend (order.py) and it raises an Error Response if not
@@ -126,27 +134,41 @@ export default function Order() {
   };
 
   return (
-    //<Page>
-    <>
-      <div className="custom-pg flex flex-col items-center justify-center h-full w-full p-8 space-y-6">
-        <h1 className="text-3xl font-bold">Create Viva Payment Order</h1>
+    <div className="custom-pg flex flex-col items-center justify-center h-full w-full">
+      <main className="wrap" role="main" aria-label="app-title">
+        <CustomHeader />
 
         {user ? (
-          <div className="bg-gray-100 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Logged in as:</p>
-            <p className="font-semibold text-gray-600">{user.identifier}</p>
-          </div>
+          // <div className="bg-gray-100 p-4 rounded-lg">
+          //   <p className="text-sm text-gray-600">Logged in as:</p>
+          //   <p className="font-semibold text-gray-600">{user.identifier}</p>
+          // </div>
+          <h1 className="text-3xl font-bold">
+            Παραγγείλετε μέσω της Viva Payment
+          </h1>
         ) : (
-          <p className="text-red-500">Please log in to create an order</p>
+          (oAuthReady && (
+            <div className="grid gap-2">
+              {providers.map((provider, index) => (
+                <ProviderButton
+                  key={`provider-${index}`}
+                  provider={provider}
+                  onClick={() => onOAuthSignIn?.(provider)}
+                />
+              ))}
+            </div>
+          )) ||
+          null
         )}
 
-        <button
+        {/* <button
           onClick={handleCreateOrder}
           disabled={loading || !user}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Creating Order...' : 'Create Order'}
-        </button>
+        > */}
+
+        {loading ? 'Creating Order...' : 'Create Order'}
+        {/* </button> */}
 
         {orderCode && (
           <div className="bg-green-50 border border-green-200 p-6 rounded-lg space-y-2">
@@ -157,8 +179,12 @@ export default function Order() {
             </code>
           </div>
         )}
-        <PaymentPlants />
-      </div>
-    </>
+        <PaymentPlants
+          createOrder={handleCreateOrder}
+          user={user}
+          loading={loading}
+        />
+      </main>
+    </div>
   );
 }

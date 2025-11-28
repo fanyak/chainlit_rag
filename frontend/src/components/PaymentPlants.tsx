@@ -1,8 +1,18 @@
-function PaymentPlants() {
+import { IUser } from 'client-types/*';
+
+function PaymentPlants({
+  createOrder,
+  loading,
+  user
+}: {
+  createOrder: (amount: number) => Promise<void>;
+  loading: boolean;
+  user: IUser | null | undefined;
+}) {
   return (
     <div className="pricing-container">
       <div className="intro">
-        <h2>Choose Your Plan</h2>
+        <h2>Choose Your Plan {user?.identifier}</h2>
         <p>
           Google Colab offers flexible pricing options to suit your needs, from
           free access to professional enterprise solutions.
@@ -14,7 +24,7 @@ function PaymentPlants() {
       </div>
 
       <div className="pricing-grid">
-        <div className="pricing-card">
+        {/* <div className="pricing-card">
           <div className="card-header">
             <h3 className="card-title">Colab</h3>
             <div className="card-price">Free</div>
@@ -32,13 +42,13 @@ function PaymentPlants() {
           <div className="card-footer">
             <button className="btn btn-secondary">Get Started</button>
           </div>
-        </div>
+        </div> */}
 
         <div className="pricing-card featured">
           <div className="card-header">
             <h3 className="card-title">Colab Pro</h3>
             <div className="card-price">
-              $9.99<span>/month</span>
+              5€<span>/month</span>
             </div>
             <p className="card-description">
               For regular users and researchers
@@ -55,7 +65,13 @@ function PaymentPlants() {
             </ul>
           </div>
           <div className="card-footer">
-            <button className="btn btn-primary">Subscribe Now</button>
+            <button
+              className="btn btn-primary"
+              onClick={() => createOrder(500)}
+              disabled={loading || !user}
+            >
+              Subscribe Now
+            </button>
           </div>
         </div>
 
@@ -63,7 +79,7 @@ function PaymentPlants() {
           <div className="card-header">
             <h3 className="card-title">Colab Pro+</h3>
             <div className="card-price">
-              $49.99<span>/month</span>
+              10€<span>/month</span>
             </div>
             <p className="card-description">For advanced computing needs</p>
           </div>
@@ -79,11 +95,17 @@ function PaymentPlants() {
             </ul>
           </div>
           <div className="card-footer">
-            <button className="btn btn-primary">Subscribe Now</button>
+            <button
+              className="btn btn-primary"
+              onClick={() => createOrder(1000)}
+              disabled={loading || !user}
+            >
+              Subscribe Now
+            </button>
           </div>
         </div>
 
-        <div className="pricing-card">
+        {/* <div className="pricing-card">
           <div className="card-header">
             <h3 className="card-title">Colab Enterprise</h3>
             <div className="card-price">Custom</div>
@@ -103,7 +125,7 @@ function PaymentPlants() {
           <div className="card-footer">
             <button className="btn btn-secondary">Contact Sales</button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="comparison-section">

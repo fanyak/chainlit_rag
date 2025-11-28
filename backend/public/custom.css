@@ -63,9 +63,19 @@
 .text-primary {
   color: hsl(210, 100%, 70%) !important;
 }
+html {
+  container-type: size;
+  container-name: element;
+}
+@container element (height > 100px) {
+  .custom-pg {
+    height: 100cqh;
+  }
+}
 
 .custom-pg {
   min-height: 100vh;
+  max-width: 100vw;
   margin: 0;
   font-size: 1rem !important; /* base font size 16px */
   background: var(--bg) !important;
@@ -77,8 +87,8 @@
 }
 
 .custom-pg .wrap {
-  max-width: 100vw;
   height: 100%;
+  width: 100%;
   /* font-size: 1.125rem; */
   margin: 0 auto;
   padding: 0;
@@ -573,23 +583,23 @@ li {
   padding: 1.5rem;
 }
 
-.pricing-card .features-list {
+.pricing-card .plan-features-list {
   list-style: none;
   margin-bottom: 1.5rem;
 }
 
-.pricing-card .features-list li {
+.pricing-card .plan-features-list li {
   padding: 0.75rem 0;
   border-bottom: 1px solid #e8eaed;
   font-size: 0.95rem;
   color: #3c4043;
 }
 
-.pricing-card.features-list li:last-child {
+.pricing-card .plan-features-list li:last-child {
   border-bottom: none;
 }
 
-.pricing-card .features-list li::before {
+.pricing-card .plan-features-list li::before {
   content: '✓ ';
   color: #1a73e8;
   font-weight: bold;

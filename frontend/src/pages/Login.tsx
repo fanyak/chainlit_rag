@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 import BotSim from '@/components/BotSim';
 import ChipList from '@/components/Chiplist';
+import { CustomHeader } from '@/components/CustomHeader';
 import { LoginForm } from '@/components/LoginForm';
-import { Logo } from '@/components/Logo';
 
 import { useQuery } from 'hooks/query';
 
@@ -84,43 +84,8 @@ export default function Login() {
 
   return (
     <div className="custom-pg">
-      <main className="wrap" role="main" aria-labelledby="app-title">
-        <header role="banner" aria-label="Top navigation">
-          <div className="brand">
-            <div className="logo-img-container">
-              <Logo className="w-[50px]" />
-            </div>
-            <div className="brand-title">
-              <p className="title" id="app-title">
-                Foros Chatbot — Φορολογικός Βοηθός
-              </p>
-              <p className="tag">
-                Αξιόπιστες απαντήσεις σχετικά με την ελληνική φορολογική
-                νομοθεσία
-              </p>
-            </div>
-          </div>
-          <nav className="primary-nav" aria-label="Κύρια πλοήγηση">
-            <a href="/spec" title="Προδιαγραφή">
-              Προδιαγραφή
-            </a>
-            <a href="/guide" title="Οδηγός">
-              Οδηγός
-            </a>
-            <a href="/examples" title="Παραδείγματα">
-              Παραδείγματα
-            </a>
-            <a href="/about" title="Περί">
-              Περί
-            </a>
-          </nav>
-
-          <div
-            className="header-cta"
-            role="region"
-            aria-label="Ενέργειες"
-          ></div>
-        </header>
+      <main className="wrap" role="main" aria-label="app-title">
+        <CustomHeader />
         <div className="features" aria-hidden="false">
           <div className="card card--left" aria-labelledby="features-title">
             <strong id="features-title">Τι κάνει η εφαρμογή</strong>
