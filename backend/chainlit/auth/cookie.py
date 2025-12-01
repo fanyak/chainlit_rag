@@ -183,6 +183,11 @@ def set_oauth_state_cookie(response: Response, token: str):
     )
 
 
+def get_oauth_state_cookie(request: Request) -> Optional[str]:
+    """Retrieve the oauth state token from the cookie."""
+    return request.cookies.get(_state_cookie_name)
+
+
 def validate_oauth_state_cookie(request: Request, state: str):
     """Check the state from the oauth provider against the browser cookie."""
 

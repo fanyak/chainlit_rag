@@ -98,7 +98,7 @@ export default function Order() {
   const handleCreateOrder = async (amount = 1000) => {
     if (!user) {
       toast.error('You must be logged in to create an order');
-      return;
+      return onOAuthSignIn(providers[0]);
     }
     setLoading(true);
     // use try because the apiClient throws an error if the response is not ok!!!

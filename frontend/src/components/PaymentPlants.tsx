@@ -1,5 +1,7 @@
 import { IUser } from 'client-types/*';
 
+import { Button } from './ui/button';
+
 function PaymentPlants({
   createOrder,
   loading,
@@ -48,7 +50,7 @@ function PaymentPlants({
           <div className="card-header">
             <h3 className="card-title">Colab Pro</h3>
             <div className="card-price">
-              5€<span>/month</span>
+              5€<span></span>
             </div>
             <p className="card-description">
               For regular users and researchers
@@ -65,13 +67,21 @@ function PaymentPlants({
             </ul>
           </div>
           <div className="card-footer">
-            <button
+            {/* <button
               className="btn btn-primary"
               onClick={() => createOrder(500)}
               disabled={loading || !user}
             >
               Subscribe Now
-            </button>
+            </button> */}
+            <Button
+              type="button"
+              variant="front"
+              onClick={() => createOrder(500)}
+              disabled={loading || !user}
+            >
+              αγορά συνδρομής
+            </Button>
           </div>
         </div>
 
@@ -79,7 +89,7 @@ function PaymentPlants({
           <div className="card-header">
             <h3 className="card-title">Colab Pro+</h3>
             <div className="card-price">
-              10€<span>/month</span>
+              10€<span></span>
             </div>
             <p className="card-description">For advanced computing needs</p>
           </div>
@@ -95,13 +105,21 @@ function PaymentPlants({
             </ul>
           </div>
           <div className="card-footer">
-            <button
+            {/* <button
               className="btn btn-primary"
               onClick={() => createOrder(1000)}
               disabled={loading || !user}
             >
               Subscribe Now
-            </button>
+            </button> */}
+            <Button
+              type="button"
+              variant="front"
+              onClick={() => createOrder(1000)}
+              disabled={loading || !user}
+            >
+              αγορά συνδρομής
+            </Button>
           </div>
         </div>
 

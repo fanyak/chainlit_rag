@@ -198,6 +198,15 @@ async def lifespan(app: FastAPI):
         os._exit(0)
 
 
+def get_referer_from_state(state: str) -> str:
+    """Extract the referer from the state cookie."""
+    try:
+        _, referer = state.split(".", 1)
+        return referer
+    except ValueError:
+        return ""
+
+
 def get_build_dir(local_target: str, packaged_target: str) -> str:
     """
     Get the build directory based on the UI build strategy.
@@ -627,11 +636,14 @@ async def oauth_login(provider_id: str, request: Request):
 
     random = random_secret(32)
 
+    referer = request.headers.get("referer", "")
+    state_cookie = f"{random}.{referer}"
+
     params = urllib.parse.urlencode(
         {
             "client_id": provider.client_id,
             "redirect_uri": f"{get_user_facing_url(request.url)}/callback",
-            "state": random,
+            "state": state_cookie,
             **provider.authorize_params,
         }
     )
@@ -639,7 +651,7 @@ async def oauth_login(provider_id: str, request: Request):
         url=f"{provider.authorize_url}?{params}",
     )
 
-    set_oauth_state_cookie(response, random)
+    set_oauth_state_cookie(response, state_cookie)
 
     return response
 
