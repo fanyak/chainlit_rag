@@ -9,6 +9,7 @@ import shutil
 import urllib.parse
 import webbrowser
 from contextlib import AsyncExitStack, asynccontextmanager
+from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union, cast
 
@@ -89,6 +90,10 @@ from ._utils import is_path_inside
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
+
+
+# functional syntax
+HOSTS = Enum("HOST", [(config.run.host, 1), ("http://localhost", 2)])
 
 
 @asynccontextmanager
@@ -637,7 +642,17 @@ async def oauth_login(provider_id: str, request: Request):
     random = random_secret(32)
 
     referer = request.headers.get("referer", "")
-    state_cookie = f"{random}.{referer}"
+    referer = urllib.parse.urlparse(referer)
+    referer_path = referer.path
+    referer_hostname = referer.hostname
+
+    if referer_hostname not in HOSTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid referer hostname",
+        )
+
+    state_cookie = f"{random}.{referer_path}"
 
     params = urllib.parse.urlencode(
         {
