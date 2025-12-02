@@ -45,7 +45,10 @@ export const runChainlit = async (
     const options: SpawnOptionsWithoutStdio = {
       env: {
         ...process.env,
-        CHAINLIT_APP_ROOT: testDir
+        CHAINLIT_APP_ROOT: testDir,
+        OAUTH_GITHUB_CLIENT_ID: 'dummy_id',
+        OAUTH_GITHUB_CLIENT_SECRET: 'dummy_secret',
+        CHAINLIT_AUTH_SECRET: 'dummy_secret'
       }
     };
 

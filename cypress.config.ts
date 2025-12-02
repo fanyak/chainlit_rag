@@ -1,11 +1,12 @@
 import { defineConfig } from 'cypress';
-import fkill from 'fkill';
 
+//import fkill from 'fkill';
 import { runChainlit } from './cypress/support/run';
 
 export const CHAINLIT_APP_PORT = 8000;
 
 async function killChainlit() {
+  const fkill = (await eval('import("fkill")')).default;
   await fkill(`:${CHAINLIT_APP_PORT}`, {
     force: true,
     silent: true
