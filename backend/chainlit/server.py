@@ -9,8 +9,9 @@ import shutil
 import urllib.parse
 import webbrowser
 from contextlib import AsyncExitStack, asynccontextmanager
+from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union, cast
+from typing import List, NamedTuple, Optional, Union, cast
 
 import socketio
 from fastapi import (
@@ -36,10 +37,14 @@ from watchfiles import awatch
 
 from chainlit.auth import create_jwt, decode_jwt, get_configuration, get_current_user
 from chainlit.auth.cookie import (
+    RefererData,
     clear_auth_cookie,
     clear_oauth_state_cookie,
+    clear_redirect_path_cookie,
+    get_redirect_path_cookie,
     set_auth_cookie,
     set_oauth_state_cookie,
+    set_redirect_path_cookie,
     validate_oauth_state_cookie,
 )
 from chainlit.config import (
@@ -89,6 +94,9 @@ from ._utils import is_path_inside
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
+
+# functional syntax
+HOSTS = Enum("HOST", [(config.run.host, config.run.host), ("localhost", "localhost")])
 
 
 @asynccontextmanager
@@ -473,7 +481,9 @@ def _get_response_dict(access_token: str) -> dict:
     return {"success": True}
 
 
-def _get_auth_response(access_token: str, redirect_to_callback: bool) -> Response:
+def _get_auth_response(
+    access_token: str, redirect_to_callback: bool, redirect_data: Optional[RefererData]
+) -> Response:
     """Get the redirect params for the OAuth callback."""
 
     response_dict = _get_response_dict(access_token)
@@ -481,9 +491,19 @@ def _get_auth_response(access_token: str, redirect_to_callback: bool) -> Respons
     if redirect_to_callback:
         root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
         root_path = "" if root_path == "/" else root_path
-        redirect_url = (
-            f"{root_path}/login/callback?{urllib.parse.urlencode(response_dict)}"
-        )
+        if redirect_data is None or "login" in redirect_data.get("referer_path", ""):
+            print("LOGINNNNNNNNNNNNRedirecting to login callback", redirect_data)
+            redirect_url = (
+                f"{root_path}/login/callback?{urllib.parse.urlencode(response_dict)}"
+            )
+        else:
+            params = (
+                f"?{urllib.parse.urlencode(redirect_data.get('referer_query', ''))}"
+                if redirect_data.get("referer_query")
+                else ""
+            )
+            redirect_url = f"{redirect_data.get('referer_path', '/')}{params}"
+            print("REDIRECTING TO:", redirect_url)
 
         return RedirectResponse(
             # FIXME: redirect to the right frontend base url to improve the dev environment
@@ -527,9 +547,13 @@ async def _authenticate_user(
 
     access_token = create_jwt(user)
 
-    response = _get_auth_response(access_token, redirect_to_callback)
+    redirect_data: Optional[RefererData] = get_redirect_path_cookie(request)
 
+    response = _get_auth_response(access_token, redirect_to_callback, redirect_data)
     set_auth_cookie(request, response, access_token)
+
+    if redirect_data:
+        clear_redirect_path_cookie(response, redirect_data.get("name", ""))
 
     return response
 
@@ -627,6 +651,17 @@ async def oauth_login(provider_id: str, request: Request):
 
     random = random_secret(32)
 
+    referer: str = request.headers.get("referer", "")
+    print("REFERER!!!!!!!!!!!!!!!!!!:", referer)
+    referer: NamedTuple = urllib.parse.urlparse(referer)
+    referer_hostname = referer.hostname or ""
+    print("REFERER HOSTNAME:", referer_hostname)
+    if referer_hostname not in HOSTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid referer hostname",
+        )
+
     params = urllib.parse.urlencode(
         {
             "client_id": provider.client_id,
@@ -640,6 +675,7 @@ async def oauth_login(provider_id: str, request: Request):
     )
 
     set_oauth_state_cookie(response, random)
+    set_redirect_path_cookie(response, random, referer)
 
     return response
 

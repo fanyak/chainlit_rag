@@ -1,5 +1,7 @@
+import json
 import os
-from typing import Literal, Optional, cast
+import re
+from typing import Literal, NamedTuple, Optional, TypedDict, cast
 
 from fastapi import Request, Response
 from fastapi.exceptions import HTTPException
@@ -8,6 +10,11 @@ from fastapi.security.utils import get_authorization_scheme_param
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from chainlit.config import config
+
+
+def parse_to_cookie_key(input_str: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]", "_", input_str).lower()
+
 
 """ Module level cookie settings. """
 _cookie_samesite = cast(
@@ -30,6 +37,12 @@ else:
 _state_cookie_lifetime = 3 * 60  # 3m
 _auth_cookie_name = os.environ.get("CHAINLIT_AUTH_COOKIE_NAME", "access_token")
 _state_cookie_name = "oauth_state"
+
+
+class RefererData(TypedDict):
+    referer_path: str
+    referer_query: str
+    name: str | None
 
 
 class OAuth2PasswordBearerWithCookie(SecurityBase):
@@ -195,3 +208,48 @@ def validate_oauth_state_cookie(request: Request, state: str):
 def clear_oauth_state_cookie(response: Response):
     """Oauth complete, delete state token."""
     response.delete_cookie(_state_cookie_name)  # Do we set path here?
+
+
+def set_redirect_path_cookie(response: Response, random: str, referer: NamedTuple):
+    """set redirect state in cookie."""
+    """ REF: https://auth0.com/docs/secure/attack-protection/state-parameters#redirect-users"""
+    if not random:
+        return
+    state_param_name = parse_to_cookie_key(random)
+    response.set_cookie(
+        key=state_param_name,
+        value=json.dumps(
+            {
+                "referer_path": referer.path,
+                "referer_query": referer.query,
+                "name": state_param_name,
+            }
+        ),
+        httponly=True,
+        secure=_cookie_secure,
+        samesite=_cookie_samesite,
+        max_age=_state_cookie_lifetime,
+    )
+
+
+def get_redirect_path_cookie(request: Request) -> Optional[RefererData]:
+    """get redirect state from cookie."""
+    random = request.cookies.get(_state_cookie_name)
+    if not random:
+        return None
+    state_param_name = parse_to_cookie_key(random)
+    print(f"state_param_name: {state_param_name}", request.cookies)
+    redirect_data = request.cookies.get(state_param_name) if state_param_name else None
+    if redirect_data is None:
+        return None
+    return json.loads(redirect_data)
+
+
+def clear_redirect_path_cookie(response: Response, name: str):
+    """Delete redirect path cookie."""
+    try:
+        print(f"Deleting redirect path cookie: {name}")
+        response.delete_cookie(name)
+    except Exception as e:
+        print(f"Could not delete redirect path cookie!!!!!!!!: {e}")
+        pass
