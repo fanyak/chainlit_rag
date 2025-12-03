@@ -10,6 +10,7 @@ describe('Header auth', () => {
   });
 
   describe('with authorization header set', () => {
+    let interceptionPromise;
     const setupInterceptors = () => {
       cy.intercept('/auth/header', (req) => {
         req.headers['test-header'] = 'test header value';
@@ -17,8 +18,9 @@ describe('Header auth', () => {
       }).as('auth');
 
       // Only intercept /user _after_ we're logged in.
-      cy.wait('@auth').then(() => {
+      cy.wait('@auth').then((interception) => {
         cy.intercept('GET', '/user').as('user');
+        interceptionPromise = Promise.resolve(interception);
       });
     };
 
@@ -28,7 +30,7 @@ describe('Header auth', () => {
 
     const shouldBeLoggedIn = () => {
       it('should have an access_token cookie in /auth/header response', () => {
-        cy.wait('@auth').then((interception) => {
+        interceptionPromise.then((interception) => {
           expect(interception.response, 'Intercepted response').to.satisfy(
             () => true
           );
