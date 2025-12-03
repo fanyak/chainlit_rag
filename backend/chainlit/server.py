@@ -11,7 +11,7 @@ import webbrowser
 from contextlib import AsyncExitStack, asynccontextmanager
 from enum import Enum
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Union, cast
+from typing import List, Optional, Union, cast
 
 import socketio
 from fastapi import (
@@ -96,7 +96,7 @@ mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
 # functional syntax
-HOSTS = Enum("HOST", [(config.run.host, config.run.host), ("localhost", "localhost")])
+HOSTS = Enum("HOSTS", [("localhost", "localhost")])
 
 
 @asynccontextmanager
@@ -497,12 +497,12 @@ def _get_auth_response(
                 f"{root_path}/login/callback?{urllib.parse.urlencode(response_dict)}"
             )
         else:
-            params = (
-                f"?{urllib.parse.urlencode(redirect_data.get('referer_query', ''))}"
-                if redirect_data.get("referer_query")
-                else ""
-            )
-            redirect_url = f"{redirect_data.get('referer_path', '/')}{params}"
+            # params = (
+            #     f"?{urllib.parse.urlencode(redirect_data.get('referer_query', ''))}"
+            #     if redirect_data.get("referer_query")
+            #     else ""
+            # )
+            redirect_url = redirect_data.get("referer_path", "/")
             print("REDIRECTING TO:", redirect_url)
 
         return RedirectResponse(
@@ -651,9 +651,9 @@ async def oauth_login(provider_id: str, request: Request):
 
     random = random_secret(32)
 
-    referer: str = request.headers.get("referer", "")
-    print("REFERER!!!!!!!!!!!!!!!!!!:", referer)
-    referer: NamedTuple = urllib.parse.urlparse(referer)
+    referer_raw: str = request.headers.get("referer", "")
+    print("REFERER!!!!!!!!!!!!!!!!!!:", referer_raw)
+    referer: urllib.parse.ParseResult = urllib.parse.urlparse(referer_raw)
     referer_hostname = referer.hostname or ""
     print("REFERER HOSTNAME:", referer_hostname)
     if referer_hostname not in HOSTS:

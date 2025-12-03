@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import Literal, NamedTuple, Optional, TypedDict, cast
+from typing import Literal, Optional, TypedDict, cast
 
 from fastapi import Request, Response
 from fastapi.exceptions import HTTPException
@@ -42,7 +42,7 @@ _state_cookie_name = "oauth_state"
 class RefererData(TypedDict):
     referer_path: str
     referer_query: str
-    name: str | None
+    name: str
 
 
 class OAuth2PasswordBearerWithCookie(SecurityBase):
@@ -210,7 +210,7 @@ def clear_oauth_state_cookie(response: Response):
     response.delete_cookie(_state_cookie_name)  # Do we set path here?
 
 
-def set_redirect_path_cookie(response: Response, random: str, referer: NamedTuple):
+def set_redirect_path_cookie(response: Response, random: str, referer):
     """set redirect state in cookie."""
     """ REF: https://auth0.com/docs/secure/attack-protection/state-parameters#redirect-users"""
     if not random:
