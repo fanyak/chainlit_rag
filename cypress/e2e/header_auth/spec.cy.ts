@@ -16,10 +16,10 @@ describe('Header auth', () => {
     const setupInterceptors = () => {
       // @ts-expect-error Promise.withResolvers not in lib yet
       const { promise, resolve } = Promise.withResolvers<Interception>();
-      interceptionPromise = promise;
       cy.intercept('/auth/header', (req) => {
+        interceptionPromise = promise;
         req.headers['test-header'] = 'test header value';
-        req.continue();
+        req.reply();
       }).as('auth');
 
       // Only intercept /user _after_ we're logged in.
