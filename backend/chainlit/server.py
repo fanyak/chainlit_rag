@@ -512,8 +512,8 @@ def _get_auth_response(
                 redirect_data.get("referer_query", ""),
                 urllib.parse.urlencode(parsed_params),
             )
-            parsed_params.update(response_dict)
-            parsed_params.update({"referer": redirect_data.get("referer_path", "/")})
+            parsed_params.update({k: [str(v)] for k, v in response_dict.items()})
+            parsed_params.update({"referer": [redirect_data.get("referer_path", "/")]})
             # redirect_url = f"{root_path}{redirect_data.get('referer_path', '/')}?{urllib.parse.urlencode(parsed_params, doseq=True)}"
             redirect_url = (
                 f"{redirect_path}{urllib.parse.urlencode(parsed_params, doseq=True)}"
