@@ -1,5 +1,5 @@
 import { apiClient } from 'api';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // import Page from 'pages/Page';
@@ -25,12 +25,66 @@ export default function Order() {
   const query = useQuery();
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
-
+  const [error, setError] = useState<string | null>(null);
   const oAuthReady = config?.oauthProviders.length;
   const providers = config?.oauthProviders || [];
-  const onOAuthSignIn = async (provider: string) => {
+  const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
-  };
+  }, []);
+
+  //because this is also in useEffect, we memoize it to avoid recreating the function on each render
+  // this will run twice on mount in dev mode but only once in production
+  const handleCreateOrder = useCallback(
+    async (amount = 1000) => {
+      if (error) {
+        setError(null);
+        return;
+      }
+      if (!user) {
+        toast.error('You must be logged in to create an order');
+        // save the amount the user wanted to pay in the URL so we can use it after login
+        window.location.replace(
+          `${window.location.href}?amount=${amount}&transition=${Date.now()}`
+        );
+        return;
+      }
+      setLoading(true);
+      // use try because the apiClient throws an error if the response is not ok!!!
+      try {
+        const response = await apiClient.post('/order', {
+          amount_cents: amount
+        }); // 10 euros in cents
+        const data = await response.json();
+        //Note:  we don't need to check if orderCode is present in the response
+        // because it is done in the backend (order.py) and it raises an Error Response if not
+        const orderCode = data.orderCode;
+        toast.success('Redirecting to payment page...');
+
+        // Redirect to Viva Payments Smart Checkout
+        // Use demo URL for testing, change to production URL when going live
+        const checkoutUrl = `https://demo.vivapayments.com/web/checkout?ref=${orderCode}`;
+        // For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
+
+        // Redirect after a short delay to show the success message
+        // Using replace() instead of href to prevent back navigation and duplicate orders
+        setTimeout(() => {
+          window.location.replace(checkoutUrl);
+        }, 1000);
+
+        setOrderCode(orderCode);
+      } catch (error: any) {
+        // The apiClient throws an error if the response is not ok (it is an HTTP error response)!!!
+        // it also shows a toast with the error message
+        // so no need to show another toast here
+        setError(error.message);
+        console.error('Error creating order:', error);
+      } finally {
+        // update state
+        setLoading(false);
+      }
+    },
+    [user]
+  );
 
   useEffect(() => {
     let t: string | null = null;
@@ -38,6 +92,7 @@ export default function Order() {
     let eventId: string | null = null;
     let eci: string | null = null;
     let failure: string | null = null;
+    let amount: string | null = null;
     // Capture URL parameters on mount
     try {
       t = query.get('t');
@@ -46,8 +101,28 @@ export default function Order() {
       eventId = query.get('eventId');
       eci = query.get('eci');
       failure = query.get('failure');
+      amount = query.get('amount');
     } catch (error) {
       console.error('Error parsing URL parameters:', error);
+    }
+    if (amount) {
+      if (!user) {
+        // the 'transition search param will be removed by the server.py after authentication
+        // because it is not in the list of allowed parameters handled by the login callback
+        toast.warning('We need you to log in first.');
+        if (
+          query.get('transition') &&
+          Date.now() - parseInt(query.get('transition')!) < 5000
+        ) {
+          setTimeout(() => {
+            onOAuthSignIn(providers[0]);
+          }, 2000);
+        }
+        return;
+      } else {
+        toast.success('we are creating your order now...');
+        handleCreateOrder(parseInt(amount));
+      }
     }
     if (failure && String(failure) === '1') {
       console.log('Payment failed or was cancelled.');
@@ -93,45 +168,7 @@ export default function Order() {
         }
       })();
     }
-  }, [useQuery]); // so this runs once on mount and if queryParameters change
-
-  const handleCreateOrder = async (amount = 1000) => {
-    if (!user) {
-      toast.error('You must be logged in to create an order');
-      return;
-    }
-    setLoading(true);
-    // use try because the apiClient throws an error if the response is not ok!!!
-    try {
-      const response = await apiClient.post('/order', { amount_cents: amount }); // 10 euros in cents
-      const data = await response.json();
-      //Note:  we don't need to check if orderCode is present in the response
-      // because it is done in the backend (order.py) and it raises an Error Response if not
-      const orderCode = data.orderCode;
-      toast.success('Redirecting to payment page...');
-
-      // Redirect to Viva Payments Smart Checkout
-      // Use demo URL for testing, change to production URL when going live
-      const checkoutUrl = `https://demo.vivapayments.com/web/checkout?ref=${orderCode}`;
-      // For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
-
-      // Redirect after a short delay to show the success message
-      // Using replace() instead of href to prevent back navigation and duplicate orders
-      setTimeout(() => {
-        window.location.replace(checkoutUrl);
-      }, 1000);
-
-      setOrderCode(orderCode);
-    } catch (error: any) {
-      // The apiClient throws an error if the response is not ok (it is an HTTP error response)!!!
-      // it also shows a toast with the error message
-      // so no need to show another toast here
-      console.error('Error creating order:', error);
-    } finally {
-      // update state
-      setLoading(false);
-    }
-  };
+  }, [query, handleCreateOrder, user, onOAuthSignIn]); // so this runs once on mount and if queryParameters change
 
   return (
     <div className="custom-pg flex flex-col items-center justify-center h-full w-full">

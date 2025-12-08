@@ -30,6 +30,8 @@ describe('Header auth', () => {
     };
 
     beforeEach(() => {
+      // we need beforeEach because aliases are reset before each test
+      // Ref: https://docs.cypress.io/guides/references/best-practices#Aliases-are-cleared-between-tests
       setupInterceptors();
     });
 

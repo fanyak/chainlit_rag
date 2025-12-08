@@ -68,7 +68,7 @@ function PaymentPlants({
             <button
               className="btn btn-primary"
               onClick={() => createOrder(500)}
-              disabled={loading || !user}
+              disabled={loading}
             >
               Subscribe Now
             </button>
@@ -98,7 +98,7 @@ function PaymentPlants({
             <button
               className="btn btn-primary"
               onClick={() => createOrder(1000)}
-              disabled={loading || !user}
+              disabled={loading}
             >
               Subscribe Now
             </button>

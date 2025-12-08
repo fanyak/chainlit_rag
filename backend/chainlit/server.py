@@ -9,7 +9,6 @@ import shutil
 import urllib.parse
 import webbrowser
 from contextlib import AsyncExitStack, asynccontextmanager
-from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union, cast
 
@@ -95,8 +94,9 @@ from ._utils import is_path_inside
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
-# functional syntax
-HOSTS = Enum("HOSTS", [("localhost", "localhost")])
+HOSTS: List[str] = ["localhost", "shamefully-nonsudsing-edmond.ngrok-free.dev"]
+ALLOWED_LOGIN_REDIRECT_URLS: List[str] = ["/login", "/order"]
+ALLOWED_LOGIN_REDIRECT_PARAMS: List[str] = ["amount", "failure"]
 
 
 @asynccontextmanager
@@ -491,18 +491,34 @@ def _get_auth_response(
     if redirect_to_callback:
         root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
         root_path = "" if root_path == "/" else root_path
+        redirect_path = f"{root_path}/login/callback?"
+        if (
+            redirect_data
+            and redirect_data.get("referer_path") not in ALLOWED_LOGIN_REDIRECT_URLS
+        ):
+            print("INVALID REDIRECT PATH, FALLING BACK TO DEFAULT")
+            redirect_data = None
         if redirect_data is None or "login" in redirect_data.get("referer_path", ""):
             print("LOGINNNNNNNNNNNNRedirecting to login callback", redirect_data)
-            redirect_url = (
-                f"{root_path}/login/callback?{urllib.parse.urlencode(response_dict)}"
-            )
+            redirect_url = f"{redirect_path}{urllib.parse.urlencode(response_dict)}"
         else:
-            # params = (
-            #     f"?{urllib.parse.urlencode(redirect_data.get('referer_query', ''))}"
-            #     if redirect_data.get("referer_query")
-            #     else ""
-            # )
-            redirect_url = redirect_data.get("referer_path", "/")
+            params = redirect_data.get("referer_query", "")
+            parsed_params = urllib.parse.parse_qs(params)
+            print("PARSED PARAMS:", parsed_params.keys(), parsed_params.values())
+            for key in urllib.parse.parse_qs(params).keys():
+                if key not in ALLOWED_LOGIN_REDIRECT_PARAMS:
+                    parsed_params.pop(key, None)
+            print(
+                redirect_data.get("referer_query", ""),
+                urllib.parse.urlencode(parsed_params),
+            )
+            parsed_params.update(response_dict)
+            parsed_params.update({"referer": redirect_data.get("referer_path", "/")})
+            # redirect_url = f"{root_path}{redirect_data.get('referer_path', '/')}?{urllib.parse.urlencode(parsed_params, doseq=True)}"
+            redirect_url = (
+                f"{redirect_path}{urllib.parse.urlencode(parsed_params, doseq=True)}"
+            )
+
             print("REDIRECTING TO:", redirect_url)
 
         return RedirectResponse(
@@ -1766,7 +1782,7 @@ def status_check():
 
 
 @router.post("/order")
-async def create_order(current_user: UserParam, amount_cents: int = 1000):
+async def create_order(current_user: UserParam, req: Request):
     """Create an order for premium features.
     @param current_user: The current authenticated user.
     FastApi extracts the value from the type Annotation
@@ -1777,7 +1793,8 @@ async def create_order(current_user: UserParam, amount_cents: int = 1000):
     - Get the result from your function.
     - Assign that result to the parameter in your path operation function.
     """
-
+    payload = await req.json()
+    amount_cents = payload.get("amount_cents", 1000)
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     # this is a utility function that is called inside the path operation function
@@ -1881,7 +1898,6 @@ async def payment_webhook(request: Request):
     print(111111111111111111111, payload)
     eventData = payload.get("EventData", {})
     statusId = eventData.get("StatusId")
-    # TODO: change identifier to current_user.identifier
     identifier = eventData.get("MerchantTrns", "")
     persisted_user = await data_layer.get_user(identifier=identifier)
     if not persisted_user:
@@ -1897,7 +1913,6 @@ async def payment_webhook(request: Request):
     # user = await get_current_user()
     # print(11111, user)
     payment_payload = convert_hook_to_UserPaymentInfo(
-        # TODO: change identifier to current_user.identifier
         payload,
         persisted_user,
     )
