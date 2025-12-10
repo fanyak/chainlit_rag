@@ -19,11 +19,11 @@ export default function AuthCallback() {
     if (user) {
       if (query.get('referer')) {
         const params = new URLSearchParams();
-        query.forEach((value, key) => {
+        for (const [key, value] of query.entries()) {
           if (key !== 'referer') {
             params.append(key, value);
           }
-        });
+        }
         navigate(`${query.get('referer')}?${params.toString()}`);
         return;
       }

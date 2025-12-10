@@ -1,3 +1,5 @@
+import { amountType } from '@/schemas/orderSchema';
+
 import { IUser } from 'client-types/*';
 
 function PaymentPlants({
@@ -5,7 +7,7 @@ function PaymentPlants({
   loading,
   user
 }: {
-  createOrder: (amount: number) => Promise<void>;
+  createOrder: (amount: amountType) => Promise<void>;
   loading: boolean;
   user: IUser | null | undefined;
 }) {

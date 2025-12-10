@@ -1,3 +1,10 @@
+import {
+  BaseOrderRequestSchema,
+  GuestOrderRequest,
+  GuestOrderRequestSchema,
+  amountType,
+  searchParamsSchema
+} from '@/schemas/orderSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -22,7 +29,7 @@ interface TransactionResponse {
 
 export default function Order() {
   const { data: config, user } = useAuth();
-  const query = useQuery();
+  const query: URLSearchParams = useQuery();
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,10 +39,25 @@ export default function Order() {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
 
+  const createGuestOrderUrl = useCallback((amount: amountType) => {
+    const baseUrl = new URL(
+      `${window.location.protocol}//${window.location.host}${window.location.pathname}`
+    );
+    const searchParams = new URLSearchParams();
+    const guestData: GuestOrderRequest = {
+      amount: amount,
+      createdAt: Date.now()
+    };
+    for (const [key, value] of Object.entries(guestData)) {
+      searchParams.append(key, value.toString());
+    }
+    baseUrl.search = searchParams.toString();
+    window.location.replace(baseUrl.toString());
+  }, []);
   //because this is also in useEffect, we memoize it to avoid recreating the function on each render
   // this will run twice on mount in dev mode but only once in production
   const handleCreateOrder = useCallback(
-    async (amount = 1000) => {
+    async (amount: amountType = 1000) => {
       if (error) {
         setError(null);
         return;
@@ -43,10 +65,7 @@ export default function Order() {
       if (!user) {
         toast.error('You must be logged in to create an order');
         // save the amount the user wanted to pay in the URL so we can use it after login
-        window.location.replace(
-          `${window.location.href}?amount=${amount}&transition=${Date.now()}`
-        );
-        return;
+        return createGuestOrderUrl(amount);
       }
       setLoading(true);
       // use try because the apiClient throws an error if the response is not ok!!!
@@ -87,44 +106,65 @@ export default function Order() {
   );
 
   useEffect(() => {
-    let t: string | null = null;
-    let s: string | null = null;
-    let eventId: string | null = null;
-    let eci: string | null = null;
-    let failure: string | null = null;
-    let amount: string | null = null;
+    // let t: string | null = null;
+    // let s: string | null = null;
+    // let eventId: string | null = null;
+    // let eci: string | null = null;
+    // let failure: string | null = null;
+    // let amount: string | null = null;
     // Capture URL parameters on mount
-    try {
-      t = query.get('t');
-      s = query.get('s');
-      //const lang = query.get('lang');
-      eventId = query.get('eventId');
-      eci = query.get('eci');
-      failure = query.get('failure');
-      amount = query.get('amount');
-    } catch (error) {
-      console.error('Error parsing URL parameters:', error);
+
+    //@Note: query: URLSearchParams is an iterable because
+    // it has a [Symbol.iterator]() method that is assigned the entries() method
+    const result = searchParamsSchema.safeParse(Object.fromEntries(query));
+
+    if (!result.success) {
+      console.error('Error parsing URL parameters:', result.error.errors);
+      return;
     }
-    if (amount) {
+    const { t, s, eventId, eci, failure, amount, createdAt } = result.data;
+    // try {
+    //   t = query.get('t');
+    //   s = query.get('s');
+    //   //const lang = query.get('lang');
+    //   eventId = query.get('eventId');
+    //   eci = query.get('eci');
+    //   failure = query.get('failure');
+    //   amount = query.get('amount');
+    // } catch (error) {
+    //   console.error('Error parsing URL parameters:', error);
+    // }
+    if (BaseOrderRequestSchema.safeParse({ amount: amount }).success) {
       if (!user) {
         // the 'transition search param will be removed by the server.py after authentication
         // because it is not in the list of allowed parameters handled by the login callback
         toast.warning('We need you to log in first.');
-        if (
-          query.get('transition') &&
-          Date.now() - parseInt(query.get('transition')!) < 5000
-        ) {
+
+        // Validate guest order request using Zod schema
+        const guestOrderResult = GuestOrderRequestSchema.safeParse({
+          amount: amount,
+          createdAt: createdAt
+        });
+
+        if (guestOrderResult.success) {
           setTimeout(() => {
             onOAuthSignIn(providers[0]);
           }, 2000);
+        } else {
+          // URL is expired or invalid
+          console.warn(
+            'Guest order validation failed:',
+            guestOrderResult.error.errors
+          );
+          toast.error('Your request has expired. Please try again.');
         }
         return;
       } else {
         toast.success('we are creating your order now...');
-        handleCreateOrder(parseInt(amount));
+        handleCreateOrder(amount as amountType);
       }
     }
-    if (failure && String(failure) === '1') {
+    if (failure) {
       console.log('Payment failed or was cancelled.');
       toast.error('Payment failed or was cancelled.');
     }

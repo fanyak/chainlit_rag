@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 from typing import Optional, TypedDict
 
 import httpx
@@ -45,6 +46,25 @@ class VivaWebhookPayload(TypedDict):
     EventData: WebHookEventData
     EventTypeId: int
     Created: str
+
+
+def generate_viva_token() -> bool:
+    """Validate that the token file exists and is readable."""
+    # path = os.path.join(APP_ROOT, "viva_payments.sh")
+    try:
+        # If the script is executable (chmod +x script.sh)
+        # subprocess.run(["./myscript.sh"])
+
+        # If you need to invoke bash explicitly
+        result = subprocess.run(
+            ["bash", "./viva_payments.sh"], capture_output=True, text=True, cwd=APP_ROOT
+        )
+        if result.returncode != 0:
+            print("Error generating Viva Payments token:", result.stderr)
+            return False
+        return True
+    except Exception:
+        return False
 
 
 def convert_hook_to_UserPaymentInfo(

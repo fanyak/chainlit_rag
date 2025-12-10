@@ -71,6 +71,7 @@ from chainlit.order import (
     get_viva_payment_transaction_status,
     get_viva_webhook_key,
 )
+from chainlit.redirect_schema import RedirectSchema, RedirectSchemaError
 from chainlit.secret import random_secret
 from chainlit.types import (
     AskFileSpec,
@@ -93,10 +94,6 @@ from ._utils import is_path_inside
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
-
-HOSTS: List[str] = ["localhost", "shamefully-nonsudsing-edmond.ngrok-free.dev"]
-ALLOWED_LOGIN_REDIRECT_URLS: List[str] = ["/login", "/order"]
-ALLOWED_LOGIN_REDIRECT_PARAMS: List[str] = ["amount", "failure"]
 
 
 @asynccontextmanager
@@ -492,28 +489,19 @@ def _get_auth_response(
         root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
         root_path = "" if root_path == "/" else root_path
         redirect_path = f"{root_path}/login/callback?"
-        if (
-            redirect_data
-            and redirect_data.get("referer_path") not in ALLOWED_LOGIN_REDIRECT_URLS
-        ):
-            print("INVALID REDIRECT PATH, FALLING BACK TO DEFAULT")
-            redirect_data = None
-        if redirect_data is None or "login" in redirect_data.get("referer_path", ""):
-            print("LOGINNNNNNNNNNNNRedirecting to login callback", redirect_data)
-            redirect_url = f"{redirect_path}{urllib.parse.urlencode(response_dict)}"
-        else:
-            params = redirect_data.get("referer_query", "")
-            parsed_params = urllib.parse.parse_qs(params)
-            print("PARSED PARAMS:", parsed_params.keys(), parsed_params.values())
-            for key in urllib.parse.parse_qs(params).keys():
-                if key not in ALLOWED_LOGIN_REDIRECT_PARAMS:
-                    parsed_params.pop(key, None)
-            print(
-                redirect_data.get("referer_query", ""),
-                urllib.parse.urlencode(parsed_params),
+        redirect_url = f"{redirect_path}{urllib.parse.urlencode(response_dict)}"
+
+        # if redirect_data is None or "login" in redirect_data.get("referer_path", ""):
+        #     print("LOGINNNNNNNNNNNNRedirecting to login callback", redirect_data)
+        #     redirect_url = f"{redirect_path}{urllib.parse.urlencode(response_dict)}"
+        print("REDIRECT DATA!!!!!!!!!!:", redirect_data)
+        if redirect_data is not None:
+            params = redirect_data.get("referer_query", dict())
+            parsed_params = (
+                urllib.parse.parse_qs(params) if type(params) is str else params
             )
             parsed_params.update({k: [str(v)] for k, v in response_dict.items()})
-            parsed_params.update({"referer": [redirect_data.get("referer_path", "/")]})
+            parsed_params.update({"referer": [redirect_data.get("referer_path")]})
             # redirect_url = f"{root_path}{redirect_data.get('referer_path', '/')}?{urllib.parse.urlencode(parsed_params, doseq=True)}"
             redirect_url = (
                 f"{redirect_path}{urllib.parse.urlencode(parsed_params, doseq=True)}"
@@ -670,13 +658,25 @@ async def oauth_login(provider_id: str, request: Request):
     referer_raw: str = request.headers.get("referer", "")
     print("REFERER!!!!!!!!!!!!!!!!!!:", referer_raw)
     referer: urllib.parse.ParseResult = urllib.parse.urlparse(referer_raw)
-    referer_hostname = referer.hostname or ""
-    print("REFERER HOSTNAME:", referer_hostname)
-    if referer_hostname not in HOSTS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid referer hostname",
+    try:
+        print(
+            "REDIRECT SCHEMA:",
+            RedirectSchema(**referer._asdict(), hostname=referer.hostname).to_dict(),
         )
+        redirect_data = RedirectSchema(
+            **referer._asdict(), hostname=referer.hostname
+        ).to_dict()
+
+    # referer_hostname = referer.hostname or ""
+    # print("REFERER HOSTNAME:", referer_hostname)
+    # if referer_hostname not in HOSTS:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Invalid referer hostname",
+    #     )
+    except RedirectSchemaError as e:
+        print("Invalid redirect schema:", e)
+        redirect_data = None
 
     params = urllib.parse.urlencode(
         {
@@ -691,7 +691,7 @@ async def oauth_login(provider_id: str, request: Request):
     )
 
     set_oauth_state_cookie(response, random)
-    set_redirect_path_cookie(response, random, referer)
+    set_redirect_path_cookie(response, random, redirect_data)
 
     return response
 
