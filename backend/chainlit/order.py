@@ -85,6 +85,8 @@ def get_viva_payment_token() -> str | None:
     """Get Viva Payments token from environment variable."""
     token = None
     print(APP_ROOT)
+    if generate_viva_token() is False:
+        return token
     for path in [
         os.path.join(APP_ROOT, "vt.txt"),
     ]:

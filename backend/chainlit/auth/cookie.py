@@ -41,7 +41,7 @@ _state_cookie_name = "oauth_state"
 
 class RefererData(TypedDict):
     referer_path: str
-    referer_query: str
+    referer_query: Dict[str, list[str]]
     name: str
 
 
@@ -225,7 +225,7 @@ def set_redirect_path_cookie(
         value=json.dumps(
             {
                 "referer_path": referer_data.get("path", "/"),
-                "referer_query": referer_data.get("query", ""),
+                "referer_query": referer_data.get("query", {}),
                 "name": state_param_name,
             }
         ),

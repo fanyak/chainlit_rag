@@ -496,15 +496,15 @@ def _get_auth_response(
         #     redirect_url = f"{redirect_path}{urllib.parse.urlencode(response_dict)}"
         print("REDIRECT DATA!!!!!!!!!!:", redirect_data)
         if redirect_data is not None:
-            params = redirect_data.get("referer_query", dict())
-            parsed_params = (
-                urllib.parse.parse_qs(params) if type(params) is str else params
-            )
-            parsed_params.update({k: [str(v)] for k, v in response_dict.items()})
-            parsed_params.update({"referer": [redirect_data.get("referer_path")]})
+            params: dict[str, list[str]] = redirect_data.get("referer_query", dict())
+            # parsed_params = urllib.parse.parse_qs(
+            #     params) if type(params) is str else params
+
+            params.update({k: [str(v)] for k, v in response_dict.items()})
+            params.update({"referer": [redirect_data.get("referer_path")]})
             # redirect_url = f"{root_path}{redirect_data.get('referer_path', '/')}?{urllib.parse.urlencode(parsed_params, doseq=True)}"
             redirect_url = (
-                f"{redirect_path}{urllib.parse.urlencode(parsed_params, doseq=True)}"
+                f"{redirect_path}{urllib.parse.urlencode(params, doseq=True)}"
             )
 
             print("REDIRECTING TO:", redirect_url)
@@ -659,13 +659,12 @@ async def oauth_login(provider_id: str, request: Request):
     print("REFERER!!!!!!!!!!!!!!!!!!:", referer_raw)
     referer: urllib.parse.ParseResult = urllib.parse.urlparse(referer_raw)
     try:
+        hostname = referer.hostname or ""
         print(
             "REDIRECT SCHEMA:",
-            RedirectSchema(**referer._asdict(), hostname=referer.hostname).to_dict(),
+            RedirectSchema(**referer._asdict(), hostname=hostname).to_dict(),
         )
-        redirect_data = RedirectSchema(
-            **referer._asdict(), hostname=referer.hostname
-        ).to_dict()
+        redirect_data = RedirectSchema(**referer._asdict(), hostname=hostname).to_dict()
 
     # referer_hostname = referer.hostname or ""
     # print("REFERER HOSTNAME:", referer_hostname)

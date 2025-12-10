@@ -13,6 +13,20 @@ source .env
 # REF: https://developer.viva.com/smart-checkout/smart-checkout-integration/
 # REF: https://developer.viva.com/integration-reference/oauth2-authentication/
 
+# check if existing vt.txt file exists
+if [ -f "./vt.txt" ]; then
+  DATE_LAST_MODIFIED=$(stat -c %Y ./vt.txt)
+  CURRENT_DATE=$(date +%s)
+  ELAPSED_TIME=$((CURRENT_DATE - DATE_LAST_MODIFIED))
+  echo "Elapsed time since vt.txt modified: $ELAPSED_TIME seconds"
+  if [ $ELAPSED_TIME -lt 3600 ]; then 
+    echo "vt.txt is less than 1 hour old. Skipping token generation."
+    exit 0
+  else
+    echo "vt.txt is older than 1 hour. Generating new token."
+  fi
+fi
+
 # Step 1. Get access token using client base64 encoded credentials grant for smart checkout
 
 CREDS="$VIVA_SMART_CHECKOUT_CLIENT_ID:$VIVA_SMART_CHECKOUT_CLIENT_SECRET"

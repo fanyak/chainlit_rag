@@ -49,14 +49,14 @@ class RedirectSchema:
 
     @field_validator("query")
     @classmethod
-    def validate_query_params(cls, v: Optional[str]) -> Optional[str]:
+    def validate_query_params(cls, v: Optional[str]) -> Optional[dict[str, list[str]]]:
         """Validate that query parameters only contain allowed keys."""
         if not v:
-            return v
+            return {}
 
         ALLOWED_LOGIN_REDIRECT_PARAMS: list[str] = ["amount", "failure"]
         try:
-            parsed = urllib.parse.parse_qs(v)
+            parsed: dict[str, list[str]] = urllib.parse.parse_qs(v)
             invalid_keys = [
                 k for k in parsed.keys() if k not in ALLOWED_LOGIN_REDIRECT_PARAMS
             ]
@@ -70,7 +70,7 @@ class RedirectSchema:
                 # TODO: Decide whether to raise an error or just filter out invalid keys
                 # raise ValueError(f"Invalid query parameters: {invalid_keys}. Allowed: {ALLOWED_LOGIN_REDIRECT_PARAMS}")
 
-            return v
+            return parsed
         except Exception as e:
             raise RedirectSchemaError(f"Error parsing query parameters: {e}")
 
