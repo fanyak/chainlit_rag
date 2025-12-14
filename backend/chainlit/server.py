@@ -1805,25 +1805,26 @@ async def create_order(current_user: UserParam, req: Request):
 
 
 @router.post("/payment")
-async def create_payment(
-    payment: UserPaymentInfo,
-    current_user: UserParam,
-):
+async def create_payment(payment: UserPaymentInfo):
     """create a payment by user."""
     payload = payment
     data_layer = get_data_layer()
     if not data_layer:
         raise HTTPException(status_code=400, detail="Data persistence is not enabled")
 
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    # If there was a successful payment on VIVA,
+    # then we should enter it into our database
+    # even if the user is not logged in!!!!!!!!!!!!!!!!!!!!
 
-    if not isinstance(current_user, PersistedUser):
-        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
-        if not persisted_user:
-            raise HTTPException(status_code=404, detail="User not found")
-    if payload["user_identifier"] != current_user.identifier:
-        raise HTTPException(status_code=403, detail="User identifier does not match")
+    # if not current_user:
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+    # if not isinstance(current_user, PersistedUser):
+    #     persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+    #     if not persisted_user:
+    #         raise HTTPException(status_code=404, detail="User not found")
+    # if payload["user_identifier"] != current_user.identifier:
+    #     raise HTTPException(
+    #         status_code=403, detail="User identifier does not match")
 
     # Check transaction status before updated the database
     # Note: In FastAPI, if you are inside a utility function,
@@ -1900,7 +1901,7 @@ async def payment_webhook(request: Request):
     identifier = eventData.get("MerchantTrns", "")
     persisted_user = await data_layer.get_user(identifier=identifier)
     if not persisted_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found in database")
     if not statusId:
         raise HTTPException(
             status_code=400, detail="Invalid webhook payload: missing StatusId"
@@ -1909,8 +1910,7 @@ async def payment_webhook(request: Request):
         raise HTTPException(
             status_code=400, detail="Payment not completed successfully"
         )
-    # user = await get_current_user()
-    # print(11111, user)
+
     payment_payload = convert_hook_to_UserPaymentInfo(
         payload,
         persisted_user,
@@ -1930,7 +1930,9 @@ async def payment_webhook(request: Request):
         # if we didn't get empty result object ==> payment exists
         if existing_payment.get("transaction_id"):
             raise HTTPException(status_code=409, detail="Payment already exists")
+
         await data_layer.create_payment(payment_payload)
+
     except HTTPException as e:
         print(f"Webhook processing error: {e.detail}")
     except Exception as e:
@@ -1969,6 +1971,17 @@ async def get_transaction(
         raise HTTPException(status_code=500, detail="Error checking existing payment")
 
     return JSONResponse(status_code=200, content=existing_payment)
+
+
+@router.get("/viva_payment_url")
+async def viva_payment(code: str):
+    """Redirect to Viva Payments checkout URL."""
+    url = os.getenv("VIVA_CHECKOUT_URL", "https://demo.vivapayments.com")
+    print(f"Redirecting to Viva Payments with code: {url}{code}")
+    response = RedirectResponse(
+        url=f"{url}{code}",
+    )
+    return response
 
 
 @router.get("/{full_path:path}")

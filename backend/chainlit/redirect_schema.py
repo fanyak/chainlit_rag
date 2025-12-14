@@ -31,6 +31,7 @@ class RedirectSchema:
         """Validate that hostname is in allowed list."""
         print("Validating hostname:", v)
         HOSTS: list[str] = ["localhost", "shamefully-nonsudsing-edmond.ngrok-free.dev"]
+        HOSTS.extend(list(map(lambda host: f"www.{host}", HOSTS)))
         if v not in HOSTS:
             raise RedirectSchemaError(f"Invalid referer hostname: {v}")
         return v
@@ -54,7 +55,15 @@ class RedirectSchema:
         if not v:
             return {}
 
-        ALLOWED_LOGIN_REDIRECT_PARAMS: list[str] = ["amount", "failure"]
+        ALLOWED_LOGIN_REDIRECT_PARAMS: list[str] = [
+            "amount",
+            "createdAt",
+            "orderFailed",
+            "eventId",
+            "eci",
+            "s",
+            "t",
+        ]
         try:
             parsed: dict[str, list[str]] = urllib.parse.parse_qs(v)
             invalid_keys = [

@@ -2,6 +2,7 @@
 
 import json
 import os
+import platform
 import subprocess
 from typing import Optional, TypedDict
 
@@ -48,6 +49,18 @@ class VivaWebhookPayload(TypedDict):
     Created: str
 
 
+def operating_system_bash_path() -> str:
+    """Get the path to bash based on the operating system."""
+    # 1. Determine the correct executable based on the OS
+    if platform.system() == "Windows":
+        # Force Git Bash on Windows to avoid the WSL issue
+        BASH_EXE = r"C:\Program Files\Git\bin\bash.exe"
+    else:
+        # On Linux (Hetzner), 'bash' is standard and in the system PATH
+        BASH_EXE = "bash"
+    return BASH_EXE
+
+
 def generate_viva_token() -> bool:
     """Validate that the token file exists and is readable."""
     # path = os.path.join(APP_ROOT, "viva_payments.sh")
@@ -56,9 +69,14 @@ def generate_viva_token() -> bool:
         # subprocess.run(["./myscript.sh"])
 
         # If you need to invoke bash explicitly
+        BASH_PATH = operating_system_bash_path()
         result = subprocess.run(
-            ["bash", "./viva_payments.sh"], capture_output=True, text=True, cwd=APP_ROOT
+            [BASH_PATH, "./viva_payments.sh"],
+            shell=False,
+            cwd=APP_ROOT,
+            env=os.environ,
         )
+        print("Viva Payments token generation output!!!!:", result.stdout)
         if result.returncode != 0:
             print("Error generating Viva Payments token:", result.stderr)
             return False

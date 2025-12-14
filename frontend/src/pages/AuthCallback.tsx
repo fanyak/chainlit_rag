@@ -1,3 +1,4 @@
+import { RefererSchema } from '@/schemas/redirectSchema';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,14 +18,17 @@ export default function AuthCallback() {
 
   useEffect(() => {
     if (user) {
-      if (query.get('referer')) {
+      const result = RefererSchema.safeParse(Object.fromEntries(query));
+      if (result.success && result.data.referer) {
         const params = new URLSearchParams();
         for (const [key, value] of query.entries()) {
           if (key !== 'referer') {
             params.append(key, value);
           }
         }
-        navigate(`${query.get('referer')}?${params.toString()}`);
+        navigate(`${query.get('referer')}?${params.toString()}`, {
+          replace: true
+        });
         return;
       }
       navigate('/');

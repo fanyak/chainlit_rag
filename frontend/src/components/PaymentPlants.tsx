@@ -1,4 +1,4 @@
-import { amountType } from '@/schemas/orderSchema';
+import { amountType } from '@/schemas/redirectSchema';
 
 import { IUser } from 'client-types/*';
 

@@ -40,7 +40,7 @@ export const router = createBrowserRouter(
       element: <Thread />
     },
     {
-      path: '/order/',
+      path: '/order',
       element: <Order />
     },
     {

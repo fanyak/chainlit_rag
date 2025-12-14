@@ -82,3 +82,10 @@ pip uninstall chainlit -y
 pip install -e ./backend
 
 # 4. Now use Chainlit normally with your custom components
+
+
+One final check for your Linux Server:
+On the Linux server, make sure the script file itself has Unix-style line endings (as discussed previously).
+
+If you deploy and get an error like /usr/bin/env: 'bash\r': No such file or directory, run this command on the server inside your app folder:
+dos2unix viva_payments.sh

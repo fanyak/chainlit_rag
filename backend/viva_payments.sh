@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GITHUB: instead of `source .env`` file, we pass the env variables as arguments
-source .env
+# source .env
 # Environment variables are passed from GitHub Actions workflow
 # VIVA_SMART_CHECKOUT_CLIENT_ID and VIVA_SMART_CHECKOUT_CLIENT_SECRET
 
@@ -13,29 +13,33 @@ source .env
 # REF: https://developer.viva.com/smart-checkout/smart-checkout-integration/
 # REF: https://developer.viva.com/integration-reference/oauth2-authentication/
 
+# get the environment variables
+#printenv
+
 # check if existing vt.txt file exists
 if [ -f "./vt.txt" ]; then
   DATE_LAST_MODIFIED=$(stat -c %Y ./vt.txt)
   CURRENT_DATE=$(date +%s)
   ELAPSED_TIME=$((CURRENT_DATE - DATE_LAST_MODIFIED))
   echo "Elapsed time since vt.txt modified: $ELAPSED_TIME seconds"
-  if [ $ELAPSED_TIME -lt 3600 ]; then 
-    echo "vt.txt is less than 1 hour old. Skipping token generation."
+  if [ $ELAPSED_TIME -lt 3500 ]; then 
+    echo "vt.txt is less than ~58 minutes old. Skipping token generation."
     exit 0
   else
-    echo "vt.txt is older than 1 hour. Generating new token."
+    echo "vt.txt is older than ~58 minutes. Generating new token."
   fi
 fi
 
 # Step 1. Get access token using client base64 encoded credentials grant for smart checkout
 
 CREDS="$VIVA_SMART_CHECKOUT_CLIENT_ID:$VIVA_SMART_CHECKOUT_CLIENT_SECRET"
+# echo -n "Base64 encoding credentials...$CREDS"
+
 # the quotes around $CREDS are important
-# ensuere that it is treated as a single string
+# ensure that it is treated as a single string
 # because of the colon : - it would be split otherwise
 ENCODED=$(echo -n "$CREDS" | base64)
-# curl -H "Authorization: Basic $ENCODED" https://api.example.com
-# echo -n "$ENCODED" > credentials.txt
+
 curl -L -X POST 'https://demo-accounts.vivapayments.com/connect/token' \
 --header "Authorization: Basic  $(echo -n $ENCODED)" \
 --header 'Content-Type: application/x-www-form-urlencoded' \
@@ -47,3 +51,4 @@ curl -L -X POST 'https://demo-accounts.vivapayments.com/connect/token' \
 grep -o '"access_token":"[^"]*"' response.json | sed 's/"access_token":"\([^"]*\)"/\1/' > vt.txt
 chmod 600 ./vt.txt     # Only owner can read/write
 rm -f response.json
+echo "Viva Payments access token saved to vt.txt"

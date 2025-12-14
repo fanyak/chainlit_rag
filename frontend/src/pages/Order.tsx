@@ -1,10 +1,10 @@
 import {
-  BaseOrderRequestSchema,
   GuestOrderRequest,
   GuestOrderRequestSchema,
-  amountType,
-  searchParamsSchema
-} from '@/schemas/orderSchema';
+  SearchParamsSchema,
+  StaleGuestOrderRequestSchema,
+  amountType
+} from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import { useAuth } from '@chainlit/react-client';
 import { CustomHeader } from '@/components/CustomHeader';
 import PaymentPlants from '@/components/PaymentPlants';
 import { ProviderButton } from '@/components/ProviderButton';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 import { useQuery } from 'hooks/query';
 
@@ -33,13 +34,38 @@ export default function Order() {
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [orderAmount, setOrderAmount] = useState<amountType | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
   const oAuthReady = config?.oauthProviders.length;
   const providers = config?.oauthProviders || [];
+  const GUESTORDER_KEY = 'guestOrder';
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
 
-  const createGuestOrderUrl = useCallback((amount: amountType) => {
+  const clearUrlState = useCallback(() => {
+    const baseUrl = new URL(
+      `${window.location.protocol}//${window.location.host}${window.location.pathname}`
+    );
+    console.log('Clearing URL state, new URL:', baseUrl.toString());
+    // Remove query parameters by replacing the URL without them
+    //NOTE: we replace the URL to avoid back navigation to the guest order state!!
+    window.history.replaceState(null, '', `${baseUrl}`);
+  }, []);
+
+  const clearStorageState = useCallback((state: string) => {
+    localStorage.removeItem(state);
+  }, []);
+
+  const clearAllStoredState = useCallback((state: string = GUESTORDER_KEY) => {
+    clearUrlState();
+    clearStorageState(state);
+  }, []);
+
+  const createStorageState = useCallback((key: string, value: string) => {
+    localStorage.setItem(key, value);
+  }, []);
+  const createGuestOrderUrlState = useCallback((amount: amountType): string => {
     const baseUrl = new URL(
       `${window.location.protocol}//${window.location.host}${window.location.pathname}`
     );
@@ -52,9 +78,13 @@ export default function Order() {
       searchParams.append(key, value.toString());
     }
     baseUrl.search = searchParams.toString();
-    window.location.replace(baseUrl.toString());
+    // window.location.replace(baseUrl.toString());
+    // replace history to avoid reloading the page with the guest order params
+    window.history.replaceState(null, '', `${baseUrl}`);
+    return JSON.stringify(guestData);
   }, []);
-  //because this is also in useEffect, we memoize it to avoid recreating the function on each render
+
+  // because this is also in useEffect, we memoize it to avoid recreating the function on each render
   // this will run twice on mount in dev mode but only once in production
   const handleCreateOrder = useCallback(
     async (amount: amountType = 1000) => {
@@ -63,9 +93,14 @@ export default function Order() {
         return;
       }
       if (!user) {
-        toast.error('You must be logged in to create an order');
+        // toast.error('You must be logged in to create an order');
+        toast.warning('We need you to log in first.');
         // save the amount the user wanted to pay in the URL so we can use it after login
-        return createGuestOrderUrl(amount);
+        createStorageState(GUESTORDER_KEY, createGuestOrderUrlState(amount));
+        setTimeout(() => {
+          onOAuthSignIn(providers[0]);
+        }, 2000);
+        return;
       }
       setLoading(true);
       // use try because the apiClient throws an error if the response is not ok!!!
@@ -74,22 +109,26 @@ export default function Order() {
           amount_cents: amount
         }); // 10 euros in cents
         const data = await response.json();
-        //Note:  we don't need to check if orderCode is present in the response
+        // NOTE:  we don't need to check if orderCode is present in the response
         // because it is done in the backend (order.py) and it raises an Error Response if not
         const orderCode = data.orderCode;
-        toast.success('Redirecting to payment page...');
+        toast.success(
+          `Redirecting to payment page...${import.meta.env.VITE_CHECKOUT_URL}`
+        );
 
         // Redirect to Viva Payments Smart Checkout
-        // Use demo URL for testing, change to production URL when going live
+        // NOTE: Use demo URL for testing, change to production URL when going live
         const checkoutUrl = `https://demo.vivapayments.com/web/checkout?ref=${orderCode}`;
-        // For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
+        // TODO: For production: const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${data.orderCode}`;
 
         // Redirect after a short delay to show the success message
-        // Using replace() instead of href to prevent back navigation and duplicate orders
+        // NOTE: we can use replace() instead of assign or href, to prevent back navigation and duplicate orders
+        // we can use assign() if we want to allow back navigation
         setTimeout(() => {
-          window.location.replace(checkoutUrl);
+          window.location.assign(checkoutUrl);
         }, 1000);
 
+        // for UI purposes until redirect happens
         setOrderCode(orderCode);
       } catch (error: any) {
         // The apiClient throws an error if the response is not ok (it is an HTTP error response)!!!
@@ -99,95 +138,109 @@ export default function Order() {
         console.error('Error creating order:', error);
       } finally {
         // update state
+        clearAllStoredState();
         setLoading(false);
       }
     },
-    [user]
+    [
+      user,
+      error,
+      createGuestOrderUrlState,
+      createStorageState,
+      onOAuthSignIn,
+      providers
+    ]
   );
 
+  function handleClose() {
+    setOpenDialog(false);
+  }
+
+  function handleConfirm() {
+    setOpenDialog(false);
+    handleCreateOrder(orderAmount as amountType);
+  }
+
+  // Effect 3: Handle successful login redirect for guest orders
   useEffect(() => {
-    // let t: string | null = null;
-    // let s: string | null = null;
-    // let eventId: string | null = null;
-    // let eci: string | null = null;
-    // let failure: string | null = null;
-    // let amount: string | null = null;
-    // Capture URL parameters on mount
-
-    //@Note: query: URLSearchParams is an iterable because
-    // it has a [Symbol.iterator]() method that is assigned the entries() method
-    const result = searchParamsSchema.safeParse(Object.fromEntries(query));
-
-    if (!result.success) {
-      console.error('Error parsing URL parameters:', result.error.errors);
-      return;
+    const queryResult = SearchParamsSchema.safeParse(Object.fromEntries(query));
+    if (!queryResult.success) return;
+    const { amount, createdAt } = queryResult.data;
+    if (!amount || !createdAt) return;
+    // check if the guest order is valid and fresh
+    const guestOrderResult = GuestOrderRequestSchema.safeParse({
+      amount: amount,
+      createdAt: createdAt
+    });
+    // if the guest order is fresh and valid, create the order
+    if (guestOrderResult.success) {
+      handleCreateOrder(guestOrderResult.data.amount);
     }
-    const { t, s, eventId, eci, failure, amount, createdAt } = result.data;
-    // try {
-    //   t = query.get('t');
-    //   s = query.get('s');
-    //   //const lang = query.get('lang');
-    //   eventId = query.get('eventId');
-    //   eci = query.get('eci');
-    //   failure = query.get('failure');
-    //   amount = query.get('amount');
-    // } catch (error) {
-    //   console.error('Error parsing URL parameters:', error);
-    // }
-    if (BaseOrderRequestSchema.safeParse({ amount: amount }).success) {
-      if (!user) {
-        // the 'transition search param will be removed by the server.py after authentication
-        // because it is not in the list of allowed parameters handled by the login callback
-        toast.warning('We need you to log in first.');
-
-        // Validate guest order request using Zod schema
-        const guestOrderResult = GuestOrderRequestSchema.safeParse({
-          amount: amount,
-          createdAt: createdAt
-        });
-
-        if (guestOrderResult.success) {
-          setTimeout(() => {
-            onOAuthSignIn(providers[0]);
-          }, 2000);
-        } else {
-          // URL is expired or invalid
-          console.warn(
-            'Guest order validation failed:',
-            guestOrderResult.error.errors
-          );
-          toast.error('Your request has expired. Please try again.');
+    // if it is a stale order, check localStorage for confirmation that it still exists
+    else {
+      const staleGuestOrderResult = StaleGuestOrderRequestSchema.safeParse({
+        amount: amount,
+        createdAt: createdAt
+      });
+      if (staleGuestOrderResult.success) {
+        // if there is state in the localStorage, check if we need to confirm the order creation
+        const { amount: storedAmount, createdAt: storedTime } = JSON.parse(
+          localStorage.getItem(GUESTORDER_KEY) || '{}'
+        );
+        if (storedTime && storedAmount) {
+          if (storedAmount == amount && storedTime == createdAt) {
+            // request confirmation for the order
+            setOrderAmount(staleGuestOrderResult.data.amount);
+            setOpenDialog(true);
+          }
         }
-        return;
-      } else {
-        toast.success('we are creating your order now...');
-        handleCreateOrder(amount as amountType);
       }
     }
-    if (failure) {
+    // In any case clear state in localStorage!
+    clearStorageState(GUESTORDER_KEY);
+  }, [query, handleCreateOrder, clearStorageState]); // Runs when user or query changes
+
+  // Effect 2: Handle payment callbacks and failure states
+  // should run once on mount, and whenever query or user changes
+  useEffect(() => {
+    const result = SearchParamsSchema.safeParse(Object.fromEntries(query));
+    if (!result.success) return;
+
+    const { t, s, eventId, eci, orderFailed } = result.data;
+
+    if (orderFailed) {
       console.log('Payment failed or was cancelled.');
       toast.error('Payment failed or was cancelled.');
+      return;
     }
     const isPaymentCallback = t && s && eventId && eci ? true : false;
-    if (!failure && isPaymentCallback) {
+    if (!orderFailed && isPaymentCallback) {
       console.log('Transaction ID:', t);
       console.log('Order Code:', s);
       console.log('Event ID:', eventId);
       console.log('ECI:', eci);
 
+      // we check the database only for logged in users to match their transactions
+      if (!user) {
+        toast.warning(
+          'We need you to log in first to process the payment result.'
+        );
+        setTimeout(() => {
+          onOAuthSignIn(providers[0]);
+        }, 2000);
+        return;
+      }
+      // TODO: add fallback if the webhook has not yet processed the transaction
       (async () => {
-        // the apiClient throws an error if the response is not ok!!!
+        // NOTE: we use try because the apiClient throws an error if the response is not ok!!!
         try {
           const response = await apiClient.get(
             `/transaction?transaction_id=${t}&order_code=${s}`
           );
           const transaction: TransactionResponse = await response.json();
           console.log('Transaction details:', transaction);
-          // if (transaction.user_id !== user?.identifier) {
-          //   toast.error('Failed to verify payment user.');
-          //   return;
-          // }
           if (
+            //NOTE: is this needed: double check that the transaction matches the query params?
             transaction.transaction_id !== t ||
             transaction.order_code !== s
           ) {
@@ -205,10 +258,13 @@ export default function Order() {
           // it also shows a toast with the error message
           // so no need to show another toast here
           console.error('Error processing payment:', error);
+        } finally {
+          // clear URL state
+          clearAllStoredState();
         }
       })();
     }
-  }, [query, handleCreateOrder, user, onOAuthSignIn]); // so this runs once on mount and if queryParameters change
+  }, [query, user]); // Runs when query or user changes
 
   return (
     <div className="custom-pg flex flex-col items-center justify-center h-full w-full">
@@ -262,6 +318,11 @@ export default function Order() {
           loading={loading}
         />
       </main>
+      <ConfirmDialog
+        open={openDialog}
+        handleClose={handleClose}
+        handleConfirm={handleConfirm}
+      />
     </div>
   );
 }

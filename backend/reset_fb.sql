@@ -1,0 +1,1 @@
+UPDATE users SET balance = 0 WHERE id = '6ef9ac7d-cc6d-4afb-857c-3f8f77b6c916'
