@@ -1973,17 +1973,6 @@ async def get_transaction(
     return JSONResponse(status_code=200, content=existing_payment)
 
 
-@router.get("/viva_payment_url")
-async def viva_payment(code: str):
-    """Redirect to Viva Payments checkout URL."""
-    url = os.getenv("VIVA_CHECKOUT_URL", "https://demo.vivapayments.com")
-    print(f"Redirecting to Viva Payments with code: {url}{code}")
-    response = RedirectResponse(
-        url=f"{url}{code}",
-    )
-    return response
-
-
 @router.get("/{full_path:path}")
 async def serve(request: Request):
     """Serve the UI files."""
