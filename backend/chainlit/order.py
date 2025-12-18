@@ -4,7 +4,7 @@ import json
 import os
 import platform
 import subprocess
-from typing import Literal, Optional, TypedDict, TypeVar, Union
+from typing import Literal, Optional, TypedDict
 from uuid import UUID
 
 import httpx
@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from chainlit.config import APP_ROOT
 from chainlit.user import PersistedUser, User
 
-AmountType = TypeVar("AmountType", 500, 1000)
+AmountType = Literal[500, 1000]
 
 
 class CreateOrderPayload(TypedDict):
@@ -121,9 +121,9 @@ def generate_viva_token() -> bool:
 
 def extract_data_from_viva_webhook_payload(
     data: VivaWebhookPayload,
-) -> Union[UserPaymentInfoShell, TransactionStatusTypedDict]:
+):
     """Extract relevant data from Viva Webhook payload."""
-    obj: VivaWebhookPayload.__class__ = data.model_dump()
+    obj = data.model_dump()
     eventData = obj.get("EventData", {})
     return {
         "user_id": eventData.get("user_identifier"),
@@ -138,7 +138,7 @@ def extract_data_from_viva_webhook_payload(
 
 
 def convert_viva_payment_hook_to_UserPaymentInfo_object(
-    data: Union[UserPaymentInfoShell, TransactionStatusTypedDict], user: PersistedUser
+    data, user: PersistedUser
 ) -> UserPaymentInfo:
     """Convert Viva Webhook payload to Pydantic UserPaymentInfo."""
     # pass the data from the webhook to the UserPaymentInfo Pydantic as keyword arguments
@@ -265,7 +265,7 @@ async def create_viva_payment_order(user: User, amount_cents: AmountType) -> str
 
 async def get_viva_payment_transaction_status(
     transaction_id: str,
-) -> Optional[TransactionStatusInfo]:
+) -> TransactionStatusInfo:
     """Get the status of an existing order."""
     token = get_viva_payment_token()
     if token:

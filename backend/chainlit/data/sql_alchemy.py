@@ -17,7 +17,7 @@ from chainlit.data.storage_clients.base import BaseStorageClient
 from chainlit.data.utils import queue_until_user_message
 from chainlit.element import ElementDict
 from chainlit.logger import logger
-from chainlit.order import CreatePaymentResponse, UserPaymentInfo, UserPaymentInfoShell
+from chainlit.order import UserPaymentInfo, UserPaymentInfoShell
 from chainlit.step import StepDict
 from chainlit.types import (
     Feedback,
@@ -204,9 +204,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         # if the user did not exist, rowcount would be 0 which would raise an assertion error
         return await self.get_user(identifier)
 
-    async def create_payment(
-        self, payment_info: UserPaymentInfo
-    ) -> CreatePaymentResponse:
+    async def create_payment(self, payment_info: UserPaymentInfo):
         if self.show_logger:
             logger.info(f"SQLAlchemy: create_payment, payment_info={payment_info}")
 
@@ -250,7 +248,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
 
     async def get_payment_by_transaction(
         self, transaction_id: str, order_code: str, user_id: str
-    ) -> Optional[UserPaymentInfo]:
+    ):
         if self.show_logger:
             logger.info(
                 f"SQLAlchemy: get_payment_by_transaction, transaction_id={transaction_id}"
@@ -856,7 +854,9 @@ class SQLAlchemyDataLayer(BaseDataLayer):
                         forId=element.get("element_forid"),
                         mime=element.get("element_mime"),
                     )
-                    thread_dicts[thread_id]["elements"].append(element_dict)  # type: ignore
+                    elements_list = thread_dicts[thread_id]["elements"]
+                    if elements_list is not None:
+                        elements_list.append(element_dict)
 
         return list(thread_dicts.values())
 
