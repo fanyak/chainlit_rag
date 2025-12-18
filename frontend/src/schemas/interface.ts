@@ -1,4 +1,4 @@
-import { AmountType } from './redirectSchema';
+import { AmountTypePaid } from './redirectSchema';
 
 export interface UserPaymentInfo {
   id: string;
@@ -8,7 +8,7 @@ export interface UserPaymentInfo {
   event_id: number;
   eci: number;
   created_at: Date;
-  amount: AmountType;
+  amount: AmountTypePaid;
 }
 
 export interface CreatePaymentResponse {

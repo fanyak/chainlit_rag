@@ -76,7 +76,7 @@ export default function OrderSuccess() {
               order_code: s as string,
               event_id: Number(eventId),
               eci: Number(eci),
-              amount: 500 // amount is unknown here, set a default or fetch from another source
+              amount: 5 // amount is unknown here, set a default or fetch from another source
             };
             // this is an external request to get the transaction from Viva Payments
             const transaction_fallback = await apiClient.post(

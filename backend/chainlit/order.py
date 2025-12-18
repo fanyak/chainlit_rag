@@ -15,6 +15,7 @@ from chainlit.config import APP_ROOT
 from chainlit.user import PersistedUser, User
 
 AmountType = Literal[500, 1000]
+AmountTypePaid = Literal[5, 10]
 
 
 class CreateOrderPayload(TypedDict):
@@ -34,8 +35,18 @@ class UserPaymentInfo(BaseModel, arbitrary_types_allowed=True):
     order_code: str  # big int in viva payments
     event_id: int
     eci: int
-    amount: AmountType
+    amount: AmountTypePaid
     created_at: str | None = None
+
+
+class UserPaymentInfoDict(TypedDict):
+    user_id: str
+    transaction_id: str
+    order_code: str
+    event_id: int
+    eci: int
+    amount: AmountTypePaid
+    created_at: Optional[str]
 
 
 class UserPaymentInfoShell(TypedDict, total=False):
@@ -44,7 +55,7 @@ class UserPaymentInfoShell(TypedDict, total=False):
     order_code: str
     event_id: int
     eci: int
-    amount: AmountType
+    amount: AmountTypePaid
     created_at: Optional[str]
 
 
