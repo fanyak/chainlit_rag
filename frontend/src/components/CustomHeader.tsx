@@ -1,11 +1,15 @@
+import { useNavigate } from 'react-router-dom';
+
 import { Logo } from '@/components/Logo';
 import UserNav from '@/components/header/UserNav';
 
 export function CustomHeader() {
+  const navigate = useNavigate();
+
   return (
     <header role="banner" aria-label="Top navigation">
       <div className="brand">
-        <div className="logo-img-container">
+        <div className="logo-img-container" onClick={() => navigate('/')}>
           <Logo className="w-[50px]" />
         </div>
         <div className="brand-title">

@@ -1,9 +1,9 @@
 import {
+  AmountType,
   GuestOrderRequest,
   GuestOrderRequestSchema,
   SearchParamsSchema,
-  StaleGuestOrderRequestSchema,
-  amountType
+  StaleGuestOrderRequestSchema
 } from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
@@ -19,22 +19,17 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 import { useQuery } from 'hooks/query';
 
-interface TransactionResponse {
-  transaction_id: string;
-  order_code: string;
-  user_id: string;
-  event_id: number;
-  eci: number;
-  created_at: string;
-}
-
 export default function Order() {
   const { data: config, user } = useAuth();
   const query: URLSearchParams = useQuery();
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [orderAmount, setOrderAmount] = useState<amountType | null>(null);
+  const [orderAmount, setOrderAmount] = useState<AmountType | undefined>(
+    undefined
+  );
+  const [orderController, setOrderController] =
+    useState<AbortController | null>(new AbortController());
   const [openDialog, setOpenDialog] = useState(false);
   const oAuthReady = config?.oauthProviders.length;
   const providers = config?.oauthProviders || [];
@@ -49,7 +44,7 @@ export default function Order() {
     );
     console.log('Clearing URL state, new URL:', baseUrl.toString());
     // Remove query parameters by replacing the URL without them
-    //NOTE: we replace the URL to avoid back navigation to the guest order state!!
+    // NOTE: we replace the URL to avoid back navigation to the guest order state!!
     window.history.replaceState(null, '', `${baseUrl}`);
   }, []);
 
@@ -65,13 +60,13 @@ export default function Order() {
   const createStorageState = useCallback((key: string, value: string) => {
     localStorage.setItem(key, value);
   }, []);
-  const createGuestOrderUrlState = useCallback((amount: amountType): string => {
+  const createGuestOrderUrlState = useCallback((amount: AmountType): string => {
     const baseUrl = new URL(
       `${window.location.protocol}//${window.location.host}${window.location.pathname}`
     );
     const searchParams = new URLSearchParams();
     const guestData: GuestOrderRequest = {
-      amount: amount,
+      amount,
       createdAt: Date.now()
     };
     for (const [key, value] of Object.entries(guestData)) {
@@ -79,7 +74,7 @@ export default function Order() {
     }
     baseUrl.search = searchParams.toString();
     // window.location.replace(baseUrl.toString());
-    // replace history to avoid reloading the page with the guest order params
+    // replace history whithout reloading the page with the guest order params
     window.history.replaceState(null, '', `${baseUrl}`);
     return JSON.stringify(guestData);
   }, []);
@@ -87,11 +82,12 @@ export default function Order() {
   // because this is also in useEffect, we memoize it to avoid recreating the function on each render
   // this will run twice on mount in dev mode but only once in production
   const handleCreateOrder = useCallback(
-    async (amount: amountType = 1000) => {
+    async (amount: AmountType = 500) => {
       if (error) {
         setError(null);
         return;
       }
+      setLoading(true);
       if (!user) {
         // toast.error('You must be logged in to create an order');
         toast.warning('We need you to log in first.');
@@ -102,19 +98,21 @@ export default function Order() {
         }, 2000);
         return;
       }
-      setLoading(true);
       // use try because the apiClient throws an error if the response is not ok!!!
       try {
-        const response = await apiClient.post('/order', {
-          amount_cents: amount
-        }); // 10 euros in cents
+        // there is a new tick after await completes
+        const response = await apiClient.post(
+          '/order',
+          {
+            amount_cents: amount
+          },
+          orderController?.signal
+        ); // 5 euros in cents!!
         const data = await response.json();
         // NOTE:  we don't need to check if orderCode is present in the response
         // because it is done in the backend (order.py) and it raises an Error Response if not
         const orderCode = data.orderCode;
-        toast.success(
-          `Redirecting to payment page...${import.meta.env.VITE_CHECKOUT_URL}`
-        );
+        toast.success(`Redirecting to payment page`);
 
         // Redirect to Viva Payments Smart Checkout
         // NOTE: Use demo URL for testing, change to production URL when going live
@@ -158,13 +156,17 @@ export default function Order() {
 
   function handleConfirm() {
     setOpenDialog(false);
-    handleCreateOrder(orderAmount as amountType);
+    handleCreateOrder(orderAmount);
   }
 
   // Effect 3: Handle successful login redirect for guest orders
   useEffect(() => {
+    setOrderController(new AbortController());
     const queryResult = SearchParamsSchema.safeParse(Object.fromEntries(query));
-    if (!queryResult.success) return;
+    if (!queryResult.success) {
+      clearAllStoredState();
+      return;
+    }
     const { amount, createdAt } = queryResult.data;
     if (!amount || !createdAt) return;
     // check if the guest order is valid and fresh
@@ -196,75 +198,102 @@ export default function Order() {
         }
       }
     }
-    // In any case clear state in localStorage!
-    clearStorageState(GUESTORDER_KEY);
+    // In any case clear state in localStorage in the setup function!
+    clearAllStoredState(GUESTORDER_KEY);
+    // cleanup function to abort fetch on unmount or state change
+    return () => {
+      orderController?.abort();
+    };
   }, [query, handleCreateOrder, clearStorageState]); // Runs when user or query changes
 
   // Effect 2: Handle payment callbacks and failure states
   // should run once on mount, and whenever query or user changes
-  useEffect(() => {
-    const result = SearchParamsSchema.safeParse(Object.fromEntries(query));
-    if (!result.success) return;
+  // useEffect(() => {
+  //   const paymentResultController = new AbortController();
+  //   const result = SearchParamsSchema.safeParse(Object.fromEntries(query));
+  //   if (!result.success) return;
 
-    const { t, s, eventId, eci, orderFailed } = result.data;
+  //   const { t, s, eventId, eci, orderFailed } = result.data;
 
-    if (orderFailed) {
-      console.log('Payment failed or was cancelled.');
-      toast.error('Payment failed or was cancelled.');
-      return;
-    }
-    const isPaymentCallback = t && s && eventId && eci ? true : false;
-    if (!orderFailed && isPaymentCallback) {
-      console.log('Transaction ID:', t);
-      console.log('Order Code:', s);
-      console.log('Event ID:', eventId);
-      console.log('ECI:', eci);
+  //   if (orderFailed) {
+  //     console.log('Payment failed or was cancelled.');
+  //     toast.error('Payment failed or was cancelled.');
+  //     return;
+  //   }
+  //   const isPaymentCallback = t && s && eventId && eci ? true : false;
+  //   if (!orderFailed && isPaymentCallback) {
+  //     console.log('Transaction ID:', t);
+  //     console.log('Order Code:', s);
+  //     console.log('Event ID:', eventId);
+  //     console.log('ECI:', eci);
 
-      // we check the database only for logged in users to match their transactions
-      if (!user) {
-        toast.warning(
-          'We need you to log in first to process the payment result.'
-        );
-        setTimeout(() => {
-          onOAuthSignIn(providers[0]);
-        }, 2000);
-        return;
-      }
-      // TODO: add fallback if the webhook has not yet processed the transaction
-      (async () => {
-        // NOTE: we use try because the apiClient throws an error if the response is not ok!!!
-        try {
-          const response = await apiClient.get(
-            `/transaction?transaction_id=${t}&order_code=${s}`
-          );
-          const transaction: TransactionResponse = await response.json();
-          console.log('Transaction details:', transaction);
-          if (
-            //NOTE: is this needed: double check that the transaction matches the query params?
-            transaction.transaction_id !== t ||
-            transaction.order_code !== s
-          ) {
-            toast.error('Payment was not successful.');
-            return;
-          }
-          toast.success('Payment processed successfully!');
+  //     // we check the database only for logged in users to match their transactions
+  //     if (!user) {
+  //       toast.warning(
+  //         'We need you to log in first to process the payment result.'
+  //       );
+  //       setTimeout(() => {
+  //         onOAuthSignIn(providers[0]);
+  //       }, 2000);
+  //       return;
+  //     }
+  //     // TODO: add fallback if the webhook has not yet processed the transaction
+  //     (async () => {
+  //       // NOTE: we use try because the apiClient throws an error if the response is not ok!!!
+  //       try {
+  //         // this is an internal request to our database
+  //         const response = await apiClient.get(
+  //           `/transaction?transaction_id=${t}&order_code=${s}`
+  //         );
+  //         const transaction: UserPaymentInfo = await response.json();
+  //         console.log('Transaction details:', transaction);
+  //         if (
+  //           //NOTE: check if the transaction is empty and doesn't match the query params
+  //           !transaction.transaction_id ||
+  //           !transaction.order_code
+  //         ) {
+  //           toast.error('Checking if Webhook was not received');
+  //           const payment_payload: Partial<UserPaymentInfo> = {
+  //             user_id: user.id,
+  //             transaction_id: t as string,
+  //             order_code: s as string,
+  //             event_id: Number(eventId),
+  //             eci: Number(eci)
+  //           };
+  //           // this is an external request to get the transaction from Viva Payments
+  //           const transaction_fallback = await apiClient.post(
+  //             `/payment`,
+  //             payment_payload,
+  //             paymentResultController.signal
+  //           );
+  //           const payment_res: UserPaymentInfo =
+  //             await transaction_fallback.json();
+  //           if (!payment_res.transaction_id || !payment_res.order_code) {
+  //             toast.error('Payment processing failed in Fallback!');
+  //             return;
+  //           }
+  //         }
+  //         toast.success('Payment processed successfully!');
 
-          // go back to home after 1 second
-          setTimeout(() => {
-            window.location.replace('/');
-          }, 1000);
-        } catch (error) {
-          // the apiClient throws an error if the response is not ok!!!
-          // it also shows a toast with the error message
-          // so no need to show another toast here
-          console.error('Error processing payment:', error);
-        } finally {
-          // clear URL state
-          clearAllStoredState();
-        }
-      })();
-    }
-  }, [query, user]); // Runs when query or user changes
+  //         // go back to home after 1 second
+  //         setTimeout(() => {
+  //           window.location.replace('/');
+  //         }, 1000);
+  //       } catch (error) {
+  //         // the apiClient throws an error if the response is not ok!!!
+  //         // it also shows a toast with the error message
+  //         // so no need to show another toast here
+  //         console.error('Error processing payment:', error);
+  //       } finally {
+  //         // clear URL state
+  //         clearAllStoredState();
+  //       }
+  //     })();
+  //   }
+  //   return () => {
+  //     paymentResultController.abort();
+  //   };
+  // }, [query, user]); // Runs when query or user changes
 
   return (
     <div className="custom-pg flex flex-col items-center justify-center h-full w-full">

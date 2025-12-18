@@ -40,7 +40,11 @@ class RedirectSchema:
     @classmethod
     def validate_redirect_path(cls, v: str) -> str:
         """Validate that redirect path is in allowed list."""
-        ALLOWED_LOGIN_REDIRECT_URLS: list[str] = ["/order"]
+        ALLOWED_LOGIN_REDIRECT_URLS: list[str] = [
+            "/order",
+            "/order/success",
+            "/order/fail",
+        ]
         print(v)
         if v not in ALLOWED_LOGIN_REDIRECT_URLS:
             raise RedirectSchemaError(

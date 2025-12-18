@@ -125,6 +125,7 @@ html {
   flex-shrink: 0;
   box-shadow: 0 6px 18px rgba(11, 78, 162, 0.12);
   background: linear-gradient(135deg, var(--accentb), #0660a8);
+  cursor: pointer;
 }
 /* .logo-img {
   width: 60px;
@@ -612,7 +613,9 @@ li {
 }
 
 .pricing-card .card-footer .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   padding: 0.75rem 1.5rem;
   text-align: center;
@@ -632,6 +635,11 @@ li {
 
 .pricing-card .card-footer .btn-primary:hover {
   background: #0043b2;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.custom-pg .pricing-card .card-footer .btn.btn-primary:disabled {
+  background-color: #7f8692 !important;
   box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
 }
 

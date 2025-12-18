@@ -2,6 +2,8 @@ import getRouterBasename from '@/lib/router';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import Order from './pages/Order';
+import OrderFail from './pages/OrderFail';
+import OrderSuccess from './pages/OrderSuccess';
 import AuthCallback from 'pages/AuthCallback';
 import Element from 'pages/Element';
 import Env from 'pages/Env';
@@ -42,6 +44,14 @@ export const router = createBrowserRouter(
     {
       path: '/order',
       element: <Order />
+    },
+    {
+      path: '/order/success',
+      element: <OrderSuccess />
+    },
+    {
+      path: '/order/fail',
+      element: <OrderFail />
     },
     {
       path: '*',

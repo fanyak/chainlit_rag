@@ -17,7 +17,7 @@ from chainlit.data.storage_clients.base import BaseStorageClient
 from chainlit.data.utils import queue_until_user_message
 from chainlit.element import ElementDict
 from chainlit.logger import logger
-from chainlit.order import UserPaymentInfo
+from chainlit.order import CreatePaymentResponse, UserPaymentInfo, UserPaymentInfoShell
 from chainlit.step import StepDict
 from chainlit.types import (
     Feedback,
@@ -206,44 +206,51 @@ class SQLAlchemyDataLayer(BaseDataLayer):
 
     async def create_payment(
         self, payment_info: UserPaymentInfo
-    ) -> Optional[Dict[str, Any]]:
+    ) -> CreatePaymentResponse:
         if self.show_logger:
             logger.info(f"SQLAlchemy: create_payment, payment_info={payment_info}")
 
         payment_id = str(uuid.uuid4())
-        user_identifier = payment_info.get("user_identifier")
-
-        if not user_identifier:
+        payment_dict: dict[str, Any] = payment_info.model_dump()
+        user_id = payment_dict.get("user_id")
+        if not user_id:
             raise ValueError("user_identifier is required in payment_info")
 
-        payment_dict: Dict[str, Any] = {
-            "id": payment_id,
-            "user_id": user_identifier,
-            "transaction_id": payment_info.get("transaction_id"),
-            "order_code": payment_info.get("order_code"),
-            "event_id": payment_info.get("event_id"),
-            "eci": payment_info.get("eci"),
-            "amount": payment_info.get("amount"),
-            "created_at": payment_info.get("created")
-            or await self.get_current_timestamp(),
-        }
+        payment_dict.update(
+            {
+                "id": payment_id,
+                "created_at": payment_dict.get("created_at")
+                or await self.get_current_timestamp(),
+            }
+        )
+        # payment_dict: UserPaymentInfo.__class__ = {
+        #     "id": payment_id,
+        #     "user_id": user_id,
+        #     "transaction_id": payment_info.get("transaction_id"),
+        #     "order_code": payment_info.get("order_code"),
+        #     "event_id": payment_info.get("event_id"),
+        #     "eci": payment_info.get("eci"),
+        #     "amount": payment_info.get("amount"),
+        #     "created_at": payment_info.get("created_at")
+        #     or await self.get_current_timestamp(),
+        # }
 
         query = """INSERT INTO payments ("id", "user_id", "transaction_id", "order_code", "event_id", "eci",  "amount", "created_at")
                    VALUES (:id, :user_id, :transaction_id, :order_code, :event_id, :eci, :amount, :created_at)"""
         rowcount = await self.execute_sql(query=query, parameters=payment_dict)
-        assert (
-            rowcount == 1
-        )  # if this is None, then there was an error inserting the payment
+        assert rowcount == 1
+        # if we have an assertion here, and it bubbles up
+        # then fastapi will return a 500 error to the client
         user = await self.update_user_balance(  # this contains assertion
-            identifier=user_identifier,
+            identifier=user_id,
             # amount to deduct (use negative amount to add balance)
-            balance_to_deduct=-int(payment_info.get("amount", 0)),
+            balance_to_deduct=-int(payment_dict.get("amount", 0)),
         )
         return {"id": payment_id, "balance": user.balance}
 
     async def get_payment_by_transaction(
         self, transaction_id: str, order_code: str, user_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[UserPaymentInfo]:
         if self.show_logger:
             logger.info(
                 f"SQLAlchemy: get_payment_by_transaction, transaction_id={transaction_id}"
@@ -262,7 +269,8 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         if result is not None:  # None is when an error has occured
             if isinstance(result, list) and len(result) > 0:
                 return result[0]
-            return {}
+            # return empty object if no payment found
+            return UserPaymentInfoShell({})
         return None
 
     ###### Threads ######

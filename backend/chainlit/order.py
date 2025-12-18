@@ -4,23 +4,48 @@ import json
 import os
 import platform
 import subprocess
-from typing import Optional, TypedDict
+from typing import Literal, Optional, TypedDict, TypeVar, Union
+from uuid import UUID
 
 import httpx
 from fastapi import HTTPException
+from pydantic import BaseModel, Field
 
 from chainlit.config import APP_ROOT
 from chainlit.user import PersistedUser, User
 
+AmountType = TypeVar("AmountType", 500, 1000)
 
-class UserPaymentInfo(TypedDict):
-    user_identifier: str
+
+class CreateOrderPayload(TypedDict):
+    amount_cents: AmountType
+
+
+class CreatePaymentResponse(TypedDict):
+    id: UUID
+    balance: float
+
+
+class UserPaymentInfo(BaseModel, arbitrary_types_allowed=True):
+    """Pydantic Model for user payment information"""
+
+    user_id: str
     transaction_id: str
     order_code: str  # big int in viva payments
     event_id: int
     eci: int
-    amount: int
-    created: Optional[str]
+    amount: AmountType
+    created_at: str | None = None
+
+
+class UserPaymentInfoShell(TypedDict, total=False):
+    user_id: str
+    transaction_id: str
+    order_code: str
+    event_id: int
+    eci: int
+    amount: AmountType
+    created_at: Optional[str]
 
 
 class TransactionStatusInfo(TypedDict):
@@ -33,20 +58,29 @@ class TransactionStatusInfo(TypedDict):
     cardNumber: str
     currencyCode: str
     cardTypeId: int
+    merchantTrns: str
+    transactionTypeId: int
 
 
-class WebHookEventData(TypedDict):
-    TransactionId: str
-    OrderCode: str
-    ElectronicCommerceIndicator: int
-    Amount: int
+class VivaWebHookEventData(BaseModel):
+    transaction_id: str = Field(alias="TransactionId")
+    order_code: int = Field(alias="OrderCode")
+    eci: int = Field(alias="ElectronicCommerceIndicator")
+    amount: float = Field(alias="Amount")
+    status_id: str = Field(alias="StatusId")
+    user_identifier: str = Field(alias="MerchantTrns")
 
 
-class VivaWebhookPayload(TypedDict):
-    url: str
-    EventData: WebHookEventData
-    EventTypeId: int
-    Created: str
+class VivaWebhookPayload(BaseModel):
+    Url: str
+    EventData: VivaWebHookEventData
+    event_id: int = Field(alias="EventTypeId")
+    created_at: str = Field(alias="Created")
+
+
+class TransactionStatusTypedDict(TypedDict):
+    # This says: status_id must be exactly "F" or "E"
+    status_id: Literal["F", "E"]
 
 
 def operating_system_bash_path() -> str:
@@ -85,17 +119,37 @@ def generate_viva_token() -> bool:
         return False
 
 
-def convert_hook_to_UserPaymentInfo(
-    data: VivaWebhookPayload, persisted_user: PersistedUser
+def extract_data_from_viva_webhook_payload(
+    data: VivaWebhookPayload,
+) -> Union[UserPaymentInfoShell, TransactionStatusTypedDict]:
+    """Extract relevant data from Viva Webhook payload."""
+    obj: VivaWebhookPayload.__class__ = data.model_dump()
+    eventData = obj.get("EventData", {})
+    return {
+        "user_id": eventData.get("user_identifier"),
+        "transaction_id": eventData.get("transaction_id"),
+        "order_code": str(eventData.get("order_code")),
+        "event_id": obj.get("event_id"),
+        "eci": eventData.get("eci"),
+        "amount": int(eventData.get("amount", 0)),
+        "created_at": obj.get("created_at"),
+        "status_id": eventData.get("status_id"),
+    }
+
+
+def convert_viva_payment_hook_to_UserPaymentInfo_object(
+    data: Union[UserPaymentInfoShell, TransactionStatusTypedDict], user: PersistedUser
 ) -> UserPaymentInfo:
+    """Convert Viva Webhook payload to Pydantic UserPaymentInfo."""
+    # pass the data from the webhook to the UserPaymentInfo Pydantic as keyword arguments
     return UserPaymentInfo(
-        user_identifier=persisted_user.identifier,
-        transaction_id=data["EventData"]["TransactionId"],
-        order_code=str(data["EventData"]["OrderCode"]),
-        event_id=data["EventTypeId"],
-        eci=data["EventData"]["ElectronicCommerceIndicator"],
-        amount=data["EventData"]["Amount"],
-        created=data["Created"],
+        user_id=user.identifier,
+        transaction_id=data["transaction_id"],
+        order_code=str(data["order_code"]),
+        event_id=data["event_id"],
+        eci=data["eci"],
+        amount=data["amount"],
+        created_at=data["created_at"],
     )
 
 
@@ -128,7 +182,7 @@ def get_viva_webhook_key() -> dict | None:
     return key
 
 
-async def create_viva_payment_order(user: User, amount_cents: int) -> str:
+async def create_viva_payment_order(user: User, amount_cents: AmountType) -> str:
     """Create a new order."""
     # Here you would add logic to process the order
     orderCode = None
@@ -209,7 +263,9 @@ async def create_viva_payment_order(user: User, amount_cents: int) -> str:
     raise HTTPException(status_code=500, detail="Viva Payments token not found")
 
 
-async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[dict]:
+async def get_viva_payment_transaction_status(
+    transaction_id: str,
+) -> Optional[TransactionStatusInfo]:
     """Get the status of an existing order."""
     token = get_viva_payment_token()
     if token:
@@ -230,6 +286,8 @@ async def get_viva_payment_transaction_status(transaction_id: str) -> Optional[d
                 response.raise_for_status()
                 res = response.json()
                 return res
+        # NOTE: the httpx request returns error 404 if transaction not found
+        # pass the error to the calling route function so that fastAPI can handle it
         except httpx.HTTPStatusError:
             # use fastapi exception handling - returns an HTTP error response with the details
             # it is handled in the calling path operation function
