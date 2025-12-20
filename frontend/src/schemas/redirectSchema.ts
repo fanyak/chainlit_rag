@@ -36,6 +36,8 @@ export const StaleGuestOrderRequestSchema = BaseOrderRequestSchema.extend({
     )
 });
 
+// extra pararms will be stripped (default behavior of zod)
+// if we want to return an error for extra params, we can use .strict()
 export const SearchParamsSchema = z.object({
   amount: z.coerce.number().nullish(),
   createdAt: z.coerce.number().nullish(),

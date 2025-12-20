@@ -22,6 +22,10 @@ class CreateOrderPayload(TypedDict):
     amount_cents: AmountType
 
 
+class CreateVivaPaymentsOrderResponse(TypedDict):
+    orderCode: str
+
+
 class CreatePaymentResponse(TypedDict):
     id: UUID
     balance: float
@@ -91,6 +95,7 @@ class VivaWebhookPayload(BaseModel):
 
 class TransactionStatusTypedDict(TypedDict):
     # This says: status_id must be exactly "F" or "E"
+    # F is for Finished/Successful.
     status_id: Literal["F", "E"]
 
 
@@ -134,17 +139,17 @@ def extract_data_from_viva_webhook_payload(
     data: VivaWebhookPayload,
 ):
     """Extract relevant data from Viva Webhook payload."""
-    obj = data.model_dump()
-    eventData = obj.get("EventData", {})
+    # obj = data.model_dump()
+    eventData: VivaWebHookEventData = data.EventData
     return {
-        "user_id": eventData.get("user_identifier"),
-        "transaction_id": eventData.get("transaction_id"),
-        "order_code": str(eventData.get("order_code")),
-        "event_id": obj.get("event_id"),
-        "eci": eventData.get("eci"),
-        "amount": int(eventData.get("amount", 0)),
-        "created_at": obj.get("created_at"),
-        "status_id": eventData.get("status_id"),
+        "user_id": eventData.user_identifier,
+        "transaction_id": eventData.transaction_id,
+        "order_code": str(eventData.order_code),
+        "event_id": data.event_id,
+        "eci": eventData.eci,
+        "amount": int(eventData.amount),
+        "created_at": data.created_at,
+        "status_id": eventData.status_id,
     }
 
 

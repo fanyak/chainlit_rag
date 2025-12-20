@@ -256,7 +256,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             "user_id": user_id,
         }
         result = await self.execute_sql(query=query, parameters=parameters)
-        if result is not None:  # None is when an error has occured
+        if result is not None:  # None is when an error has occured in self.execute_sql
             if isinstance(result, list) and len(result) > 0:
                 return cast(UserPaymentInfoDict, result[0])
             # return empty object if no payment found

@@ -59,40 +59,46 @@ export default function OrderSuccess() {
         // NOTE: we use try because the apiClient throws an error if the response is not ok!!!
         try {
           // this is an internal request to our database
+          // it will throw if there was an sql error
+          // it will return an empty transaction if not found
           const response = await apiClient.get(
             `/transaction?transaction_id=${t}&order_code=${s}`
           );
           const transaction: UserPaymentInfo = await response.json();
           console.log('Transaction details:', transaction);
           if (
-            //NOTE: check if the transaction is empty and doesn't match the query params
+            // check if the transaction is emtpy object shell
             !transaction.transaction_id ||
             !transaction.order_code
           ) {
             toast.error('Checking if Webhook was not received');
-            const payment_payload: Partial<UserPaymentInfo> = {
+            const payment_request_payload: Partial<UserPaymentInfo> = {
               user_id: user.identifier,
               transaction_id: t as string,
               order_code: s as string,
               event_id: Number(eventId),
               eci: Number(eci),
-              amount: 5 // amount is unknown here, set a default or fetch from another source
+              // we have to provide an amount to match the pydantic model, but we don't know it here
+              amount: 5 // set a default or fetch from another source
             };
             // this is an external request to get the transaction from Viva Payments
-            // if the transaction doesn't exist Viva payments will return an error
+            // and then store it in our database via the backend
+            // if the transaction doesn't exist, Viva payments will return an error status code
+            // FastAPI backend returns the error message from Viva Payments
             // we have to catch that error and show a message to the user
-            await apiClient.post(
+            const payment_response = await apiClient.post(
               `/payment`,
-              payment_payload,
+              payment_request_payload,
               paymentResultController.signal
             );
-            // const payment_res: CreatePaymentResponse =
-            //   await transaction_fallback.json();
-            // if (!payment_res.id || !payment_res.balance) {
-            //   return;
-            // }
+            if (payment_response.status === 201) {
+              toast.success('Payment processed successfully!');
+            } else {
+              toast.info(
+                'Payment already exists in the system. No new record created.'
+              );
+            }
           }
-          toast.success('Payment processed successfully!');
           setSuccess(true);
 
           // go back to home after 2 seconds
@@ -150,7 +156,7 @@ export default function OrderSuccess() {
                 </svg>
               </div>
               <h1 className="text-3xl font-bold text-green-600">
-                Payment Successful!
+                Payment processed successfully!
               </h1>
               <p className="text-gray-600 text-lg">
                 Thank you for your purchase. Your order has been confirmed.
@@ -178,8 +184,8 @@ export default function OrderSuccess() {
                     />
                   </svg>
                   <h1 className="text-2xl font-bold text-gray-800">
-                    Seems you made a payment but we could Not Process Your
-                    Payment Please contact support
+                    Seems we could Not Process Your Payment Please contact
+                    support
                   </h1>
                   <p className="text-gray-600">
                     Logged in as:{' '}

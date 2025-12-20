@@ -1,5 +1,9 @@
 import { AmountTypePaid } from './redirectSchema';
 
+export interface CreateVivaPaymentsOrderResponse {
+  orderCode: string;
+}
+
 export interface UserPaymentInfo {
   id: string;
   transaction_id: string;

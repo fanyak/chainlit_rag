@@ -40,7 +40,7 @@ CREDS="$VIVA_SMART_CHECKOUT_CLIENT_ID:$VIVA_SMART_CHECKOUT_CLIENT_SECRET"
 # because of the colon : - it would be split otherwise
 ENCODED=$(echo -n "$CREDS" | base64)
 
-curl -L -X POST 'https://demo-accounts.vivapayments.com/connect/token' \
+curl -L -X POST "$VIVA_GENERATE_ORDER_TOKEN_URL" \
 --header "Authorization: Basic  $(echo -n $ENCODED)" \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'grant_type=client_credentials' \
@@ -49,6 +49,6 @@ curl -L -X POST 'https://demo-accounts.vivapayments.com/connect/token' \
 # save access token to docker container env file
 
 grep -o '"access_token":"[^"]*"' response.json | sed 's/"access_token":"\([^"]*\)"/\1/' > vt.txt
-chmod 600 ./vt.txt     # Only owner can read/write
+chmod 600 ./vt.txt # Only owner can read/write
 rm -f response.json
 echo "Viva Payments access token saved to vt.txt"

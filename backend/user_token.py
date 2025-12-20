@@ -232,7 +232,7 @@ class db_object:
                     CREATE TABLE IF NOT EXISTS payments(
                         id UUID PRIMARY KEY,
                         user_id TEXT NOT NULL,
-                        transaction_id UUID NOT NULL,
+                        transaction_id UUID UNIQUE NOT NULL,
                         order_code TEXT NOT NULL,
                         event_id INT NOT NULL,
                         eci INT NOT NULL,

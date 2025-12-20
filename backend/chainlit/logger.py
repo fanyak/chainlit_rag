@@ -14,3 +14,11 @@ logging.getLogger("numexpr").setLevel(logging.ERROR)
 
 
 logger = logging.getLogger("chainlit")
+
+payment_logger = logging.getLogger("payment_processor")
+# Add file handler only to chainlit logger
+payment_logger_file_handler = logging.FileHandler("payment_processor.log")
+payment_logger_file_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+)
+payment_logger.addHandler(payment_logger_file_handler)
