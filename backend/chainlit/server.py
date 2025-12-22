@@ -1822,7 +1822,9 @@ async def create_order(current_user: UserParam, req: Request):
     return JSONResponse(content=order_response)
 
 
-async def is_allowed_payment(data_layer, payment: UserPaymentInfo) -> Optional[bool]:
+async def is_allowed_payment(
+    data_layer, payment: UserPaymentInfo, verify_amount=True
+) -> Optional[bool]:
     """Utility function to check if a payment is allowed (i.e does not already exist).
         If it errors with HttpException, it should be caught by the caller.
     ️Args:
@@ -1845,7 +1847,8 @@ async def is_allowed_payment(data_layer, payment: UserPaymentInfo) -> Optional[b
         if existing_payment.get("transaction_id") and existing_payment.get(
             "order_code"
         ):
-            assert existing_payment.get("amount") == payment.amount
+            if verify_amount:
+                assert existing_payment.get("amount") == payment.amount
             raise ValueError("Payment already exists")
     except SystemError:
         # system errors should be caught by the caller path function
@@ -1878,19 +1881,37 @@ async def create_payment(payment: UserPaymentInfo, current_user: UserParam):
 
     data_layer = get_data_layer()
     if not data_layer:
-        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
     if not current_user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
     if not isinstance(current_user, PersistedUser):
         # if we have an assertion here from sqlAlchemy and it bubbles up
         # then fastapi will return a 500 error to the client
         persisted_user = await data_layer.get_user(identifier=current_user.identifier)
         if not persisted_user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
     if payment.user_id != current_user.identifier:
-        raise HTTPException(status_code=403, detail="User identifier does not match")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User identifier does not match",
+        )
 
-    # Check transaction status before updated the database
+    # NOTE: at this point we don't have the true amount if in fact there was a payment
+    if not await is_allowed_payment(data_layer, payment, verify_amount=False):
+        payment_logger.info(
+            f"Duplicate payment id received for {payment.transaction_id}, ignoring."
+        )
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=payment.model_dump()
+        )
+
     # Note: In FastAPI, if you are inside a utility function,
     #  (i.e get_viva_payment_transaction_status)
     # that you are calling inside of your path operation function,
@@ -1898,7 +1919,11 @@ async def create_payment(payment: UserPaymentInfo, current_user: UserParam):
     # it won't run the rest of the code in the path operation function,
     # it will terminate that request right away and send an HTTP error response
     # with the detail to the client!!!!!
-    # if the transaction doesn't exist, then the Viva Payments API returns HTTP 404!
+
+    # verify with Viva Payments API the transaction status
+    # if the transaction doesn't exist, Viva Payments API returns HTTP 404 - item not found!
+    # if the Viva Payments API cannot be reached, it returns HTTP 500!
+    # if there is other system error reaching Viva Payments API, it returns HTTP 500!
     transaction_status: TransactionStatusInfo = (
         await get_viva_payment_transaction_status(payment.transaction_id)
     )
@@ -1914,17 +1939,14 @@ async def create_payment(payment: UserPaymentInfo, current_user: UserParam):
         payment.amount = cast(AmountPaidType, int(transaction_status.get("amount", 0)))
         # Now we need to check if the payment already exists in the database
         # if there is a system error checking existing payment, an http exception 500 is raised
-        if await is_allowed_payment(data_layer, payment):
-            print("Creating new payment record in database from fallback endpoint")
-            res = await data_layer.create_payment(payment)
-            # status code 201 = created
-            return JSONResponse(content=res, status_code=201)
-        else:
-            # status code 200 payment already exists
-            return JSONResponse(content=payment.model_dump(), status_code=200)
+        res = await data_layer.create_payment(payment)
+        # status code 201 = created
+        return JSONResponse(content=res, status_code=status.HTTP_201_CREATED)
+
     else:
         raise HTTPException(
-            status_code=400, detail="Transaction status could not be verified"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction status could not be verified",
         )
 
 
@@ -1951,11 +1973,14 @@ async def viva_transaction_created_webhook(
     Returns:
         JSONResponse: The response to Viva Payments.
     """
+    # point of failure is here:
     data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
 
-    # 1st point of failure is here:
+    # point of failure is here:
     # if the webhook payload is not valid according to model VivaTransactionCreatedWebhookPayload,
-    # then FastAPI will return 422 error - Unprocessable Content automatically.
+    # then FastAPI will return HTTP status 422 error - Unprocessable Content automatically.
     print(111111111111111111111, payload)
     eventData = extract_data_from_viva_webhook_payload(payload)
 
