@@ -1,4 +1,4 @@
-import { AmountType } from '@/schemas/redirectSchema';
+import { AmountOrderedType } from '@/schemas/redirectSchema';
 import { useState } from 'react';
 
 import { IUser } from 'client-types/*';
@@ -31,12 +31,12 @@ function PaymentPlants({
   loading,
   user
 }: {
-  createOrder: (amount: AmountType) => Promise<void>;
+  createOrder: (amount: AmountOrderedType) => Promise<void>;
   loading: boolean;
   user: IUser | null | undefined;
 }) {
   const [active, setActive] = useState<number | null>(null);
-  const handleClick = (index: number, amount: AmountType): void => {
+  const handleClick = (index: number, amount: AmountOrderedType): void => {
     setActive(index);
     createOrder(amount);
   };

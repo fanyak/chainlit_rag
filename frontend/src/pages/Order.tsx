@@ -1,6 +1,6 @@
 import { CreateVivaPaymentsOrderResponse } from '@/schemas/interface';
 import {
-  AmountType,
+  AmountOrderedType,
   GuestOrderRequest,
   GuestOrderRequestSchema,
   SearchParamsSchema,
@@ -26,7 +26,7 @@ export default function Order() {
   const [loading, setLoading] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [orderAmount, setOrderAmount] = useState<AmountType | undefined>(
+  const [orderAmount, setOrderAmount] = useState<AmountOrderedType | undefined>(
     undefined
   );
   const [orderController, setOrderController] =
@@ -61,29 +61,32 @@ export default function Order() {
   const createStorageState = useCallback((key: string, value: string) => {
     localStorage.setItem(key, value);
   }, []);
-  const createGuestOrderUrlState = useCallback((amount: AmountType): string => {
-    const baseUrl = new URL(
-      `${window.location.protocol}//${window.location.host}${window.location.pathname}`
-    );
-    const searchParams = new URLSearchParams();
-    const guestData: GuestOrderRequest = {
-      amount,
-      createdAt: Date.now()
-    };
-    for (const [key, value] of Object.entries(guestData)) {
-      searchParams.append(key, value.toString());
-    }
-    baseUrl.search = searchParams.toString();
-    // window.location.replace(baseUrl.toString());
-    // replace history whithout reloading the page with the guest order params
-    window.history.replaceState(null, '', `${baseUrl}`);
-    return JSON.stringify(guestData);
-  }, []);
+  const createGuestOrderUrlState = useCallback(
+    (amount: AmountOrderedType): string => {
+      const baseUrl = new URL(
+        `${window.location.protocol}//${window.location.host}${window.location.pathname}`
+      );
+      const searchParams = new URLSearchParams();
+      const guestData: GuestOrderRequest = {
+        amount,
+        createdAt: Date.now()
+      };
+      for (const [key, value] of Object.entries(guestData)) {
+        searchParams.append(key, value.toString());
+      }
+      baseUrl.search = searchParams.toString();
+      // window.location.replace(baseUrl.toString());
+      // replace history whithout reloading the page with the guest order params
+      window.history.replaceState(null, '', `${baseUrl}`);
+      return JSON.stringify(guestData);
+    },
+    []
+  );
 
   // because this is also in useEffect, we memoize it to avoid recreating the function on each render
   // this will run twice on mount in dev mode but only once in production
   const handleCreateOrder = useCallback(
-    async (amount: AmountType = 500) => {
+    async (amount: AmountOrderedType = 500) => {
       if (error) {
         setError(null);
         return;

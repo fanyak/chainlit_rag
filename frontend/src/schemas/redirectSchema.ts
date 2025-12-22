@@ -74,5 +74,7 @@ export const parseZErrorPaths = (
 };
 export type BaseOrderRequest = z.infer<typeof BaseOrderRequestSchema>;
 export type GuestOrderRequest = z.infer<typeof GuestOrderRequestSchema>;
-export type AmountType = z.output<typeof BaseOrderRequestSchema.shape.amount>;
-export type AmountTypePaid = 5 | 10;
+export type AmountOrderedType = z.output<
+  typeof BaseOrderRequestSchema.shape.amount
+>;
+export type AmountPaidType = 5 | 10;

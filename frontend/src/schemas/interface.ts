@@ -1,4 +1,4 @@
-import { AmountTypePaid } from './redirectSchema';
+import { AmountPaidType } from './redirectSchema';
 
 export interface CreateVivaPaymentsOrderResponse {
   orderCode: string;
@@ -12,7 +12,7 @@ export interface UserPaymentInfo {
   event_id: number;
   eci: number;
   created_at: Date;
-  amount: AmountTypePaid;
+  amount: AmountPaidType;
 }
 
 export interface CreatePaymentResponse {
