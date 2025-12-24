@@ -1995,7 +1995,7 @@ async def viva_transaction_created_webhook(
             status_code=status.HTTP_200_OK, content={"message": "status not finalized"}
         )
     try:
-        # 2nd point of failure is here:
+        # point of failure is here:
         # if we have an assertion here, and it bubbles up
         # then fastapi will return a 500 error to the client
         user: Optional[PersistedUser] = await data_layer.get_user(
@@ -2022,7 +2022,7 @@ async def viva_transaction_created_webhook(
 
         #  Idempotency Check (Fast check for duplicate entries before API call)
         # is_allowed_payment checks if we already processed this ID
-        # 3rd point of failure is here:
+        # point of failure is here:
         # if there is a system error checking existing payment,
         # then an http exception 500 is raised
         if not await is_allowed_payment(data_layer, payment):
@@ -2060,7 +2060,7 @@ async def viva_transaction_created_webhook(
             and int(transaction_status.get("amount")) == payment.amount
         ):
             print("Creating new payment record in database from webhook")
-            # 5th point of failure is here:
+            # point of failure is here:
             # if there is a system error creating the payment, assertions are raised
             # then an http exception 500 is raised
             await data_layer.create_payment(payment)
@@ -2085,14 +2085,14 @@ async def viva_transaction_created_webhook(
     except HTTPException as e:
         # errors reaching the transaction from Viva Payments API: Error 404, 422, 500
         payment_logger.error(
-            f"Viva API or system error for transaction id {payment.transaction_id}: {e.detail}"
+            f"Viva API or system error for transaction id {payload.EventData.transaction_id}: {e.detail}"
         )
         raise e
 
     except Exception as e:
         payment_logger.info(
             f"""unexpected database error processing webhook for transaction
-                {payment.transaction_id}: {e}"""
+                {payload.EventData.transaction_id}: {e}"""
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

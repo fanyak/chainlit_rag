@@ -13,6 +13,14 @@ from chainlit.element import Text
 
 @pytest.fixture
 async def data_layer(mock_storage_client: BaseStorageClient, tmp_path: Path):
+    """
+    Docstring for data_layer
+
+    :param tmp_path: is a  pytest fixture parameter provided automatically
+      by pytest that gives a temporary directory path for the test to use.
+    :param mock_storage_client: is a mock implementation of BaseStorageClient used for testing.
+    :return: An instance of SQLAlchemyDataLayer connected to a temporary SQLite database.
+    """
     db_file = tmp_path / "test_db.sqlite"
     conninfo = f"sqlite+aiosqlite:///{db_file}"
 

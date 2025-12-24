@@ -16,6 +16,24 @@ from chainlit.user import PersistedUser
 from chainlit.user_session import UserSession
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_db_files():
+    """Cleanup any leftover test database files before running tests."""
+    test_db_path = Path(__file__).parent / "test_payment_db.sqlite"
+    if test_db_path.exists():
+        try:
+            test_db_path.unlink()
+        except Exception:
+            pass  # File may be locked, but we tried
+    yield
+    # Cleanup after all tests
+    if test_db_path.exists():
+        try:
+            test_db_path.unlink()
+        except Exception:
+            pass
+
+
 @pytest.fixture
 def persisted_test_user():
     return PersistedUser(

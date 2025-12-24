@@ -232,7 +232,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         # then fastapi will return a 500 error to the client
         user = await self.update_user_balance(  # this contains assertion
             identifier=user_id,
-            # amount to deduct (use negative amount to add balance)
+            # amount to deduct (use negative amount in order to add balance)
             balance_to_deduct=-int(payment_dict.get("amount", 0)),
         )
         assert user is not None
