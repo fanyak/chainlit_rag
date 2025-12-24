@@ -187,7 +187,7 @@ async def process_payment_webhook(
             and transaction_status.get("statusId") == "F"
             and str(transaction_status.get("orderCode")) == payment.order_code
             and transaction_status.get("merchantTrns") == payment.user_id
-            and int(transaction_status.get("amount")) == payment.amount
+            and transaction_status.get("amount") == payment.amount
         ):
             print("Creating new payment record in database from webhook")
             # 5th point of failure is here:
