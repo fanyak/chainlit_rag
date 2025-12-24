@@ -12,12 +12,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.logger import payment_logger
 from chainlit.order import (
-    TransactionStatusInfo,
     UserPaymentInfo,
     VivaTransactionCreatedWebhookPayload,
     convert_viva_payment_hook_to_UserPaymentInfo_object,
     extract_data_from_viva_webhook_payload,
-    get_viva_payment_transaction_status,
     get_viva_webhook_key,
 )
 from chainlit.server import is_allowed_payment
@@ -103,7 +101,7 @@ async def process_payment_webhook(
     if eventData.get("status_id") != "F":
         payment_logger.info(
             f"""Ignoring webhook with non-finalized status id {eventData.get("status_id")}
-            for user {eventData.get("user_id")} 
+            for user {eventData.get("user_id")}
             and transaction {eventData.get("transaction_id")}
             and order code {eventData.get("order_code")}"""
         )
@@ -121,7 +119,7 @@ async def process_payment_webhook(
         # The user doesn't exist in the database
         if not user:
             payment_logger.info(
-                f"""Ignoring webhook with no user found for identifier {eventData.get("user_id")} 
+                f"""Ignoring webhook with no user found for identifier {eventData.get("user_id")}
                 for transaction {eventData.get("transaction_id")}
                 and order code {eventData.get("order_code")}
                 with status id {eventData.get("status_id")}"""
@@ -164,9 +162,25 @@ async def process_payment_webhook(
         # if the transaction doesn't exist, Viva Payments API returns HTTP 404 - item not found!
         # if the Viva Payments API cannot be reached, it returns HTTP 500!
         # if there is other system error reaching Viva Payments API, it returns HTTP 500!
-        transaction_status: TransactionStatusInfo = (
-            await get_viva_payment_transaction_status(payment.transaction_id)
+
+        # MOCK REQUEST TO VIVA PAYMENTS API FOR VERIFYING TRANSACTION STATUS
+        # transaction_status: TransactionStatusInfo = (
+        #     await get_viva_payment_transaction_status(payment.transaction_id)
+        # )
+        if payment.transaction_id == "nonexistent-transaction-id":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        transaction_status = dict(
+            {
+                "statusId": "F",
+                "orderCode": data[0]["OrderCode"],
+                "merchantTrns": data[0]["MerchantTrns"],
+                "amount": data[0]["Amount"],
+            }
         )
+
         print(f"Transaction status: {transaction_status}")
         if (
             transaction_status
@@ -349,11 +363,11 @@ async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_p
     get_data_layer,
 ):
     """Test the process of the Viva payment token."""
-    # send valid payload -> 201 Created
     d = data[0]
     obj = {
         "EventData": {
-            "TransactionId": d["TransactionId"],  # true/existing transaction ID
+            # true/existing transaction ID
+            "TransactionId": d["TransactionId"],
             "OrderCode": 13345,  # d["OrderCode"],
             "Amount": d["Amount"],
             "MerchantTrns": d["MerchantTrns"],
@@ -376,10 +390,11 @@ async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
     get_data_layer,
 ):
     """Test the process of the Viva payment token."""
-    d = data[0]
+    d = data[2]
     obj = {
         "EventData": {
-            "TransactionId": "a random transaction string",  # d["TransactionId"],
+            # d["TransactionId"],
+            "TransactionId": "nonexistent-transaction-id",
             "OrderCode": d["OrderCode"],
             "Amount": d["Amount"],
             "MerchantTrns": d["MerchantTrns"],
