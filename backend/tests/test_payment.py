@@ -111,7 +111,7 @@ async def get_data_layer(scope="module"):
 
 
 @pytest.fixture
-async def add_user_to_db(get_data_layer):
+async def add_user_to_db(get_data_layer, scope="module"):
     await get_data_layer.create_user(
         User(
             identifier=data[0]["MerchantTrns"],
@@ -121,7 +121,7 @@ async def add_user_to_db(get_data_layer):
 
 
 @pytest.fixture
-def client():
+def client(scope="module"):
     """Test client for FastAPI app."""
     return TestClient(app)
 
