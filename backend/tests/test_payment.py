@@ -352,12 +352,6 @@ async def test_viva_payment_webhook_payload_valid_duplicate(get_data_layer):
         "Created": "any-date-string",
     }
 
-    await get_data_layer.create_user(
-        User(
-            identifier=d["MerchantTrns"],
-            metadata={},
-        )
-    )
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -412,6 +406,12 @@ async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
         "Created": "any-date-string",
     }
 
+    await get_data_layer.create_user(
+        User(
+            identifier=d["MerchantTrns"],
+            metadata={},
+        )
+    )
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
