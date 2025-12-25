@@ -21,6 +21,26 @@ from chainlit.order import (
 from chainlit.server import is_allowed_payment
 from chainlit.user import PersistedUser, User
 
+data = json.load(open("./tests/test_payment_db.json"))
+
+
+def get_data(index=0) -> dict:
+    d = data[index]
+    return {
+        "EventData": {
+            "TransactionId": d["TransactionId"],
+            "OrderCode": d["OrderCode"],
+            "Amount": d["Amount"],
+            "MerchantTrns": d["MerchantTrns"],
+            "StatusId": d["StatusId"],
+            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
+        },
+        "EventTypeId": d["EventTypeId"],
+        "Url": d["Url"],
+        "Created": "any-date-string",
+    }
+
+
 app = FastAPI()
 
 
@@ -74,18 +94,54 @@ async def data_layer():
 
 
 @pytest.fixture
-async def get_data_layer():
+async def get_data_layer(scope="module"):
+    # Mthe test functions in the test module will each receive the same datalayer instance.
     db_instance = await data_layer()
     yield db_instance
     # Cleanup: close the engine and remove the database file
     if hasattr(db_instance, "engine"):
         await db_instance.engine.dispose()
     db_file = os.path.join(os.path.dirname(__file__), "test_payment_db.sqlite")
+    payment_logger.info(f"Removing test database file at: {db_file}")
     if os.path.exists(db_file):
         try:
             os.remove(db_file)
         except Exception:
             pass  # File may be locked, but we tried
+
+
+@pytest.fixture
+async def add_user_to_db(get_data_layer):
+    await get_data_layer.create_user(
+        User(
+            identifier=data[0]["MerchantTrns"],
+            metadata={},
+        )
+    )
+
+
+@pytest.fixture
+def client():
+    """Test client for FastAPI app."""
+    return TestClient(app)
+
+
+async def get_viva_payment_transaction_status(transaction_id: str):
+    # MOCK RESPONSE FROM VIVA PAYMENTS API
+    # In real implementation, this function would make an HTTP request to Viva Payments API
+    # to retrieve the transaction status.
+    for d in data:
+        if d["TransactionId"] == transaction_id:
+            return {
+                "statusId": d["StatusId"],
+                "orderCode": d["OrderCode"],
+                "merchantTrns": d["MerchantTrns"],
+                "amount": d["Amount"],
+            }
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Transaction not found",
+    )
 
 
 @app.get("/payment/webhook")
@@ -164,22 +220,23 @@ async def process_payment_webhook(
         # if there is other system error reaching Viva Payments API, it returns HTTP 500!
 
         # MOCK REQUEST TO VIVA PAYMENTS API FOR VERIFYING TRANSACTION STATUS
-        # transaction_status: TransactionStatusInfo = (
-        #     await get_viva_payment_transaction_status(payment.transaction_id)
-        # )
-        if payment.transaction_id == "nonexistent-transaction-id":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Transaction not found",
-            )
-        transaction_status = dict(
-            {
-                "statusId": "F",
-                "orderCode": data[0]["OrderCode"],
-                "merchantTrns": data[0]["MerchantTrns"],
-                "amount": data[0]["Amount"],
-            }
+        transaction_status = await get_viva_payment_transaction_status(
+            payment.transaction_id
         )
+
+        # if payment.transaction_id == "nonexistent-transaction-id":
+        #     raise HTTPException(
+        #         status_code=status.HTTP_404_NOT_FOUND,
+        #         detail="Transaction not found",
+        #     )
+        # transaction_status = dict(
+        #     {
+        #         "statusId": "F",
+        #         "orderCode": data[0]["OrderCode"],
+        #         "merchantTrns": data[0]["MerchantTrns"],
+        #         "amount": data[0]["Amount"],
+        #     }
+        # )
 
         print(f"Transaction status: {transaction_status}")
         if (
@@ -230,12 +287,7 @@ async def process_payment_webhook(
         )
 
 
-client = TestClient(app)
-
-data = json.load(open("./tests/test_payment_db.json"))
-
-
-def test_get_viva_payment_webhook():
+def test_get_viva_payment_webhook(client):
     """Test retrieving Viva payment token."""
     response = client.get("/payment/webhook")
     assert response.status_code == 200
@@ -243,30 +295,17 @@ def test_get_viva_payment_webhook():
     assert token.get("Key") is not None
 
 
-def test_viva_payment_webhook_with_invalid_payload():
+def test_viva_payment_webhook_with_invalid_payload(client):
     """Test the process of the Viva payment token."""
     # send invalid payload -> 422 Unprocessable Entity
     response = client.post("/payment/webhook", json=data[0])
     assert response.status_code == 422
 
 
-def test_viva_payment_webhook_payload_valid_not_finished():
+def test_viva_payment_webhook_payload_valid_not_finished(client):
     """Test the process of the Viva payment token."""
-    # send valid payload -> 201 Created
-    d = data[0]
-    obj = {
-        "EventData": {
-            "TransactionId": d["TransactionId"],
-            "OrderCode": d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": "E",  # d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
+    obj = get_data()
+    obj["EventData"]["StatusId"] = "E"  # not finished status
 
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
@@ -275,24 +314,10 @@ def test_viva_payment_webhook_payload_valid_not_finished():
     assert response.status_code == 200
 
 
-def test_viva_payment_webhook_payload_valid_no_user():
+def test_viva_payment_webhook_payload_valid_no_user(client):
     """Test the process of the Viva payment token."""
     # send valid payload -> 201 Created
-    d = data[0]
-    obj = {
-        "EventData": {
-            "TransactionId": d["TransactionId"],
-            "OrderCode": d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
-
+    obj = get_data()
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -300,58 +325,26 @@ def test_viva_payment_webhook_payload_valid_no_user():
     assert response.status_code == 200
 
 
-async def test_viva_payment_webhook_payload_valid_with_user(get_data_layer):
+async def test_viva_payment_webhook_payload_valid_with_user(
+    client, get_data_layer, add_user_to_db
+):
     """Test the process of the Viva payment token."""
     # send valid payload -> 201 Created
-    d = data[0]
-    obj = {
-        "EventData": {
-            "TransactionId": d["TransactionId"],
-            "OrderCode": d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
-
-    await get_data_layer.create_user(
-        User(
-            identifier=d["MerchantTrns"],
-            metadata={},
-        )
-    )
+    obj = get_data()
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # valid webhook with user -> 201 Created
     assert response.status_code == 201
-    user = await get_data_layer.get_user(identifier=d["MerchantTrns"])
+    user = await get_data_layer.get_user(identifier=obj["EventData"]["MerchantTrns"])
     assert user is not None
-    assert user.balance == d["Amount"]
+    assert user.balance == obj["EventData"]["Amount"]
 
 
-async def test_viva_payment_webhook_payload_valid_duplicate(get_data_layer):
-    """Test the process of the Viva payment token."""
-    # send valid payload -> 201 Created
-    d = data[0]
-    obj = {
-        "EventData": {
-            "TransactionId": d["TransactionId"],
-            "OrderCode": d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
-
+async def test_viva_payment_webhook_payload_valid_duplicate(
+    client, get_data_layer, add_user_to_db
+):
+    obj = get_data()
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -360,24 +353,10 @@ async def test_viva_payment_webhook_payload_valid_duplicate(get_data_layer):
 
 
 async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_payment(
-    get_data_layer,
+    client, get_data_layer, add_user_to_db
 ):
-    """Test the process of the Viva payment token."""
-    d = data[0]
-    obj = {
-        "EventData": {
-            # true/existing transaction ID
-            "TransactionId": d["TransactionId"],
-            "OrderCode": 13345,  # d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
+    obj = get_data()
+    obj["EventData"]["OrderCode"] = 13345  # mismatched order code
 
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
@@ -387,33 +366,26 @@ async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_p
 
 
 async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
-    get_data_layer,
+    client, get_data_layer, add_user_to_db
 ):
-    """Test the process of the Viva payment token."""
-    d = data[2]
-    obj = {
-        "EventData": {
-            # d["TransactionId"],
-            "TransactionId": "nonexistent-transaction-id",
-            "OrderCode": d["OrderCode"],
-            "Amount": d["Amount"],
-            "MerchantTrns": d["MerchantTrns"],
-            "StatusId": d["StatusId"],
-            "ElectronicCommerceIndicator": d["ElectronicCommerceIndicator"],
-        },
-        "EventTypeId": d["EventTypeId"],
-        "Url": d["Url"],
-        "Created": "any-date-string",
-    }
+    obj = get_data(2)
+    obj["EventData"]["TransactionId"] = "nonexistent-transaction-id"
 
-    await get_data_layer.create_user(
-        User(
-            identifier=d["MerchantTrns"],
-            metadata={},
-        )
-    )
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # item not found error for nonexistent transaction ID -> 404 Not Found
     assert response.status_code == 404
+
+
+async def test_user_balance_after_payments(client, get_data_layer, add_user_to_db):
+    user = await get_data_layer.get_user(identifier=data[0]["MerchantTrns"])
+    assert user is not None
+    # After processing the valid payment webhook, the user's balance should equal the amount of the first payment
+    assert user.balance == data[0]["Amount"]
+    # await get_data_layer.update_user_balance(
+    #     identifier=data[0]["MerchantTrns"], balance_to_deduct=-5
+    # )
+    client.post("/payment/webhook", json=get_data(2))
+    user = await get_data_layer.get_user(identifier=data[0]["MerchantTrns"])
+    assert user.balance == data[0]["Amount"] + data[2]["Amount"]
