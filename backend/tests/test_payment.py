@@ -93,8 +93,8 @@ async def data_layer():
     return data_layer_instance
 
 
-@pytest.fixture
-async def get_data_layer(scope="module"):
+@pytest.fixture(scope="module")
+async def get_data_layer():
     # Mthe test functions in the test module will each receive the same datalayer instance.
     db_instance = await data_layer()
     yield db_instance
@@ -110,8 +110,8 @@ async def get_data_layer(scope="module"):
             pass  # File may be locked, but we tried
 
 
-@pytest.fixture
-async def add_user_to_db(get_data_layer, scope="module"):
+@pytest.fixture(scope="module")
+async def add_user_to_db(get_data_layer):
     await get_data_layer.create_user(
         User(
             identifier=data[0]["MerchantTrns"],
@@ -121,12 +121,12 @@ async def add_user_to_db(get_data_layer, scope="module"):
 
 
 @pytest.fixture
-def client(scope="module"):
+def client():
     """Test client for FastAPI app."""
     return TestClient(app)
 
 
-async def get_viva_payment_transaction_status(transaction_id: str):
+def get_viva_payment_transaction_status(transaction_id: str):
     # MOCK RESPONSE FROM VIVA PAYMENTS API
     # In real implementation, this function would make an HTTP request to Viva Payments API
     # to retrieve the transaction status.
@@ -220,9 +220,7 @@ async def process_payment_webhook(
         # if there is other system error reaching Viva Payments API, it returns HTTP 500!
 
         # MOCK REQUEST TO VIVA PAYMENTS API FOR VERIFYING TRANSACTION STATUS
-        transaction_status = await get_viva_payment_transaction_status(
-            payment.transaction_id
-        )
+        transaction_status = get_viva_payment_transaction_status(payment.transaction_id)
 
         # if payment.transaction_id == "nonexistent-transaction-id":
         #     raise HTTPException(
@@ -372,8 +370,6 @@ async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
     obj["EventData"]["TransactionId"] = "nonexistent-transaction-id"
 
     response = client.post("/payment/webhook", json=obj)
-    print(f"Response status: {response.status_code}")
-    print(f"Response body: {response.text}")
     # item not found error for nonexistent transaction ID -> 404 Not Found
     assert response.status_code == 404
 
