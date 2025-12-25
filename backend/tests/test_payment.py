@@ -202,7 +202,7 @@ async def process_payment_webhook(
         else:  # false webhook -> ignore and don't send again
             payment_logger.info(
                 f"""ignoring data received: webhook doesn't match a transaction
-                for user {eventData.get("user_id")} 
+                for user {eventData.get("user_id")}
                 and transaction {eventData.get("transaction_id")}
                 and order code {eventData.get("order_code")}
                 and amount {payment.amount}
@@ -352,6 +352,12 @@ async def test_viva_payment_webhook_payload_valid_duplicate(get_data_layer):
         "Created": "any-date-string",
     }
 
+    await get_data_layer.create_user(
+        User(
+            identifier=d["MerchantTrns"],
+            metadata={},
+        )
+    )
     response = client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
