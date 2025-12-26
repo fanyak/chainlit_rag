@@ -21,7 +21,9 @@ from chainlit.order import (
 from chainlit.server import is_allowed_payment
 from chainlit.user import PersistedUser, User
 
-data = json.load(open("./tests/test_payment_db.json"))
+# data = json.load(open("./tests/test_payment_db.json"))
+with open("./tests/test_payment_db.json") as f:
+    data = json.load(f)
 
 
 def get_data(index=0) -> dict:
