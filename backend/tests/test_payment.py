@@ -1,11 +1,25 @@
+"""
+Payment tests module.
+
+NOTE: Async test functions do not require @pytest.mark.asyncio decorator
+because pyproject.toml has `asyncio_mode = "auto"` configured. This enables
+pytest-asyncio to automatically detect and run async test functions.
+Sinse the aysncio_mode is set to "auto", pytest-asyncio will handle both
+synchronous and asynchronous test functions appropriately without needing
+the explicit decorator.
+We make all test functions async to keep consistency and use the async client
+"""
+
 import json
 import os
 from typing import Optional
 
+import httpx
 import pytest
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
-from fastapi.testclient import TestClient
+
+# from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -97,7 +111,11 @@ async def data_layer():
 
 @pytest.fixture(scope="module")
 async def get_data_layer():
-    # Mthe test functions in the test module will each receive the same datalayer instance.
+    """Created once when the first test that needs it runs.
+    All test functions in the module will each receive the same datalayer instance.
+    Since get_data_layer is module-scoped, database changes persist.
+    Destroyed after all tests in the module have completed.
+    """
     db_instance = await data_layer()
     yield db_instance
     # Cleanup: close the engine and remove the database file
@@ -114,24 +132,37 @@ async def get_data_layer():
 
 @pytest.fixture(scope="module")
 async def add_user_to_db(get_data_layer):
+    """Also created once for the entire module
+    Depends on get_data_layer, so that fixture runs first
+    The same user is reused across all tests that request it
+    """
+    identifier = data[0]["MerchantTrns"]
     await get_data_layer.create_user(
         User(
-            identifier=data[0]["MerchantTrns"],
+            identifier=identifier,
             metadata={},
         )
     )
+    return await get_data_layer.get_user(identifier=identifier)
 
 
 @pytest.fixture
-def client():
-    """Test client for FastAPI app."""
-    return TestClient(app)
+async def client(scope="module"):
+    """Also created once for the entire module
+    Yields an async httpx.AsyncClient instance
+    """
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    #  Test client for FastAPI app.
+    # return TestClient(app)
 
 
 def get_viva_payment_transaction_status(transaction_id: str):
-    # MOCK RESPONSE FROM VIVA PAYMENTS API
-    # In real implementation, this function would make an HTTP request to Viva Payments API
-    # to retrieve the transaction status.
+    """Utility function that MOCKS the RESPONSE FROM VIVA PAYMENTS API
+    In real implementation, this function would make an HTTP request to Viva Payments API
+    to retrieve the transaction status.
+    """
     for d in data:
         if d["TransactionId"] == transaction_id:
             return {
@@ -287,56 +318,81 @@ async def process_payment_webhook(
         )
 
 
-def test_get_viva_payment_webhook(client):
+async def test_get_viva_payment_webhook(client):
     """Test retrieving Viva payment token."""
-    response = client.get("/payment/webhook")
+    #      ├─ [FIRST use of client]
+    # │   │   └─ [creates client]
+    response = await client.get("/payment/webhook")
     assert response.status_code == 200
     token = response.json()
     assert token.get("Key") is not None
 
 
-def test_viva_payment_webhook_with_invalid_payload(client):
-    """Test the process of the Viva payment token."""
-    # send invalid payload -> 422 Unprocessable Entity
-    response = client.post("/payment/webhook", json=data[0])
-    assert response.status_code == 422
+async def test_viva_payment_webhook_with_invalid_payload(client):
+    """Send invalid (not parsed) payload -> 422 Unprocessable Entity."""
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=data[0])
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_viva_payment_webhook_payload_valid_not_finished(client):
-    """Test the process of the Viva payment token."""
+async def test_viva_payment_webhook_payload_valid_not_finished(client):
+    """Send valid payload but with not finished status (E) -> 200 OK."""
     obj = get_data()
-    obj["EventData"]["StatusId"] = "E"  # not finished status
-
-    response = client.post("/payment/webhook", json=obj)
+    obj["EventData"]["StatusId"] = "E"
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # ignoring webhook with not finished status E -> 200 OK
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
 
-def test_viva_payment_webhook_payload_valid_no_user(client):
-    """Test the process of the Viva payment token."""
-    # send valid payload -> 201 Created
+async def test_viva_payment_webhook_payload_valid_no_user(client):
+    """Send valid payload but with no user found -> 200 OK."""
     obj = get_data()
-    response = client.post("/payment/webhook", json=obj)
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # ignoring webhook with no user found -> 200 OK
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
+
+
+async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
+    client, add_user_to_db
+):
+    """Send valid payload but with nonexistent transaction ID -> 404 Not Found."""
+    obj = get_data(2)
+    obj["EventData"]["TransactionId"] = "nonexistent-transaction-id"
+    #      ├─ [FIRST use of add_user_to_db]
+    # │   │   ├─ [FIRST use of get_data_layer → creates DB, tables]
+    # │   │   └─ [creates user in DB]
+    user = add_user_to_db
+    identifier = obj["EventData"]["MerchantTrns"]
+    assert identifier == user.identifier
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
+    # item not found error for nonexistent transaction ID -> 404 Not Found
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 async def test_viva_payment_webhook_payload_valid_with_user(
     client, get_data_layer, add_user_to_db
 ):
-    """Test the process of the Viva payment token."""
+    """Send valid payload with user -> 201 Created."""
     # send valid payload -> 201 Created
     obj = get_data()
-    response = client.post("/payment/webhook", json=obj)
+    #   ├─ [reuses same get_data_layer instance]
+    #   ├─ [reuses same add_user_to_db result]
+    user = add_user_to_db  # this is stale user before payment
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # valid webhook with user -> 201 Created
-    assert response.status_code == 201
-    user = await get_data_layer.get_user(identifier=obj["EventData"]["MerchantTrns"])
+    assert response.status_code == status.HTTP_201_CREATED
+    # get the updated user from the database
+    user = await get_data_layer.get_user(identifier=user.identifier)
     assert user is not None
     assert user.balance == obj["EventData"]["Amount"]
 
@@ -344,46 +400,66 @@ async def test_viva_payment_webhook_payload_valid_with_user(
 async def test_viva_payment_webhook_payload_valid_duplicate(
     client, get_data_layer, add_user_to_db
 ):
+    """Send valid duplicate payload with user -> 200 OK."""
     obj = get_data()
-    response = client.post("/payment/webhook", json=obj)
+    #   ├─ [reuses same get_data_layer instance]
+    #   ├─ [reuses same add_user_to_db result]
+    user = add_user_to_db  # stale user (not from database but from fixture)
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # ingore duplicate webhook with user -> 200 OK
-    assert response.status_code == 200
+    identifier = obj["EventData"]["MerchantTrns"]
+    assert identifier == user.identifier
+    assert response.status_code == status.HTTP_200_OK
+    existing_transaction = await get_data_layer.get_payment_by_transaction(
+        transaction_id=obj["EventData"]["TransactionId"],
+        order_code=obj["EventData"]["OrderCode"],
+        user_id=identifier,
+    )
+    assert existing_transaction is not None
 
 
 async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_payment(
     client, get_data_layer, add_user_to_db
 ):
+    """Send valid payload with mismatched order code -> 200 OK."""
     obj = get_data()
     obj["EventData"]["OrderCode"] = 13345  # mismatched order code
-
-    response = client.post("/payment/webhook", json=obj)
+    #   ├─ [reuses same get_data_layer instance]
+    #   ├─ [reuses same add_user_to_db result]
+    user = add_user_to_db  # stale user (not from database but from fixture)
+    identifier = obj["EventData"]["MerchantTrns"]
+    assert identifier == user.identifier
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=obj)
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     # ignore mismatched data webhook with user -> 200 OK
-    assert response.status_code == 200
-
-
-async def test_viva_payment_webhook_payload_valid_nonexistent_transaction_id(
-    client, get_data_layer, add_user_to_db
-):
-    obj = get_data(2)
-    obj["EventData"]["TransactionId"] = "nonexistent-transaction-id"
-
-    response = client.post("/payment/webhook", json=obj)
-    # item not found error for nonexistent transaction ID -> 404 Not Found
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_200_OK
+    existing_transaction = await get_data_layer.get_payment_by_transaction(
+        transaction_id=obj["EventData"]["TransactionId"],
+        order_code=get_data(0)["EventData"]["OrderCode"],
+        user_id=identifier,
+    )
+    assert existing_transaction is not None
 
 
 async def test_user_balance_after_payments(client, get_data_layer, add_user_to_db):
-    user = await get_data_layer.get_user(identifier=data[0]["MerchantTrns"])
+    """Test that user balance is updated correctly after multiple payments."""
+    #   ├─ [reuses same get_data_layer instance]
+    #   ├─ [reuses same add_user_to_db result]
+    # get the updated user from the database (don't use stale user from fixture)
+    user = await get_data_layer.get_user(identifier=add_user_to_db.identifier)
     assert user is not None
-    # After processing the valid payment webhook, the user's balance should equal the amount of the first payment
-    assert user.balance == data[0]["Amount"]
-    # await get_data_layer.update_user_balance(
-    #     identifier=data[0]["MerchantTrns"], balance_to_deduct=-5
-    # )
-    client.post("/payment/webhook", json=get_data(2))
-    user = await get_data_layer.get_user(identifier=data[0]["MerchantTrns"])
+    assert user.identifier == get_data(0)["EventData"]["MerchantTrns"]
+    # After processing the valid payment webhook, the user's balance should equal
+    # the amount of the first payment
+    assert user.balance == get_data(0)["EventData"]["Amount"]
+    #  └─ [reuses client]
+    response = await client.post("/payment/webhook", json=get_data(2))
+    assert response.status_code == status.HTTP_201_CREATED
+    # get the updated user from the database again!
+    user = await get_data_layer.get_user(identifier=add_user_to_db.identifier)
     assert user.balance == data[0]["Amount"] + data[2]["Amount"]
