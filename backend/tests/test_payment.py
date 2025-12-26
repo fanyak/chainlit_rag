@@ -419,6 +419,7 @@ async def test_viva_payment_webhook_payload_valid_duplicate(
         user_id=identifier,
     )
     assert existing_transaction is not None
+    assert len(existing_transaction.keys()) > 0
 
 
 async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_payment(
@@ -444,6 +445,7 @@ async def test_viva_payment_webhook_payload_valid_mismatched_transaction_order_p
         user_id=identifier,
     )
     assert existing_transaction is not None
+    assert len(existing_transaction.keys()) > 0
 
 
 async def test_user_balance_after_payments(client, get_data_layer, add_user_to_db):
