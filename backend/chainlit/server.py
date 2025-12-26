@@ -1954,7 +1954,7 @@ async def create_payment(payment: UserPaymentInfo, current_user: UserParam):
 async def verify_payment_webhook(request: Request):
     """Test webhook endpoint called by Viva Payments to verify connection."""
     hook_key = get_viva_webhook_key()
-    return JSONResponse(status_code=200, content=hook_key)
+    return JSONResponse(status_code=status.HTTP_200_OK, content=hook_key)
 
 
 @router.post("/payment/webhook")
@@ -1976,7 +1976,10 @@ async def viva_transaction_created_webhook(
     # point of failure is here:
     data_layer = get_data_layer()
     if not data_layer:
-        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
 
     # point of failure is here:
     # if the webhook payload is not valid according to model VivaTransactionCreatedWebhookPayload,
@@ -2044,7 +2047,7 @@ async def viva_transaction_created_webhook(
         # it will terminate that request right away and send an HTTP error response
         # with the detail to the client!!!!!
 
-        # 5th point of failure is here:
+        # point of failure is here:
         # if the transaction doesn't exist, Viva Payments API returns HTTP 404 - item not found!
         # if the Viva Payments API cannot be reached, it returns HTTP 500!
         # if there is other system error reaching Viva Payments API, it returns HTTP 500!
@@ -2100,7 +2103,7 @@ async def viva_transaction_created_webhook(
         )
 
 
-# http://127.0.0.1:8000/items/?transaction_id=0&order_id=order_code
+# http://127.0.0.1:8000/transaction/?transaction_id=0&order_id=order_code
 @router.get("/transaction")
 async def get_transaction(
     transaction_id: str,
@@ -2109,16 +2112,25 @@ async def get_transaction(
 ):
     data_layer = get_data_layer()
     if not data_layer:
-        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
 
     if not current_user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
 
     if not isinstance(current_user, PersistedUser):
         persisted_user = await data_layer.get_user(identifier=current_user.identifier)
         if not persisted_user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            )
 
+    # Note: if payment is an empty dict, then payment does not exist
+    # we will send it to the client to indicate that payment does not exist and take action
     existing_payment: Optional[
         UserPaymentInfoShell | UserPaymentInfoDict
     ] = await data_layer.get_payment_by_transaction(
@@ -2128,9 +2140,12 @@ async def get_transaction(
     )
     # if None, then there was sql error
     if existing_payment is None:
-        raise HTTPException(status_code=500, detail="Error checking existing payment")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error checking existing payment",
+        )
 
-    return JSONResponse(status_code=200, content=existing_payment)
+    return JSONResponse(status_code=status.HTTP_200_OK, content=existing_payment)
 
 
 @router.get("/{full_path:path}")
