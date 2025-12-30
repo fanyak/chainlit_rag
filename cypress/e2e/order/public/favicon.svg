@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Document with network logo">
+  <title>Document + Network Logo</title>
+
+  <!-- Colors -->
+  <!-- primary blue chosen to evoke Greek-state palette; change as needed -->
+  <defs>
+    <style>
+      .primary { fill: #0b4ea2; stroke: #0b4ea2; }
+      .stroke-fill { fill: #ffffff; stroke: #0b4ea2; stroke-linecap: round; stroke-linejoin: round; stroke-width: 12; }
+      .stroke-only { fill: none; stroke: #0b4ea2; stroke-linecap: round; stroke-linejoin: round; stroke-width: 12; }
+      .text-line { fill: none; stroke: #0b4ea2; stroke-linecap: round; stroke-width: 10; stroke-linejoin: round; }
+      .overlay { fill: #0b4ea2; stroke: none; }
+      .node { fill: #ffffff; stroke: none; }
+      .connector { stroke: #ffffff; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    </style>
+  </defs>
+
+  <!-- Background (transparent) -->
+  <!-- White background -->
+  <!-- <rect width="100%" height="100%" fill="#ffffff" /> -->
+
+  <!-- Document outline (rounded rectangle) -->
+  <g transform="translate(36,28)">
+    <!-- main page -->
+    <rect x="12" y="8" width="336" height="448" rx="20" ry="20" class="stroke-fill" />
+
+    <!-- folded corner: white triangle + stroked fold line -->
+    <path d="M 336 8 L 336 120 L 256 120 Z" fill="#ffffff" stroke="#0b4ea2" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M 336 8 L 256 120" class="stroke-only" stroke-width="6" />
+
+    <!-- horizontal "text" lines on the document -->
+    <line x1="48" y1="72" x2="288" y2="72" class="text-line" />
+    <line x1="48" y1="120" x2="288" y2="120" class="text-line" />
+    <line x1="48" y1="168" x2="288" y2="168" class="text-line" />
+    <line x1="48" y1="216" x2="240" y2="216" class="text-line" />
+    <line x1="48" y1="264" x2="240" y2="264" class="text-line" />
+  </g>
+
+  <!-- Overlay circle (bottom-right) -->
+  <!-- placed to overlap document; scale/position can be adjusted -->
+  <g transform="translate(260,280)">
+    <circle cx="110" cy="110" r="110" class="overlay"/>
+    <!-- inner small circle for subtle rim (optional) -->
+    <circle cx="110" cy="110" r="100" fill="none" stroke="#0b4ea2" stroke-opacity="0.12" stroke-width="8"/>
+
+    <!-- network connectors (white) : three nodes with connectors -->
+    <!-- positions relative to overlay -->
+    <!-- Node positions -->
+    <!-- A: top-left -->
+    <!-- B: middle-right -->
+    <!-- C: bottom-left -->
+    <g transform="translate(0,0)">
+      <!-- connectors -->
+      <path class="connector" d="M 70 70 L 140 95 L 95 160" />
+      <!-- nodes -->
+      <circle cx="70" cy="70" r="15" class="node" />
+      <circle cx="140" cy="95" r="15" class="node" />
+      <circle cx="95" cy="160" r="15" class="node" />
+      <!-- small stroke around nodes for subtle edge definition -->
+      <circle cx="70" cy="70" r="15" fill="none" stroke="#0b4ea2" stroke-width="2"/>
+      <circle cx="140" cy="95" r="15" fill="none" stroke="#0b4ea2" stroke-width="2"/>
+      <circle cx="95" cy="160" r="15" fill="none" stroke="#0b4ea2" stroke-width="2"/>
+    </g>
+  </g>
+</svg>

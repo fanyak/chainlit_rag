@@ -44,16 +44,20 @@ export default function OrderSuccess() {
       console.log('ECI:', eci);
 
       // we check the database only for logged in users to match their transactions
-      if (!user) {
-        toast.warning(
-          'We need you to log in first to process the payment result.'
-        );
-        setTimeout(() => {
-          onOAuthSignIn(providers[0]);
-        }, 2000);
-        return;
-      }
-      // TODO: add fallback if the webhook has not yet processed the transaction
+
+      // checking for user presence is not needed because the page is not accessible
+      // without logging in first (see AppWrapper.tsx)
+
+      // if (!user) {
+      //   toast.warning(
+      //     'We need you to log in first to process the payment result.'
+      //   );
+      //   setTimeout(() => {
+      //     onOAuthSignIn(providers[0]);
+      //   }, 2000);
+      //   return;
+      // }
+
       (async () => {
         setLoading(true);
         // NOTE: we use try because the apiClient throws an error if the response is not ok!!!
@@ -68,12 +72,12 @@ export default function OrderSuccess() {
           console.log('Transaction details:', transaction);
           if (
             // check if the transaction is emtpy object shell
-            !transaction.transaction_id ||
-            !transaction.order_code
+            // this means that the transaction was not found in our database
+            Object.keys(transaction).length === 0
           ) {
             toast.error('Checking if Webhook was not received');
             const payment_request_payload: Partial<UserPaymentInfo> = {
-              user_id: user.identifier,
+              user_id: user?.identifier,
               transaction_id: t as string,
               order_code: s as string,
               event_id: Number(eventId),
@@ -81,9 +85,9 @@ export default function OrderSuccess() {
               // we have to provide an amount to match the pydantic model, but we don't know it here
               amount: 5 // set a default or fetch from another source
             };
-            // this is an external request to get the transaction from Viva Payments
+            // this makes an external request to get the transaction from Viva Payments
             // and then store it in our database via the backend
-            // if the transaction doesn't exist, Viva payments will return an error status code
+            // if the transaction doesn't exist, Viva payments will return an error 404
             // FastAPI backend returns the error message from Viva Payments
             // we have to catch that error and show a message to the user
             const payment_response = await apiClient.post(
@@ -99,8 +103,9 @@ export default function OrderSuccess() {
               );
             }
           }
+          // if we reach here, payment was processed successfully
+          // update UI state
           setSuccess(true);
-
           // go back to home after 2 seconds
           setTimeout(() => {
             window.location.replace('/');

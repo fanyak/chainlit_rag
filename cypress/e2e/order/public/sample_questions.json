@@ -1,0 +1,18 @@
+{
+  "title": "Sample Questions",
+  "description": "This is a list of sample questions to show on the landing/login page.",
+  "questions": [
+    {
+      "id": 1,
+      "text": "Πώς υποβάλλεται ο πίνακας προσωπικού;"
+    },
+    {
+      "id": 2,
+      "text": "Πότε ισχύει η απαλλαγή ΦΠΑ για μικρές επιχειρήσεις;"
+    },
+    {
+      "id": 3,
+      "text": "Ποιες είναι οι προθεσμίες για την υποβολή φορολογικών δηλώσεων;"
+    }
+  ]
+}

@@ -28,7 +28,7 @@ export function CustomHeader() {
         <a href="/guide" title="Οδηγός">
           Οδηγός
         </a>
-        <a href="/examples" title="Παραδείγματα">
+        <a href="/order" title="Παραδείγματα">
           Παραδείγματα
         </a>
         <a href="/about" title="Περί">
