@@ -16,6 +16,10 @@ jobs:
       OAUTH_AUTH0_CLIENT_SECRET: ${{ secrets.OAUTH_AUTH0_CLIENT_SECRET }}
       OAUTH_AUTH0_DOMAIN: ${{ secrets.OAUTH_AUTH0_DOMAIN }}
       CHAINLIT_AUTH_SECRET: ${{ secrets.CHAINLIT_AUTH_SECRET }}
+      VIVA_GENERATE_ORDER_TOKEN_URL: ${{ secrets.VIVA_GENERATE_ORDER_TOKEN_URL }}
+      VIVA_SMART_CHECKOUT_CLIENT_ID: ${{ secrets.VIVA_SMART_CHECKOUT_CLIENT_ID }}
+      VIVA_SMART_CHECKOUT_CLIENT_SECRET: ${{ secrets.VIVA_SMART_CHECKOUT_CLIENT_SECRET }}
+
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/pnpm-node-install
