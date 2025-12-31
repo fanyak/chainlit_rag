@@ -22,9 +22,10 @@ function login() {
 describe('Load the order Page', () => {
   beforeEach(() => {
     // create the referer url before authenticating
+    cy.intercept('GET', '/user').as('user');
     cy.visit('/order');
     // Wait for auth check to complete and confirm we stay on /order
-    cy.wait(3000);
+    cy.wait('@user');
     cy.location('pathname').should('eq', '/order');
   });
   it('the un-authenticated user should see subscribe buttons but be directed to login on click', () => {
