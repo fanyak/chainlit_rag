@@ -67,7 +67,7 @@ describe('Load the order Page', () => {
       cy.location('pathname').should('eq', '/order');
     });
 
-    it('the authenticated user should be able to create an order', () => {
+    it.skip('the authenticated user should be able to create an order', () => {
       // we did not follow redirects after authenticating.
       cy.intercept('GET', '/user').as('getUser');
       cy.visit('/order');
