@@ -1,16 +1,38 @@
+const VALID_TRANSACTION_ID = '1bd96bba-bcd0-430e-be76-303cd9c58f1c';
+
 const SELECTORS = {
   ORDER_BUTTON: '.btn.btn-primary',
   ORDER_BUTTON_TEXT: '.btn.btn-primary span',
   ORDER_CODE_BOX: 'code',
-  SUCCESS_URL:
-    '/order/success?t=1bd96bba-bcd0-430e-be76-303cd9c58f1c&s=7002976631972601&eventId=0&eci=5',
+  SUCCESS_URL: `/order/success?t=${VALID_TRANSACTION_ID}&s=7002976631972601&eventId=0&eci=5`,
   SUCCESS_ICON: 'div.bg-green-100',
   NON_EXIST_TRANSACTION_URL:
     '/order/success?t=1e305611-4694-4a51-a33c-d98d4ccdb081&s=7002976631972601&eventId=0&eci=5',
   FAILURE_ICON: 'svg.text-red-600'
 } as const;
 
+function mockTransaction(response: object) {
+  cy.intercept('GET', '/transaction*', (req) => {
+    if (req.query.transaction_id === VALID_TRANSACTION_ID) {
+      req.reply({ statusCode: 200, body: response });
+    } else {
+      req.reply({ statusCode: 200, body: {} });
+    }
+  }).as('validateTransaction');
+}
+
+function visitAsUser(url: string = '', expectedStatus: number = 200) {
+  cy.intercept('GET', '/user').as('getUser');
+  if (url) {
+    cy.visit(url);
+  } else cy.reload();
+  cy.wait('@getUser').then((interception) => {
+    expect(interception.response.statusCode).to.equal(expectedStatus);
+  });
+}
+
 function login() {
+  // create referer cookie and authenticate via custom endpoint
   cy.setCookie('oauth_state', 'your_jwt_token');
   cy.setCookie('your_jwt_token', JSON.stringify({ referer_path: '/order' }));
   return cy.request({
@@ -19,28 +41,26 @@ function login() {
     followRedirect: false // test the status 302 redirect (see main.py)
   });
 }
+
 describe('Load the order Page', () => {
   beforeEach(() => {
     // create the referer url before authenticating
-    cy.intercept('GET', '/user').as('user');
-    cy.visit('/order');
-    // Wait for auth check to complete and confirm we stay on /order
-    cy.wait('@user');
-    cy.location('pathname').should('eq', '/order');
+    cy.clearCookies();
+    visitAsUser('/order', 401);
+    cy.location('pathname', { timeout: 5000 }).should('eq', '/order');
   });
   it('the un-authenticated user should see subscribe buttons but be directed to login on click', () => {
-    cy.get(SELECTORS.ORDER_BUTTON).should('be.visible');
-    cy.get(SELECTORS.ORDER_BUTTON).should('have.length', 2);
+    cy.get(SELECTORS.ORDER_BUTTON).should('be.visible').and('have.length', 2);
     cy.get(SELECTORS.ORDER_BUTTON_TEXT).should('contain.text', 'Subscribe Now');
-
-    cy.get(SELECTORS.ORDER_BUTTON).first().click();
+    cy.get(SELECTORS.ORDER_BUTTON).eq(0).click();
+    cy.get(SELECTORS.ORDER_BUTTON).first().should('have.attr', 'disabled');
     cy.url().should('include', '/auth/oauth/'); // redirected to oauth login
   });
 
   describe('authenticate via custom endpoint, include referer and create order', () => {
     beforeEach(() => {
       login().then((response) => {
-        // test redirect status
+        // test redirect status after calling authentication endpoint
         expect(response.status).to.be.equal(302);
         // we are not following redirects, but the url should include the referer path
         // to /order
@@ -54,27 +74,15 @@ describe('Load the order Page', () => {
           : [response.headers['set-cookie']];
         expect(cookies[0]).to.contain('access_token');
       });
-    });
-    it('should request and have access to /user', () => {
-      cy.intercept('GET', '/user').as('user');
-      cy.reload();
-      cy.wait('@user').then((interception) => {
-        expect(interception.response.statusCode).to.equal(200);
-      });
-    });
-    it('after login we should still be on page /order', () => {
-      // if followRedirect is false, the browser remains on /order
-      cy.location('pathname').should('eq', '/order');
+      // Common setup: reload to apply auth and verify /user returns 200 and we stay on /order
+      visitAsUser();
+      cy.location('pathname', { timeout: 5000 }).should('eq', '/order');
     });
 
     it('the authenticated user should be able to create an order', () => {
-      // we did not follow redirects after authenticating.
-      cy.intercept('GET', '/user').as('getUser');
-      cy.visit('/order');
-      cy.wait('@getUser');
-      cy.location('pathname').should('eq', '/order');
-      cy.get(SELECTORS.ORDER_BUTTON).first().click();
-      cy.get(SELECTORS.ORDER_BUTTON).first().should('have.attr', 'disabled');
+      cy.get(SELECTORS.ORDER_BUTTON).eq(1).click();
+      cy.get(SELECTORS.ORDER_BUTTON).eq(1).should('have.attr', 'disabled');
+      cy.get(SELECTORS.ORDER_BUTTON).eq(0).should('not.have.attr', 'disabled');
       cy.get(SELECTORS.ORDER_CODE_BOX)
         .as('codeBox')
         .invoke('text')
@@ -85,31 +93,14 @@ describe('Load the order Page', () => {
 
     it('should show success message when returning with valid transaction', () => {
       // Set up intercept BEFORE the action that triggers the request
-      cy.intercept('GET', '/transaction*', (req) => {
-        if (
-          req.query.transaction_id === '1bd96bba-bcd0-430e-be76-303cd9c58f1c'
-        ) {
-          req.reply({
-            statusCode: 200,
-            body: {
-              transaction_id: req.query.transaction_id,
-              order_code: req.query.order_code,
-              status: 'F'
-            }
-          });
-        } else {
-          req.reply({
-            statusCode: 200,
-            body: {}
-          });
-        }
-      }).as('validateTransaction');
+      mockTransaction({
+        transaction_id: VALID_TRANSACTION_ID,
+        order_code: '7002976631972601',
+        status: 'F'
+      });
       // Also intercept /user to ensure auth state is ready
-      cy.intercept('GET', '/user').as('getUser');
-      cy.visit(SELECTORS.SUCCESS_URL);
+      visitAsUser(SELECTORS.SUCCESS_URL);
       cy.location('pathname').should('eq', '/order/success');
-      // Wait for user auth to be fetched first (triggers useAuth to have user)
-      cy.wait('@getUser');
       // Now wait for the transaction validation
       cy.wait('@validateTransaction', { timeout: 10000 }).then(
         (interception) => {
@@ -119,24 +110,18 @@ describe('Load the order Page', () => {
         }
       );
       cy.get(SELECTORS.SUCCESS_ICON).should('be.visible');
-      cy.wait(3000); // wait for redirect
-      cy.location('pathname').should('eq', '/'); // should be redirected to home
+      // wait for redirect - should be redirected to home
+      cy.location('pathname', { timeout: 5000 }).should('eq', '/');
     });
 
     it('should show error message when returning with non-existent transaction', () => {
       // Set up intercept BEFORE the action that triggers the request
-      cy.intercept('GET', '/transaction*', (req) => {
-        req.reply({
-          statusCode: 200,
-          body: {}
-        });
-      }).as('validateTransaction');
+      mockTransaction({
+        error: 'Transaction not found'
+      });
       // Also intercept /user to ensure auth state is ready
-      cy.intercept('GET', '/user').as('getUser');
-      cy.visit(SELECTORS.NON_EXIST_TRANSACTION_URL);
+      visitAsUser(SELECTORS.NON_EXIST_TRANSACTION_URL);
       cy.location('pathname').should('eq', '/order/success');
-      // Wait for user auth to be fetched first (triggers useAuth to have user)
-      cy.wait('@getUser');
       // Now wait for the transaction validation
       cy.wait('@validateTransaction', { timeout: 10000 }).then(
         (interception) => {
@@ -146,8 +131,8 @@ describe('Load the order Page', () => {
         }
       );
       cy.get(SELECTORS.FAILURE_ICON).should('be.visible');
-      cy.wait(3000); // wait to make sure no redirect happens
-      cy.location('pathname').should('eq', '/order/success'); // should not be redirected
+      // wait to make sure that no redirect happens
+      cy.location('pathname', { timeout: 5000 }).should('eq', '/order/success'); // should not be redirected
     });
   });
 });
