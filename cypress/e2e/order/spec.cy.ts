@@ -1,14 +1,14 @@
 const VALID_TRANSACTION_ID = '1bd96bba-bcd0-430e-be76-303cd9c58f1c';
-
+const INVALID_TRANSACTION_ID = '1e305611-4694-4a51-a33c-d98d4ccdb081';
 const SELECTORS = {
   ORDER_BUTTON: '.btn.btn-primary',
   ORDER_BUTTON_TEXT: '.btn.btn-primary span',
   ORDER_CODE_BOX: 'code',
   SUCCESS_URL: `/order/success?t=${VALID_TRANSACTION_ID}&s=7002976631972601&eventId=0&eci=5`,
   SUCCESS_ICON: 'div.bg-green-100',
-  NON_EXIST_TRANSACTION_URL:
-    '/order/success?t=1e305611-4694-4a51-a33c-d98d4ccdb081&s=7002976631972601&eventId=0&eci=5',
-  FAILURE_ICON: 'svg.text-red-600'
+  NON_EXIST_TRANSACTION_URL: `/order/success?t=${INVALID_TRANSACTION_ID}&s=7002976631972601&eventId=0&eci=5`,
+  FAILURE_ICON: 'svg.text-red-600',
+  FAIL_URL: `/order/fail?t=${INVALID_TRANSACTION_ID}&s=7002976631972601&eventId=0&eci=5`
 } as const;
 
 function mockTransaction(response: object) {
@@ -105,7 +105,7 @@ describe('Load the order Page', () => {
       cy.wait('@validateTransaction', { timeout: 10000 }).then(
         (interception) => {
           expect(interception.request.query['transaction_id']).to.equal(
-            '1bd96bba-bcd0-430e-be76-303cd9c58f1c'
+            VALID_TRANSACTION_ID
           );
         }
       );
@@ -114,7 +114,7 @@ describe('Load the order Page', () => {
       cy.location('pathname', { timeout: 5000 }).should('eq', '/');
     });
 
-    it('should show error message when returning with non-existent transaction', () => {
+    it('should show error message when visiting with non-existent transaction', () => {
       // Set up intercept BEFORE the action that triggers the request
       mockTransaction({
         error: 'Transaction not found'
@@ -126,13 +126,23 @@ describe('Load the order Page', () => {
       cy.wait('@validateTransaction', { timeout: 10000 }).then(
         (interception) => {
           expect(interception.request.query['transaction_id']).to.equal(
-            '1e305611-4694-4a51-a33c-d98d4ccdb081'
+            INVALID_TRANSACTION_ID
           );
         }
       );
       cy.get(SELECTORS.FAILURE_ICON).should('be.visible');
       // wait to make sure that no redirect happens
-      cy.location('pathname', { timeout: 5000 }).should('eq', '/order/success'); // should not be redirected
+      cy.wait(3000);
+      cy.location('pathname').should('eq', '/order/success'); // should not be redirected
+    });
+    it('should show error message when returning from failed transaction', () => {
+      // Also intercept /user to ensure auth state is ready
+      visitAsUser(SELECTORS.FAIL_URL);
+      cy.location('pathname').should('eq', '/order/fail');
+      cy.get(SELECTORS.FAILURE_ICON).should('be.visible');
+      // wait to make sure that no redirect happens
+      cy.wait(3000);
+      cy.location('pathname').should('eq', '/order/fail'); // should not be redirected
     });
   });
 });
