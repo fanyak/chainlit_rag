@@ -69,6 +69,7 @@ html {
 }
 @container element (height > 100px) {
   .custom-pg {
+    /* height = 100% of container query height */
     height: 100cqh;
   }
 }
@@ -91,7 +92,7 @@ html {
   width: 100%;
   /* font-size: 1.125rem; */
   margin: 0 auto;
-  padding: 0;
+  padding: 0 0 0.75rem 0;
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: 0 10px 40px rgba(11, 78, 162, 0.06);
@@ -419,6 +420,8 @@ html {
   margin-top: 18px;
 }
 .custom-pg footer {
+  display: flex;
+  width: 100%;
   margin-top: 18px;
   font-size: 13px;
   color: var(--muted);

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 // import Page from 'pages/Page';
 import { useAuth } from '@chainlit/react-client';
 
+import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
 import PaymentPlants from '@/components/PaymentPlants';
 import { ProviderButton } from '@/components/ProviderButton';
@@ -258,6 +259,7 @@ export default function Order() {
           loading={loading}
         />
       </main>
+      <CustomFooter />
       <ConfirmDialog
         open={openDialog}
         handleClose={handleClose}

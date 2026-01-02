@@ -11,13 +11,18 @@ const SELECTORS = {
   FAIL_URL: `/order/fail?t=${INVALID_TRANSACTION_ID}&s=7002976631972601&eventId=0&eci=5`
 } as const;
 
-function mockTransaction(response: object) {
+function mockTransaction(response: {
+  transaction_id?: string;
+  [key: string]: any;
+}) {
   cy.intercept('GET', '/transaction*', (req) => {
+    let body: object;
     if (req.query.transaction_id === VALID_TRANSACTION_ID) {
-      req.reply({ statusCode: 200, body: response });
+      body = response;
     } else {
-      req.reply({ statusCode: 200, body: {} });
+      body = {};
     }
+    req.reply({ statusCode: 200, body });
   }).as('validateTransaction');
 }
 

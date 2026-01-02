@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import BotSim from '@/components/BotSim';
 import ChipList from '@/components/Chiplist';
+import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
 import { LoginForm } from '@/components/LoginForm';
 
@@ -144,10 +145,8 @@ export default function Login() {
             />
           </div>
         </div>
-        <footer>
-          <div>Ανάπτυξη · Φορολογικός Βοηθός — Foros Chatbot</div>
-        </footer>
       </main>
+      <CustomFooter />
     </div>
   );
 }
