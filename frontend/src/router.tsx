@@ -1,9 +1,12 @@
 import getRouterBasename from '@/lib/router';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
+import Contact from './pages/Contact';
 import Order from './pages/Order';
 import OrderFail from './pages/OrderFail';
 import OrderSuccess from './pages/OrderSuccess';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import AuthCallback from 'pages/AuthCallback';
 import Element from 'pages/Element';
 import Env from 'pages/Env';
@@ -52,6 +55,18 @@ export const router = createBrowserRouter(
     {
       path: '/order/fail',
       element: <OrderFail />
+    },
+    {
+      path: '/privacy',
+      element: <Privacy />
+    },
+    {
+      path: '/terms',
+      element: <Terms />
+    },
+    {
+      path: '/contact',
+      element: <Contact />
     },
     {
       path: '*',

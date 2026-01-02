@@ -42,14 +42,24 @@ export default function AppWrapper() {
 
   if (!translationLoaded) return null;
 
-  if (
-    isReady &&
-    !isAuthenticated &&
-    window.location.pathname !== getRouterBasename() + '/login' &&
-    window.location.pathname !== getRouterBasename() + '/login/callback' &&
-    window.location.pathname !== getRouterBasename() + '/order'
-  ) {
-    window.location.href = getRouterBasename() + '/login';
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    '/login',
+    '/login/callback',
+    '/order',
+    '/privacy',
+    '/terms',
+    '/contact'
+  ];
+
+  const currentPath = window.location.pathname;
+  const basename = getRouterBasename();
+  const isPublicRoute = publicRoutes.some(
+    (route) => currentPath === basename + route
+  );
+
+  if (isReady && !isAuthenticated && !isPublicRoute) {
+    window.location.href = basename + '/login';
   }
   return <App />;
 }

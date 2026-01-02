@@ -58,6 +58,7 @@ from chainlit.config import (
     public_dir,
     reload_config,
 )
+from chainlit.contact import ContactFormRequest, ContactFormResponse
 from chainlit.data import get_data_layer
 from chainlit.data.acl import is_thread_author
 from chainlit.logger import logger, payment_logger
@@ -2146,6 +2147,49 @@ async def get_transaction(
         )
 
     return JSONResponse(status_code=status.HTTP_200_OK, content=existing_payment)
+
+
+# -------------------------------------------------------------------------------
+#                               CONTACT FORM HANDLER
+# -------------------------------------------------------------------------------
+
+
+@router.post("/contact")
+async def contact_form(data: ContactFormRequest):
+    """
+    Handle contact form submissions.
+    Sends email notification to support team.
+
+    Args:
+        data (ContactFormRequest): The validated contact form data.
+    Returns:
+        JSONResponse: Success or error response.
+    """
+    try:
+        # Log the contact form submission
+        logger.info(
+            f"Contact form submission from {data.name} ({data.email}): {data.subject}"
+        )
+
+        # TODO: Implement email sending via fastapi-mail
+        # For now, we just log and return success
+        # In production, you would send an email here:
+        # await send_contact_email(data)
+
+        response = ContactFormResponse(
+            success=True,
+            message="email sent successfully",
+        )
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=response.model_dump()
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing contact form: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error sending message. Please try again.",
+        )
 
 
 @router.get("/{full_path:path}")

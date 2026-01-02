@@ -705,3 +705,406 @@ li {
     font-size: 1.5rem;
   }
 }
+
+/* ===========================================
+   LEGAL PAGES (Privacy, Terms, Contact)
+   =========================================== */
+
+.legal-page .legal-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.legal-page .legal-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.legal-page .legal-content .last-updated,
+.legal-page .legal-content .intro {
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.legal-page .legal-content section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(11, 78, 162, 0.08);
+}
+
+.legal-page .legal-content section:last-child {
+  border-bottom: none;
+}
+
+.legal-page .legal-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accentb);
+  margin-bottom: 1rem;
+}
+
+.legal-page .legal-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 1.25rem 0 0.75rem;
+}
+
+.legal-page .legal-content p {
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.legal-page .legal-content ul {
+  list-style: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.legal-page .legal-content ul li {
+  line-height: 1.7;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.legal-page .legal-content a {
+  color: var(--accentb);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-page .legal-content a:hover {
+  text-decoration: none;
+}
+
+/* Payment Provider Section */
+.legal-page .payment-provider {
+  background: var(--bg);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.legal-page .payment-provider h2 {
+  margin-bottom: 0.75rem;
+}
+
+.legal-page .payment-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.legal-page .viva-logo {
+  height: 40px;
+  width: auto;
+}
+
+.legal-page .payment-methods {
+  height: 32px;
+  width: auto;
+}
+
+/* Related Links Section */
+.legal-page .related-links ul {
+  list-style: none;
+  margin-left: 0;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.legal-page .related-links li {
+  margin-bottom: 0;
+}
+
+/* ===========================================
+   CONTACT PAGE SPECIFIC
+   =========================================== */
+
+.contact-page .contact-container {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.contact-page .contact-info {
+  border: none;
+  padding-bottom: 0;
+}
+
+.contact-page .info-block {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.contact-page .info-block h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.contact-page .info-block p {
+  margin-bottom: 0.25rem;
+}
+
+.contact-page .info-block .note {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.contact-page .contact-form-section {
+  border: none;
+  padding-bottom: 0;
+}
+
+.contact-page .contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.contact-page .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contact-page .form-group label {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.contact-page .form-group .bg-background {
+  background: var(--card);
+}
+
+.contact-page .submit-btn {
+  margin-top: 0.5rem;
+  background: var(--accentb);
+  color: white;
+}
+
+.contact-page .submit-btn:hover {
+  background: #0a3d82;
+}
+
+.contact-page .success-message {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: var(--radius);
+}
+
+.contact-page .success-message h3 {
+  color: #16a34a;
+  margin-top: 0;
+}
+
+.contact-page .error-message {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.contact-page .error-message p {
+  color: #dc2626;
+  margin: 0;
+}
+
+/* FAQ Section */
+.contact-page .faq-section {
+  background: var(--bg);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}
+
+.contact-page .faq-item {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(11, 78, 162, 0.1);
+}
+
+.contact-page .faq-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.contact-page .faq-item h3 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.contact-page .faq-item p {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+/* ===========================================
+   CUSTOM FOOTER
+   =========================================== */
+
+.custom-footer {
+  background: var(--bg);
+  padding: 2rem 1.5rem 1rem;
+  margin-top: auto;
+}
+
+.custom-footer .footer-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(11, 78, 162, 0.1);
+}
+
+.custom-footer .footer-section h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.custom-footer .footer-section p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.custom-footer .footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.custom-footer .footer-section ul li {
+  margin-bottom: 0.5rem;
+}
+
+.custom-footer .footer-section ul a {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.custom-footer .footer-section ul a:hover {
+  color: var(--accentb);
+}
+
+.custom-footer .payment-section .payment-logos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.custom-footer .payment-section .viva-logo {
+  height: 28px;
+  width: 56px;
+}
+
+.custom-footer .payment-section .payment-methods {
+  height: 24px;
+  width: auto;
+}
+
+.custom-footer .footer-bottom {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.custom-footer .footer-links {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.custom-footer .footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.custom-footer .footer-links a:hover {
+  color: var(--accentb);
+}
+
+.custom-footer .footer-links span {
+  color: rgba(11, 78, 162, 0.3);
+}
+
+/* Responsive Styles for Legal Pages and Footer */
+@media (max-width: 768px) {
+  .legal-page .legal-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .legal-page .legal-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .contact-page .contact-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .custom-footer .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .custom-footer .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-footer .footer-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .custom-footer .payment-section .payment-logos {
+    align-items: center;
+  }
+
+  .legal-page .related-links ul {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .legal-page .payment-logos {
+    flex-direction: column;
+  }
+}
