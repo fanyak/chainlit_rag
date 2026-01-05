@@ -12,7 +12,8 @@
       "loading": "加载中...",
       "error": {
         "default": "发生错误",
-        "serverConnection": "无法连接到服务器"
+        "serverConnection": "无法连接到服务器",
+        "formSubmitErrors": "提交表单时出错。请重试。"
       }
     }
   },
@@ -147,10 +148,10 @@
     "thread": {
       "untitled": "未命名对话",
       "menu": {
-          "rename": "重命名",
-          "share": "分享",
-          "delete": "删除"
-        },
+        "rename": "重命名",
+        "share": "分享",
+        "delete": "删除"
+      },
       "actions": {
         "share": {
           "title": "分享聊天链接",
@@ -243,4 +244,3 @@
     }
   }
 }
-

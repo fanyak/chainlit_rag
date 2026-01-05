@@ -12,7 +12,8 @@
       "loading": "Lädt...",
       "error": {
         "default": "Ein Fehler ist aufgetreten",
-        "serverConnection": "Server konnte nicht erreicht werden"
+        "serverConnection": "Server konnte nicht erreicht werden",
+        "formSubmitErrors": "Fehler beim Absenden des Formulars. Bitte versuchen Sie es erneut."
       }
     }
   },
@@ -147,10 +148,10 @@
     "thread": {
       "untitled": "Unbenannter Thread",
       "menu": {
-          "rename": "Umbenennen",
-          "share": "Teilen",
-          "delete": "Löschen"
-        },
+        "rename": "Umbenennen",
+        "share": "Teilen",
+        "delete": "Löschen"
+      },
       "actions": {
         "share": {
           "title": "Thread löschen bestätigen",

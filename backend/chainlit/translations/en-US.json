@@ -12,7 +12,8 @@
       "loading": "Loading...",
       "error": {
         "default": "An error occurred",
-        "serverConnection": "Could not reach the server"
+        "serverConnection": "Could not reach the server",
+        "formSubmitErrors": "Error submitting the form. Please try again."
       }
     }
   },
@@ -147,10 +148,10 @@
     "thread": {
       "untitled": "Untitled Conversation",
       "menu": {
-          "rename": "Rename",
-          "share": "Share",
-          "delete": "Delete"
-        },
+        "rename": "Rename",
+        "share": "Share",
+        "delete": "Delete"
+      },
       "actions": {
         "share": {
           "title": "Share link to chat",

@@ -12,7 +12,8 @@
       "loading": "Cargando...",
       "error": {
         "default": "Ocurrió un error",
-        "serverConnection": "No se pudo conectar con el servidor"
+        "serverConnection": "No se pudo conectar con el servidor",
+        "formSubmitErrors": "Error al enviar el formulario. Por favor, inténtelo de nuevo."
       }
     }
   },

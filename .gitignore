@@ -65,3 +65,5 @@ backend/README.md
 backend/.dmypy.json
 backend/models/
 .history
+
+backend/*_test.sh

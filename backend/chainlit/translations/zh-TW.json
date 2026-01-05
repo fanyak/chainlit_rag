@@ -12,7 +12,8 @@
       "loading": "載入中...",
       "error": {
         "default": "發生錯誤",
-        "serverConnection": "無法連線到伺服器"
+        "serverConnection": "無法連線到伺服器",
+        "formSubmitErrors": "提交表單時發生錯誤。請重試。"
       }
     }
   },
@@ -147,10 +148,10 @@
     "thread": {
       "untitled": "未命名對話",
       "menu": {
-          "rename": "重新命名",
-          "share": "分享",
-          "delete": "刪除"
-        },
+        "rename": "重新命名",
+        "share": "分享",
+        "delete": "刪除"
+      },
       "actions": {
         "share": {
           "title": "分享聊天連結",

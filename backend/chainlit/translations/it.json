@@ -12,7 +12,8 @@
       "loading": "Caricamento...",
       "error": {
         "default": "Si è verificato un errore",
-        "serverConnection": "Impossibile connettersi al server"
+        "serverConnection": "Impossibile connettersi al server",
+        "formSubmitErrors": "Errore durante l'invio del modulo. Riprova."
       }
     }
   },
@@ -147,10 +148,10 @@
     "thread": {
       "untitled": "Conversazione senza titolo",
       "menu": {
-          "rename": "Rinomina",
-          "share": "Condividi",
-          "delete": "Elimina"
-        },
+        "rename": "Rinomina",
+        "share": "Condividi",
+        "delete": "Elimina"
+      },
       "actions": {
         "share": {
           "title": "Condividi link conversazione",

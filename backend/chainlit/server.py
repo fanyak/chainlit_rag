@@ -2188,7 +2188,7 @@ async def contact_form(data: ContactFormRequest):
         logger.error(f"Error processing contact form: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error sending message. Please try again.",
+            detail="common.status.error.formSubmitErrors",
         )
 
 

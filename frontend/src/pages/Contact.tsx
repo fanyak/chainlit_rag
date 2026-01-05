@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useTranslation } from 'components/i18n/Translator';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -43,10 +44,9 @@ export default function Contact() {
         setFormData({ name: '', email: '', subject: '', message: '' });
       }
     } catch (err: any) {
+      const error_path = err.detail || 'common.status.error.formSubmitErrors';
       // apiClient.onError already shows a toast, but we also set local error state
-      setError(
-        err.detail || 'Σφάλμα κατά την αποστολή. Παρακαλώ δοκιμάστε ξανά.'
-      );
+      setError(useTranslation().t(error_path));
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,7 @@ export default function Contact() {
         <article className="legal-content contact-page">
           <h1>Επικοινωνία</h1>
           <p className="intro">
-            Είμαστε εδώ για να σας βοηθήσουμε. Επικοινωνήστε μαζί μας για
-            οποιαδήποτε απορία ή υποστήριξη.
+            Επικοινωνήστε μαζί μας για οποιαδήποτε απορία ή υποστήριξη.
           </p>
 
           <div className="contact-container">
@@ -71,7 +70,7 @@ export default function Contact() {
               <div className="info-block">
                 <h3>📧 Email</h3>
                 <p>
-                  <a href="mailto:support@foroschat.gr">support@foroschat.gr</a>
+                  <a href="mailto:support@foroschat.gr">support@foros.chat</a>
                 </p>
                 <p className="note">
                   Απαντάμε συνήθως εντός 24-48 ωρών (εργάσιμες ημέρες)
@@ -79,18 +78,9 @@ export default function Contact() {
               </div>
 
               <div className="info-block">
-                <h3>📞 Τηλέφωνο</h3>
-                <p>
-                  <a href="tel:+302101234567">+30 210 123 4567</a>
-                </p>
-                <p className="note">Δευτέρα - Παρασκευή: 09:00 - 17:00</p>
-              </div>
-
-              <div className="info-block">
                 <h3>📍 Διεύθυνση</h3>
                 <p>Foros Chat</p>
-                <p>Λεωφόρος Παράδειγμα 123</p>
-                <p>11111 Αθήνα, Ελλάδα</p>
+                <p>55236 Θεσσαλονίκη, Ελλάδα</p>
               </div>
 
               <div className="info-block">
@@ -108,10 +98,7 @@ export default function Contact() {
               {submitted ? (
                 <div className="success-message">
                   <h3>✅ Ευχαριστούμε για το μήνυμά σας!</h3>
-                  <p>
-                    Λάβαμε την επικοινωνία σας και θα σας απαντήσουμε το
-                    συντομότερο δυνατό.
-                  </p>
+                  <p>Θα σας απαντήσουμε το συντομότερο δυνατό.</p>
                   <Button
                     onClick={() => setSubmitted(false)}
                     variant="secondary"
@@ -205,21 +192,25 @@ export default function Contact() {
             <h2>Συχνές Ερωτήσεις</h2>
 
             <div className="faq-item">
-              <h3>Πώς μπορώ να ακυρώσω τη συνδρομή μου;</h3>
+              <h3>Μπορώ να ακυρώσω τη συνδρομή μου;</h3>
               <p>
-                Μπορείτε να ακυρώσετε τη συνδρομή σας ανά πάσα στιγμή από τις
-                ρυθμίσεις του λογαριασμού σας ή επικοινωνώντας μαζί μας. Δείτε
-                την <Link to="/terms">Πολιτική Ακύρωσης</Link> για περισσότερες
-                λεπτομέρειες.
+                Μπορείτε να ακυρώσετε τη συνδρομή σας και να ζητήσετε να σας
+                επιστραφεί το υπόλοιπο που παραμένει στο λογαριασμό σας ανά πάσα
+                στιγμή. Δείτε την <Link to="/terms">Πολιτική Ακύρωσης</Link> για
+                περισσότερες λεπτομέρειες.
               </p>
             </div>
 
             <div className="faq-item">
-              <h3>Πώς γίνεται η επιστροφή χρημάτων;</h3>
+              <h3>
+                Πώς γίνεται η επιστροφή χρημάτων που απομένουν στο λογαριασμό
+                μου;
+              </h3>
               <p>
-                Εάν δικαιούστε επιστροφή χρημάτων, αυτή θα γίνει στην ίδια
-                μέθοδο πληρωμής εντός 5-10 εργάσιμων ημερών. Δείτε τους{' '}
-                <Link to="/terms">Όρους Χρήσης</Link> για τις προϋποθέσεις.
+                Εάν έχετε υπόλοιπο στο λογαρριασμό σας, η επιστροφή θα γίνει με
+                τη μέθοδο πληρωμής που χρησιμοποιήσατε εντός 5-10 εργάσιμων
+                ημερών. Δείτε τους <Link to="/terms">Όρους Χρήσης</Link> για τις
+                προϋποθέσεις.
               </p>
             </div>
 
@@ -228,15 +219,31 @@ export default function Contact() {
               <p>
                 Ναι, όλες οι πληρωμές διεκπεραιώνονται μέσω της πλατφόρμας Viva
                 Payments, η οποία συμμορφώνεται με τα πρότυπα ασφαλείας PCI-DSS.
+                Το Foros Chat δεν αποθηκεύει ποτέ τα στοιχεία της κάρτας σας,
+                άλλα τραπεζικά στοιχεία ή κωδικούς πρόσβασης.
               </p>
             </div>
 
             <div className="faq-item">
               <h3>Πώς προστατεύονται τα δεδομένα μου;</h3>
               <p>
-                Εφαρμόζουμε αυστηρά μέτρα ασφαλείας σύμφωνα με τον GDPR. Δείτε
-                την <Link to="/privacy">Πολιτική Απορρήτου</Link> για
-                περισσότερες πληροφορίες.
+                Το Foros chat λαμβάνει σοβαρά την προστασία των προσωπικών σας
+                δεδομένων. Χρησιμοποιούμε το πρωτόκολλο HTTPS για ασφαλή
+                επικοινωνία. Δεν αποθηκεύουμε ποτέ κωδικούς ασφαλείας,
+                οικονομικά ή τραπεζικά δεδομένα. Για τη δημιουργία λογαριασμού
+                (login / εγγραφή) χρησιμοποιούμε το πρωτόκολλο{' '}
+                <a
+                  href="https://www.microsoft.com/el-gr/security/business/security-101/what-is-oauth"
+                  target="_blank"
+                >
+                  OAuth 2.0
+                </a>{' '}
+                , το οποίο επιτρέπει την ασφαλή αυθεντικοποίηση μέσω τρίτων
+                παρόχων (όπως Google) χωρίς να χρειάζεται να μας παρέχετε κωδικό
+                πρόσβασης.<p></p>Εφαρμόζουμε αυστηρά μέτρα ασφαλείας σύμφωνα με
+                τον GDPR. Δείτε την{' '}
+                <Link to="/privacy">Πολιτική Απορρήτου</Link> για περισσότερες
+                πληροφορίες.
               </p>
             </div>
           </section>
