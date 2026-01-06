@@ -1,5 +1,6 @@
 # ruff: noqa: RUF001
 import asyncio
+import json
 import logging
 
 # import pandas as pd
@@ -39,8 +40,10 @@ from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient, models
 
 import chainlit as cl
+from chainlit import logger
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.gcs import GCSStorageClient
+from chainlit.logger import db_logger
 from chainlit.user import PersistedUser
 from override_provider import override_providers
 from user_token import db_object
@@ -414,7 +417,6 @@ async def on_chat_start():
 
     event = asyncio.Event()
     cl.user_session.set("stop_event", event)
-
     # SQLITE ALLOWS MULTIPLE CONNECTIONS FROM THE SAME THREAD
     # BUT WRITE OPERATIONS ARE SERIALIZED
     # https://www.sqlite.org/isolation.html
@@ -526,10 +528,12 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # 1. check for db error flag
     if cl.user_session.get("error_db", False) is True:  # type: ignore
         await cl.Message(  # type: ignore
-            content="Token tracking disabled due to previous database error.",
+            content="Token tracking was previously disabled due to previous database error.",
             author="System",
         ).send()
+        cl.user_session.set("error_db", False)
         return
+
     # 2. check user balance
     balance = cl.user_session.get("balance")  # type: ignore[attr-defined]
     if balance <= 0:
@@ -538,7 +542,10 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # Specify an ID for the thread
     # config = {"configurable": {"thread_id":cl.context.session.id}}
     # config = {"configurable": {"thread_id":str(uuid.uuid4())}}
+
+    # Create a NEW callback for each turn only
     cb = UsageMetadataCallbackHandler()
+
     # fmt: off
     print(f"Thread ID: {cl.context.session.thread_id}") # type: ignore[attr-defined]
     config: RunnableConfig = {
@@ -552,10 +559,10 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     usage_metadata: Optional[UsageMetadata] = None
 
     # initial greeting to message user that search is in progress
-    greeting = cl.Message(  # type: ignore
+    progress = cl.Message(  # type: ignore
         content="Ψάχνω στα έγγραφα της ΑΑΔΕ...", author="AI")
     # await asyncio.sleep(1)  # allow greeting message to render
-    await greeting.send()
+    await progress.send()
     async def runner(event):
         buffer = ""
         for msg, metadata in graph.stream(
@@ -568,15 +575,15 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
                 event.clear()
                 break
             if (msg.content and isinstance(msg, ToolMessage)):  # type: ignore[union-attr]
-                greeting.content = "Συγκεντρώνω τις πληροφορίες..."  # type: ignore
-                await greeting.update()
+                progress.content ="Συγκεντρώνω τις πληροφορίες..."  # type: ignore
+                await progress.update()
             if (
                 msg.content  # type: ignore[union-attr]
                 and not isinstance(msg, HumanMessage)
                 and metadata["langgraph_node"] == "generate"  # type: ignore[index]
             ):
                 # fmt: off
-                await greeting.remove()
+                await progress.remove()
                 # Note: python name binding: assignments create a new local variable by default. 
                 buffer += msg.content  # type: ignore[union-attr]
                 await final_answer.stream_token(msg.content) # type: ignore[union-attr]
@@ -612,71 +619,86 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     #db_object: user_token.db_object = cl.user_session.get("db_object") # type: ignore[attr-defined]
     usage_metadata = cb.usage_metadata[os.environ.get(
         "MODEL_NAME", "gemini-2.5-flash")]
-    if usage_metadata is not None:
-        # input_tokens = usage_metadata["input_tokens"]
-        # output_tokens = usage_metadata["output_tokens"]
-        total_tokens = usage_metadata["total_tokens"]
-        input_tokens = usage_metadata["input_tokens"]
-        output_tokens = usage_metadata["output_tokens"]
-        cb_data = {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens
-        }
+    if usage_metadata is None:
+        logger.warning("No usage metadata from callback")
+        return # Can't proceed without usage data
+
+    total_tokens = usage_metadata["total_tokens"]
+    input_tokens = usage_metadata["input_tokens"]
+    output_tokens = usage_metadata["output_tokens"]
+
+    turn_token_data = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens
+    }
+
+    # After streaming completes update with turn metadata
+    final_answer.metadata = turn_token_data
+    await final_answer.update()
+    try:
+        # Explicitly persist to database (update() uses create_task which doesn't wait)
+        await get_data_layer().update_step(final_answer.to_dict()) 
+    except Exception as e:
+        db_logger.error(f"Error persisting step metadata: {e}")
+        # Non-critical - continue with billing
+    try:   
         thread = await get_data_layer().get_thread(thread_id=cl.context.session.thread_id)  # type: ignore[attr-defined]   
-        balance_to_deduct = 0.0
-        print(f"thread: {thread}")
-        if thread is not None:
-            # metadata = thread["metadata"] or dict() 
-            # old_total = metadata.get("total_tokens", 0)
-            # turn_tokens = total_tokens - old_total  
-            units = 1000000  # tokens per million
-            charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", 0.30/units))
-            charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.5/units))
-            balance_to_deduct = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
-        await get_data_layer().update_thread(thread_id=cl.context.session.thread_id, metadata=cb_data)  # type: ignore[attr-defined]
+    except Exception as e:
+        db_logger.error(f"Error getting thread: {e}")
+        cl.user_session.set("error_db", True)
+        return
+    if thread is None:
+        db_logger.error(f"Thread {cl.context.session.thread_id} not found")  # type: ignore[attr-defined]
+        cl.user_session.set("error_db", True)
+        return
+
+    # print(f"thread: {thread}")
+    units = 1000000  # tokens per million
+    charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", 0.30/units))
+    charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.5/units))
+    balance_to_deduct = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
+
+    # Get existing totals (or 0 if first turn)
+    existing_metadata = json.loads(thread.get("metadata") or "{}")
+
+    # Accumulate
+    thread_token_data = {
+    "input_tokens": existing_metadata.get("input_tokens", 0) + input_tokens,
+    "output_tokens": existing_metadata.get("output_tokens", 0) + output_tokens,
+    "total_tokens": existing_metadata.get("total_tokens", 0) + total_tokens
+    }
+
+    # Update thread FIRST, check result
+    try:
+        await get_data_layer().update_thread(thread_id=cl.context.session.thread_id, metadata=thread_token_data)  # type: ignore[attr-defined]
+    except Exception as e:
+        db_logger.error(f"Error updating thread: {e}")
+        print("Error updating thread metadata")
+        cl.user_session.set("error_db", True)
+        return  # Don't charge user if we can't log the tokens
+
+    try:
         updated_user: PersistedUser = await get_data_layer().update_user_balance(identifier=user_id, balance_to_deduct=balance_to_deduct)  # type: ignore[attr-defined]
-        if updated_user is None:
-            print(f"Error updating user balance for {user_id}")
-            cl.user_session.set("error_db", True)
-        else:
-            new_balance: Optional[float] = updated_user.balance
-            cl.user_session.set("balance", new_balance)
-            print(f"Updated balance for user {user_id}: {new_balance}")
-            if new_balance is None:
-                print(f"Error retrieving new balance for user {user_id}")
-                cl.user_session.set("error_db", True)
-                return
-            if new_balance <= 0:
-                await print_insufficient_balance_message()
-        # new_usage = db_object.update_token_usage(cb_data)
-        # if not new_usage:
-        #     print(f"Error updating user usage for {user_id}")
-        # else:
-            # last_tokens will be 0 if first turn in chat or error
-            # tokens_last_log = db_object.get_last_turn_token_log()
-            # print("JEEEEEEEEE", tokens_last_log)
-            # if tokens_last_log is not None:
-            #     (last_cumulative_tokens,) = tokens_last_log
-            #     turn_tokens = total_tokens - last_cumulative_tokens
-            #     balance_updated = db_object.update_user_balance(turn_tokens)
-            #     if balance_updated:
-            #         print(f"Subtracted balance for user {user_id}")
-            #         log_updated = db_object.log_turn_tokens(total_tokens)
-            #         if log_updated is not True:
-            #             print(f"error updating log for user {user_id}")
-            #             cl.user_session.set("error_db", True)
-            #             # TODO: what to do if log update fails?
-            #         # finally update balance in user session    
-            #         await handle_user_balance_in_session()
-            #     else:
-            #         cl.user_session.set("error_db", True)
-            #         print(f"Error updating balance for user {user_id}")
+    except Exception as e:
+        db_logger.error(f"Error updating user balance: {e}")
+        cl.user_session.set("error_db", True)
+        return
+
+    if updated_user is None or updated_user.balance is None:
+        print(f"Error updating user balance for {user_id}")
+        cl.user_session.set("error_db", True)
+        return
+
+    new_balance: Optional[float] = updated_user.balance
+    cl.user_session.set("balance", new_balance)
+    print(f"Updated balance for user {user_id}: {new_balance}")
+
+    if new_balance <= 0:
+        await print_insufficient_balance_message()
 
 
 # Close the database connection when the session ends
-
-
 @cl.on_stop  # type: ignore[has-type]
 def on_stop():
     print("The user wants to stop the task!")

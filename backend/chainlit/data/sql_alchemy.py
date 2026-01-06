@@ -193,6 +193,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             )  # We want to update the metadata
         return await self.get_user(user.identifier)
 
+    ###### Payments ######
     async def update_user_balance(
         self, identifier: str, balance_to_deduct: float
     ) -> Optional[PersistedUser]:
@@ -262,6 +263,32 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             # return empty object if no payment found
             return UserPaymentInfoShell({})
         return None
+
+    async def list_payments_by_user(
+        self, identifier: str
+    ) -> Optional[List[UserPaymentInfoDict]]:
+        """
+        Retrieve all payments for a user, ordered by creation date (newest first).
+
+        Args:
+            identifier: The user's OAuth identifier.
+
+        Returns:
+            List[UserPaymentInfoDict]: List of payments if found (can be empty if user has no payments).
+            None: If a database error occurred.
+        """
+        if self.show_logger:
+            logger.info(f"SQLAlchemy: list_payments_by_user, identifier={identifier}")
+        query = """SELECT * FROM payments
+            WHERE user_id = :identifier
+            ORDER BY created_at DESC"""
+        parameters = {"identifier": identifier}
+        result = await self.execute_sql(query=query, parameters=parameters)
+        if result is None:
+            return None  # SQL error occurred
+        if isinstance(result, list):
+            return [cast(UserPaymentInfoDict, payment) for payment in result]
+        return None  # Unexpected result type
 
     ###### Threads ######
 

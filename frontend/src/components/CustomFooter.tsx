@@ -46,13 +46,13 @@ function CustomFooter() {
           © {new Date().getFullYear()} Foros Chat. Όλα τα δικαιώματα
           κατοχυρωμένα.
         </div>
-        <div className="footer-links">
+        {/* <div className="footer-links">
           <Link to="/privacy">Απόρρητο</Link>
           <span>·</span>
           <Link to="/terms">Όροι</Link>
           <span>·</span>
           <Link to="/contact">Επικοινωνία</Link>
-        </div>
+        </div> */}
       </div>
     </footer>
   );

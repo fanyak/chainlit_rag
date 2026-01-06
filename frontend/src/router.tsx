@@ -6,6 +6,7 @@ import Order from './pages/Order';
 import OrderFail from './pages/OrderFail';
 import OrderSuccess from './pages/OrderSuccess';
 import Privacy from './pages/Privacy';
+import Profile from './pages/Profile';
 import Terms from './pages/Terms';
 import AuthCallback from 'pages/AuthCallback';
 import Element from 'pages/Element';
@@ -67,6 +68,10 @@ export const router = createBrowserRouter(
     {
       path: '/contact',
       element: <Contact />
+    },
+    {
+      path: '/account',
+      element: <Profile />
     },
     {
       path: '*',

@@ -1,5 +1,6 @@
 import capitalize from 'lodash/capitalize';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@chainlit/react-client';
 
@@ -17,6 +18,7 @@ import { Translator } from 'components/i18n';
 
 export default function UserNav() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return null;
   const displayName = user?.display_name || user?.identifier;
@@ -44,6 +46,10 @@ export default function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/account')}>
+          <User className="mr-2 h-4 w-4" />
+          Προφίλ
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => logout(true)}>
           <Translator path="navigation.user.menu.logout" />
           <LogOut className="ml-auto" />

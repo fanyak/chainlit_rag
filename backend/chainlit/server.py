@@ -2111,6 +2111,25 @@ async def get_transaction(
     order_code: str,
     current_user: UserParam,
 ):
+    """
+    Retrieve a payment transaction by its transaction ID and order code.
+    It is recommended by viva payments to verify using both transaction_id
+    and order_code
+
+    Args:
+        transaction_id: The unique identifier of the transaction to retrieve.
+        order_code: The order code associated with the transaction.
+        current_user: The authenticated user making the request.
+
+    Returns:
+        JSONResponse: A JSON response containing the payment information if found,
+            or an empty dict if the payment does not exist.
+
+    Raises:
+        HTTPException: 400 if data persistence is not enabled.
+        HTTPException: 401 if user is not authenticated or not found.
+        HTTPException: 500 if there is a database error while fetching the payment.
+    """
     data_layer = get_data_layer()
     if not data_layer:
         raise HTTPException(
@@ -2147,6 +2166,136 @@ async def get_transaction(
         )
 
     return JSONResponse(status_code=status.HTTP_200_OK, content=existing_payment)
+
+
+@router.get("/transaction/list")
+async def list_transactions(
+    current_user: UserParam,
+):
+    """
+    List all payment transactions for the authenticated user.
+
+    Args:
+        current_user: The authenticated user making the request.
+    Returns:
+        JSONResponse: A JSON response containing a list of payment transactions.
+    """
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
+    if not isinstance(current_user, PersistedUser):
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+        if not persisted_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            )
+
+    payments: List[UserPaymentInfoDict] = await data_layer.list_payments_by_user(
+        user_id=current_user.identifier
+    )
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content=payments)
+
+
+@router.get("/user/account")
+async def get_profile(
+    current_user: UserParam,
+):
+    """
+    Get user profile data including balance, payment history, and thread usage.
+
+    Args:
+        current_user: The authenticated user making the request.
+    Returns:
+        JSONResponse: A JSON response containing user profile data.
+    """
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
+    # Get persisted user for balance
+    persisted_user = None
+    if isinstance(current_user, PersistedUser):
+        persisted_user = current_user
+    else:
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+
+    if not persisted_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+
+    # Get payment history
+    payments: Optional[
+        List[UserPaymentInfoDict]
+    ] = await data_layer.list_payments_by_user(persisted_user.identifier)
+
+    # Get thread usage (threads have token metadata)
+    threads = await data_layer.get_all_user_threads(user_id=persisted_user.id)
+
+    # Format thread data for response
+    thread_usage = []
+    if threads:
+        for thread in threads:
+            metadata = json.loads(thread.get("metadata") or "{}")
+            steps = thread.get("steps") or []
+
+            # Get per-turn token data from assistant_message steps
+            turns = []
+            for step in steps:
+                if step.get("type") == "assistant_message":
+                    step_metadata = json.loads(step.get("metadata") or "{}")
+                    if step_metadata.get("total_tokens"):
+                        turns.append(
+                            {
+                                "id": step.get("id"),
+                                "createdAt": step.get("createdAt"),
+                                "input_tokens": step_metadata.get("input_tokens", 0),
+                                "output_tokens": step_metadata.get("output_tokens", 0),
+                                "total_tokens": step_metadata.get("total_tokens", 0),
+                            }
+                        )
+
+            thread_usage.append(
+                {
+                    "id": thread.get("id"),
+                    "name": thread.get("name"),
+                    "createdAt": thread.get("createdAt"),
+                    "input_tokens": metadata.get("input_tokens", 0),
+                    "output_tokens": metadata.get("output_tokens", 0),
+                    "total_tokens": metadata.get("total_tokens", 0),
+                    "turns": turns,
+                }
+            )
+
+    profile_data = {
+        "user": {
+            "id": persisted_user.id,
+            "identifier": persisted_user.identifier,
+            "balance": persisted_user.balance or 0,
+        },
+        "payments": payments or [],
+        "threadUsage": thread_usage,
+    }
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content=profile_data)
 
 
 # -------------------------------------------------------------------------------
