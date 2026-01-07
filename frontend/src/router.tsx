@@ -2,6 +2,7 @@ import getRouterBasename from '@/lib/router';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import Contact from './pages/Contact';
+import Guide from './pages/Guide';
 import Order from './pages/Order';
 import OrderFail from './pages/OrderFail';
 import OrderSuccess from './pages/OrderSuccess';
@@ -68,6 +69,10 @@ export const router = createBrowserRouter(
     {
       path: '/contact',
       element: <Contact />
+    },
+    {
+      path: '/guide',
+      element: <Guide />
     },
     {
       path: '/account',

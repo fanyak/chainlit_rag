@@ -49,7 +49,8 @@ export default function AppWrapper() {
     '/order',
     '/privacy',
     '/terms',
-    '/contact'
+    '/contact',
+    '/guide'
   ];
 
   const currentPath = window.location.pathname;

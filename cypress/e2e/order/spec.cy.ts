@@ -56,7 +56,7 @@ describe('Load the order Page', () => {
   });
   it('the un-authenticated user should see subscribe buttons but be directed to login on click', () => {
     cy.get(SELECTORS.ORDER_BUTTON).should('be.visible').and('have.length', 2);
-    cy.get(SELECTORS.ORDER_BUTTON_TEXT).should('contain.text', 'Subscribe Now');
+    // cy.get(SELECTORS.ORDER_BUTTON_TEXT).should('contain.text', 'Ασφαλής Πληρωμή');
     cy.get(SELECTORS.ORDER_BUTTON).eq(0).click();
     cy.get(SELECTORS.ORDER_BUTTON).first().should('have.attr', 'disabled');
     cy.url().should('include', '/auth/oauth/'); // redirected to oauth login

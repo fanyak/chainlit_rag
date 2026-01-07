@@ -1,5 +1,8 @@
 import { AmountOrderedType } from '@/schemas/redirectSchema';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+
+import { useTranslation } from '@/components/i18n/Translator';
 
 import { IUser } from 'client-types/*';
 
@@ -26,6 +29,84 @@ const LoadingSpinner = () => (
   </svg>
 );
 
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+const faqData: FaqItem[] = [
+  {
+    question: 'Πώς γίνονται οι πληρωμές;',
+    answer:
+      'Οι πληρωμές πραγματοποιούνται μέσω της ασφαλούς πλατφόρμας Viva Payments, η οποία δέχεται όλες τις κύριες πιστωτικές και χρεωστικές κάρτες.'
+  },
+  {
+    question: 'Είναι ασφαλείς οι πληρωμές;',
+    answer:
+      'Ναι, όλες οι πληρωμές διεκπεραιώνονται μέσω της πλατφόρμας Viva Payments, η οποία συμμορφώνεται με τα πρότυπα ασφαλείας PCI-DSS. Το Foros Chat δεν αποθηκεύει ποτέ τα στοιχεία της κάρτας σας, ούτε οποιαδήποτε άλλα τραπεζικά δεδομένα ή κωδικούς πρόσβασης.'
+  },
+  {
+    question: 'Υπάρχει δωρεάν δοκιμή;',
+    answer:
+      'Ναι, οι νέοι χρήστες λαμβάνουν δωρεάν tokens για να δοκιμάσουν τις υπηρεσίες μας πριν πραγματοποιήσουν την 1η τους πληρωμή. Αν εξαντληθούν τα tokens, θα χρειαστεί να επιλέξετε ένα συνδρομητικό πλάνο για να συνεχίσετε να χρησιμοποιείτε την υπηρεσία.'
+  },
+  {
+    question: 'Ποιες μέθοδοι πληρωμής γίνονται αποδεκτές;',
+    answer:
+      'Η Viva Payments δέχεται όλες τις κύριες πιστωτικές κάρτες, χρεωστικές κάρτες και άλλες μεθόδους πληρωμής όπως πληρωμή μέσω Iris.'
+  },
+  {
+    question: 'Ποια είναι η πολιτική επιστροφής χρημάτων;',
+    answer:
+      'Καθώς η υπηρεσία βασίζεται στη χρήση tokens για τη συνομιλία σας με το μοντέλο AI, δεν προσφέρουμε επιστροφές χρημάτων για τα tokens που έχετε αναλώσει. Εφόσον συνομιλείτε με το μοντέλο ΑΙ κάνετε χρήση της υπηρεσίας και το ποσό που αντιστοιχεί στα tokens που αναλώνετε αφαιρείται από το υπόλοιπο του λογαριασμού σας. Μπορείτε ωστόσο ανά πάσα στιγμή να ζητήσετε επιστροφή του υπολοίπου που παραμένει στο λογαριασμό σας.'
+  },
+  {
+    question:
+      'Ποιές άλλες υπηρεσίες πέρα από τη συνομιλία καλύπτει η συνδρομή;',
+    answer:
+      'Πέρα απο το καθαρό κόστος των tokens που καταναλώνετε κατά τη συνομιλία σας με το μοντέλο AI, η συνδρομή σας καλύπτει και την λειτουργία της υπηρεσίας μας όπως είναι η αποθήκευση ιστορικού συνομιλιών, η διαχείριση λογαριασμού, η ασφάλεια δεδομένων και η υποστήριξη πελατών.'
+  }
+];
+
+function FaqAccordion() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggleItem = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <div className="faq-accordion space-y-3">
+      {faqData.map((item, index) => (
+        <div
+          key={index}
+          className="border border-gray-200 rounded-lg overflow-hidden"
+        >
+          <button
+            className="w-full flex items-center justify-between p-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors"
+            onClick={() => toggleItem(index)}
+            aria-expanded={openIndex === index}
+          >
+            <span className="font-medium">{item.question}</span>
+            <ChevronDown
+              className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
+                openIndex === index ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+          <div
+            className={`overflow-hidden transition-all duration-200 ${
+              openIndex === index ? 'max-h-96' : 'max-h-0'
+            }`}
+          >
+            <p className="p-4 text-gray-600">{item.answer}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PaymentPlants({
   createOrder,
   loading,
@@ -36,6 +117,7 @@ function PaymentPlants({
   user: IUser | null | undefined;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const { t } = useTranslation();
   const handleClick = (index: number, amount: AmountOrderedType): void => {
     setActive(index);
     createOrder(amount);
@@ -43,14 +125,22 @@ function PaymentPlants({
   return (
     <div className="pricing-container">
       <div className="intro">
-        <h2>Choose Your Plan {user?.identifier}</h2>
+        <h4>Επιλέξτε τύπο συνδρομής {user?.identifier}</h4>
         <p>
-          Google Colab offers flexible pricing options to suit your needs, from
-          free access to professional enterprise solutions.
+          Τα πλάνα συνδρομής υπολογίζονται με βάση την αξία των tokens που
+          καταναλώνετε κατά τη συνομιλία σας με το μοντέλο AI. <br />
+          Κάθε φορά που συνομιλείτε αφαιρείται από το υπόλοιπο του λογαριασμού
+          σας η αξία των tokens που χρησιμοποιήσατε.
+          <br /> Μπορείτε να ανανεώσετε το υπόλοιπο του λογαριασμού σας όποτε το
+          επιθυμείτε επιλέγοντας ένα από τα παρακάτω πλάνα.
         </p>
         <p>
-          All plans include access to our powerful cloud computing resources for
-          machine learning, data analysis, and computational research.
+          Για πληροφορίες σχετικά με το πώς υπολογίζεται η κατανάλωση των
+          tokens, επισκεφθείτε την ενότητα{' '}
+          <a href="/guide#token-usage" style={{ color: '#1a73e8' }}>
+            Οδηγός
+          </a>
+          .
         </p>
       </div>
 
@@ -77,22 +167,30 @@ function PaymentPlants({
 
         <div className="pricing-card featured">
           <div className="card-header">
-            <h3 className="card-title">Colab Pro</h3>
+            <h3 className="card-title">Ελάχιστη Συνδρομή</h3>
             <div className="card-price">
-              5€<span>/month</span>
+              5€<span></span>
             </div>
             <p className="card-description">
-              For regular users and researchers
+              Για χρήστες που θέλουν να δοκιμάσουν τις δυνατότητες μας
             </p>
           </div>
           <div className="card-body">
             <ul className="plan-features-list">
-              <li>Priority access to GPUs and TPUs</li>
-              <li>Background execution (12 hours)</li>
-              <li>50GB storage</li>
-              <li>Priority customer support</li>
-              <li>Longer session timeouts</li>
-              <li>All free features included</li>
+              <li>Αντιστοιχεί σε περίπου 20 ερωτήματα*</li>
+              <li>
+                Το ποσό παραμένει στο λογαριασμό σας έως ότου το χρησιμοποιήσετε
+              </li>
+              <li>
+                Μπορείτε να ζητήσετε να σας επιστραφεί το υπόλοιπο ανά πάσα
+                στιγμή
+              </li>
+              <li>Πρόσβαση σε όλα τα χαρακτηριστικά της πλατφόρμας</li>
+              <li>Υποστήριξη μέσω email</li>
+              <li>
+                *Το ακριβές πλήθος των ερωτημάτων εξαρτάται από τη πολυπλοκότητα
+                του ερωτήματος και τη χρήση tokens ανά ερώτημα
+              </li>
             </ul>
           </div>
           <div className="card-footer">
@@ -104,10 +202,10 @@ function PaymentPlants({
               {loading && active === 1 ? (
                 <>
                   <LoadingSpinner />
-                  <span>Processing…</span>
+                  <span>{t('common.status.loading')}</span>
                 </>
               ) : (
-                <span>Subscribe Now</span>
+                <span>{t('payments.pay')}</span>
               )}
             </button>
           </div>
@@ -115,21 +213,30 @@ function PaymentPlants({
 
         <div className="pricing-card">
           <div className="card-header">
-            <h3 className="card-title">Colab Pro+</h3>
+            <h3 className="card-title">Tυπική Συνδρομή</h3>
             <div className="card-price">
-              10€<span>/month</span>
+              10€<span></span>
             </div>
-            <p className="card-description">For advanced computing needs</p>
+            <p className="card-description">
+              Για χρήστες που θέτουν τακτικα ερωτήματα στο μοντέλο
+            </p>
           </div>
           <div className="card-body">
             <ul className="plan-features-list">
-              <li>Highest-tier GPU and TPU access</li>
-              <li>Background execution (24 hours)</li>
-              <li>500GB storage</li>
-              <li>Premium support</li>
-              <li>Longest session timeouts</li>
-              <li>Early access to new features</li>
-              <li>All Pro features included</li>
+              <li>Αντιστοιχεί σε περίπου 40 ερωτήματα*</li>
+              <li>
+                Το ποσό παραμένει στο λογαριασμό σας έως ότου το χρησιμοποιήσετε
+              </li>
+              <li>
+                Μπορείτε να ζητήσετε να σας επιστραφεί το υπόλοιπο ανά πάσα
+                στιγμή
+              </li>
+              <li>Πρόσβαση σε όλα τα χαρακτηριστικά της πλατφόρμας</li>
+              <li>Υποστήριξη μέσω email</li>
+              <li>
+                *Το ακριβές πλήθος των ερωτημάτων εξαρτάται από τη πολυπλοκότητα
+                του ερωτήματος και τη χρήση tokens ανά ερώτημα
+              </li>
             </ul>
           </div>
           <div className="card-footer">
@@ -141,159 +248,19 @@ function PaymentPlants({
               {loading && active === 2 ? (
                 <>
                   <LoadingSpinner />
-                  Processing…
+                  {t('common.status.loading')}
                 </>
               ) : (
-                'Subscribe Now'
+                <span>{t('payments.pay')}</span>
               )}
             </button>
           </div>
         </div>
-
-        {/* <div className="pricing-card">
-          <div className="card-header">
-            <h3 className="card-title">Colab Enterprise</h3>
-            <div className="card-price">Custom</div>
-            <p className="card-description">For organizations and teams</p>
-          </div>
-          <div className="card-body">
-            <ul className="plan-features-list">
-              <li>Dedicated compute resources</li>
-              <li>Admin controls and security features</li>
-              <li>Team collaboration tools</li>
-              <li>Enterprise support</li>
-              <li>VPC and security network options</li>
-              <li>Custom quotas and limits</li>
-              <li>SSO and advanced auth</li>
-            </ul>
-          </div>
-          <div className="card-footer">
-            <button className="btn btn-secondary">Contact Sales</button>
-          </div>
-        </div> */}
-      </div>
-
-      <div className="comparison-section">
-        <h2>Detailed Feature Comparison</h2>
-        <table className="comparison-table">
-          <thead>
-            <tr>
-              <th className="feature-name">Feature</th>
-              <th>Colab</th>
-              <th>Colab Pro</th>
-              <th>Colab Pro+</th>
-              <th>Enterprise</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="feature-name">Price</td>
-              <td>Free</td>
-              <td>$9.99/month</td>
-              <td>$49.99/month</td>
-              <td>Custom</td>
-            </tr>
-            <tr>
-              <td className="feature-name">GPU Access</td>
-              <td>Basic</td>
-              <td>Priority</td>
-              <td>Highest-tier</td>
-              <td>Dedicated</td>
-            </tr>
-            <tr>
-              <td className="feature-name">TPU Access</td>
-              <td>Basic</td>
-              <td>Priority</td>
-              <td>Highest-tier</td>
-              <td>Dedicated</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Storage</td>
-              <td>5GB</td>
-              <td>50GB</td>
-              <td>500GB</td>
-              <td>Custom</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Background Execution</td>
-              <td>Not supported</td>
-              <td>12 hours</td>
-              <td>24 hours</td>
-              <td>24+ hours</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Session Timeout</td>
-              <td>60 minutes</td>
-              <td>90 minutes</td>
-              <td>120 minutes</td>
-              <td>Custom</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Support</td>
-              <td>Community</td>
-              <td>Priority</td>
-              <td>Priority</td>
-              <td>Enterprise</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Admin Controls</td>
-              <td>No</td>
-              <td>No</td>
-              <td>No</td>
-              <td>Yes</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Team Collaboration</td>
-              <td>Basic</td>
-              <td>Basic</td>
-              <td>Basic</td>
-              <td>Advanced</td>
-            </tr>
-            <tr>
-              <td className="feature-name">Security Features</td>
-              <td>Standard</td>
-              <td>Standard</td>
-              <td>Standard</td>
-              <td>Enterprise-grade</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <div className="intro">
         <h2>FAQ</h2>
-        <p>
-          <strong>Can I upgrade or downgrade my plan?</strong>
-        </p>
-        <p>
-          Yes, you can change your subscription at any time from your account
-          settings. Changes take effect immediately.
-        </p>
-
-        <p>
-          <strong>Is there a free trial for Pro and Pro+?</strong>
-        </p>
-        <p>
-          Yes, new subscribers get a one-week free trial of either Pro or Pro+
-          before being charged.
-        </p>
-
-        <p>
-          <strong>What payment methods are accepted?</strong>
-        </p>
-        <p>
-          We accept all major credit cards, debit cards, and other payment
-          methods through our secure payment processor.
-        </p>
-
-        <p>
-          <strong>What is your refund policy?</strong>
-        </p>
-        <p>
-          If you cancel within 7 days of subscription, we'll provide a full
-          refund. Otherwise, cancellations take effect at the end of the billing
-          period.
-        </p>
+        <FaqAccordion />
       </div>
     </div>
   );

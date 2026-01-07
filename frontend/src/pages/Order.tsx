@@ -40,8 +40,7 @@ export default function Order() {
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
-
-  useScrollTo()(0, 0);
+  const scrollTo = useScrollTo();
 
   const clearUrlState = useCallback(() => {
     const baseUrl = new URL(
@@ -169,6 +168,8 @@ export default function Order() {
 
   // Effect: Handle successful login redirect for guest orders
   useEffect(() => {
+    scrollTo(0, 0);
+
     setOrderController(new AbortController());
     const queryResult = SearchParamsSchema.safeParse(Object.fromEntries(query));
     if (!queryResult.success) {
