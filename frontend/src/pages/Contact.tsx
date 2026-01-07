@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useTranslation } from 'components/i18n/Translator';
 
+import useScrollTo from '@/hooks/scrollTo';
+
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: '',
@@ -21,6 +23,7 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useScrollTo()(0, 0);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

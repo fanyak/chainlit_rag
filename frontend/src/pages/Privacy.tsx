@@ -4,7 +4,11 @@ import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
 import PaymentLogos from '@/components/PaymentLogos';
 
+import useScrollTo from '@/hooks/scrollTo';
+
 export default function Privacy() {
+  useScrollTo()(0, 0);
+
   return (
     <div className="custom-pg legal-page">
       <main className="wrap" role="main">

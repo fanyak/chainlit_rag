@@ -7,7 +7,6 @@ import {
   Wallet
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 import { useAuth } from '@chainlit/react-client';
 
@@ -31,6 +30,8 @@ import {
   TableRow
 } from '@/components/ui/table';
 
+import useScrollTo from '@/hooks/scrollTo';
+
 interface Turn {
   id: string;
   createdAt: string;
@@ -47,6 +48,17 @@ interface ThreadUsage {
   output_tokens: number;
   total_tokens: number;
   turns: Turn[];
+}
+
+interface ThreadUsageDisplay {
+  id: string;
+  name: string;
+  createdAt: string;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  turns?: Turn[];
+  turnslength?: number;
 }
 
 interface Payment {
@@ -69,6 +81,9 @@ interface ProfileData {
 }
 
 function formatDate(dateString: string): string {
+  /* Format date to 'dd MMM yyyy, HH:mm' in Greek locale 
+    current_timestamp in SQLite is in UTC, so we convert to local timezone
+*/
   if (!dateString) return '-';
   const date = new Date(dateString);
   return date.toLocaleDateString('el-GR', {
@@ -97,7 +112,7 @@ function formatTokens(tokens: number): string {
   return tokens.toString();
 }
 
-function ThreadRow({ thread }: { thread: ThreadUsage }) {
+function ThreadRow({ thread }: { thread: ThreadUsageDisplay }) {
   const [isOpen, setIsOpen] = useState(false);
   const hasTurns = thread.turns && thread.turns.length > 0;
 
@@ -141,7 +156,7 @@ function ThreadRow({ thread }: { thread: ThreadUsage }) {
       </TableRow>
       {hasTurns &&
         isOpen &&
-        thread.turns.map((turn, idx) => (
+        (thread.turns || []).map((turn, idx) => (
           <TableRow key={turn.id} className="bg-muted/30">
             <TableCell />
             <TableCell className="pl-8 text-muted-foreground text-sm">
@@ -170,6 +185,7 @@ export default function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  useScrollTo()(0, 0);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -179,7 +195,8 @@ export default function Profile() {
         setProfileData(data);
       } catch (error) {
         console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile data');
+        // if the call is not ok, apiClient will have already shown a toast
+        //toast.error('Failed to load profile data');
       } finally {
         setLoading(false);
       }
@@ -373,13 +390,17 @@ export default function Profile() {
                     <TableHead className="text-right">Input</TableHead>
                     <TableHead className="text-right">Output</TableHead>
                     <TableHead className="text-right">Σύνολο</TableHead>
-                    <TableHead className="text-right">Turns</TableHead>
+                    <TableHead className="text-right">Συνομιλίες</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {profileData.threadUsage.map((thread) => (
-                    <ThreadRow key={thread.id} thread={thread} />
-                  ))}
+                  {profileData.threadUsage.map((thread) => {
+                    const thread_copy: ThreadUsageDisplay =
+                      structuredClone(thread);
+                    thread_copy.turnslength = thread_copy.turns?.length || 0;
+                    delete thread_copy.turns;
+                    return <ThreadRow key={thread.id} thread={thread_copy} />;
+                  })}
                 </TableBody>
               </Table>
             ) : (

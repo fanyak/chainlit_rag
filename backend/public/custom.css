@@ -107,7 +107,7 @@ html {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #dadce0;
-  padding: 1rem 2rem;
+  padding: 0.5rem 2rem;
   gap: 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   background: white;
@@ -148,7 +148,7 @@ html {
   line-height: 1;
 }
 .custom-pg .wrap .brand-title .title {
-  font-size: 1.25rem; /* 20px */
+  font-size: 1.35rem; /* 20px */
   font-weight: 800;
   color: var(--accentb);
   margin: 0;
@@ -226,7 +226,7 @@ html {
   flex-direction: row;
   max-width: 70vw;
   gap: 18px;
-  margin: 30px auto 10px auto;
+  margin: 20px auto 10px auto;
   justify-self: center;
   flex-wrap: wrap;
 }
@@ -423,9 +423,9 @@ html {
   margin-top: 18px;
 }
 .custom-pg footer {
-  display: flex;
+  /* display: flex; */
   width: 100%;
-  margin-top: 18px;
+  margin-top: 0;
   font-size: 13px;
   color: var(--muted);
 }
@@ -454,6 +454,7 @@ li {
 
 .custom-pg .botsim {
   min-height: 200px;
+  padding-top: 0.5rem;
   background-color: rgba(11, 78, 162, 0.02);
   border-bottom: 6px solid var(--accentb);
   border-radius: 10px;
@@ -1019,6 +1020,7 @@ li {
 .custom-footer .payment-section .payment-logos {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -1028,7 +1030,7 @@ li {
 }
 
 .custom-footer .payment-section .payment-methods {
-  height: 24px;
+  height: auto;
   width: auto;
 }
 
@@ -1063,6 +1065,11 @@ li {
 
 .custom-footer .footer-links span {
   color: rgba(11, 78, 162, 0.3);
+}
+
+.custom-footer .footer-section.payment-section {
+  margin: 0 auto;
+  text-align: center;
 }
 
 /* Responsive Styles for Legal Pages and Footer */

@@ -4,7 +4,11 @@ import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
 import PaymentLogos from '@/components/PaymentLogos';
 
+import useScrollTo from '@/hooks/scrollTo';
+
 export default function Terms() {
+  useScrollTo()(0, 0);
+
   return (
     <div className="custom-pg legal-page">
       <main className="wrap" role="main">
@@ -116,7 +120,7 @@ export default function Terms() {
               Μπορείτε να δείτε τις πληρωμές που έχετε πραγματοποιήσει, τα
               tokens που έχετε καταναλώσει για κάθε ερώτημα, καθώς και το
               υπόλοιπο του λογαριασμού σας στην σελίδα σας:{' '}
-              <Link to="/profile">Προφίλ Χρήστη</Link>.
+              <Link to="/account">Προφίλ Χρήστη</Link>.
             </p>
           </section>
 

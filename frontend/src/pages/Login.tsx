@@ -115,7 +115,11 @@ export default function Login() {
             </ul>
           </div>
 
-          <div className="card" aria-labelledby="samples-title">
+          <div
+            className="card"
+            style={{ paddingTop: '5px' }}
+            aria-labelledby="samples-title"
+          >
             <BotSim inputRef={inputRef} />
             <strong id="samples-title" className="mt-4">
               Δείγματα ερωτήσεων

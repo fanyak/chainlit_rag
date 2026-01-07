@@ -345,7 +345,7 @@ async def print_insufficient_balance_message():
         )
     ]
     await cl.Message(
-        content=f"Your current balance is {balance:.2f}€. Please top up your account to continue using the service.",
+        content=f"Το υπόλοιπο σας είναι {balance:.2f}€. Παρακαλώ ανανεώστε τον λογαριασμό σας για να συνεχίσετε να χρησιμοποιείτε την υπηρεσία.",
         elements=elements,
         author="System",
     ).send()
@@ -506,13 +506,21 @@ async def on_chat_start():
     )
     # usage = db_object.get_all_chats_tokens()
     # usage = (0, 0, 0)  # dummy usage
+    elements = [
+        # type: ignore
+        cl.Text(
+            name="",
+            content="[δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
+            display="inline",
+        )
+    ]
     usage_msg = (
-        f"Welcome, {user_id}! Your current balance is: **{balance:.2f}€**. "
+        f"Welcome, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
         # f"Total tokens used so far: **{usage[2]}** (Prompt: {usage[0]}, Completion: {usage[1]})"
         # if usage
         # else f"Database error retrieving usage for user {user_id}! Token tracking disabled."
     )
-    await cl.Message(content=usage_msg, author="System").send()
+    await cl.Message(content=usage_msg, elements=elements, author="System").send()
     # db_object.close_connection()
 
 

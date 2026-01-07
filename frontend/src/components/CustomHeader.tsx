@@ -1,9 +1,21 @@
 import getRouterBasename from '@/lib/router';
+import { apiClient } from 'api';
+import { LogIn } from 'lucide-react';
+import { useCallback } from 'react';
+
+import { useAuth } from '@chainlit/react-client';
 
 import { Logo } from '@/components/Logo';
 import UserNav from '@/components/header/UserNav';
+import { Button } from '@/components/ui/button';
 
 export function CustomHeader() {
+  const { user, data: config } = useAuth();
+
+  const onOAuthSignIn = useCallback((provider: string) => {
+    window.location.href = apiClient.getOAuthEndpoint(provider);
+  }, []);
+
   const handleLogoClick = () => {
     // Use window.location.href to trigger full page reload,
     // which ensures AppWrapper's auth check runs and redirects to login if needed
@@ -38,7 +50,17 @@ export function CustomHeader() {
       </nav>
 
       <div className="header-cta" role="region" aria-label="Ενέργειες">
-        <UserNav />
+        {user ? (
+          <UserNav />
+        ) : (
+          <Button
+            onClick={() => onOAuthSignIn(config?.oauthProviders[0] || '')}
+            variant="ghost"
+            size="icon"
+          >
+            <LogIn className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </header>
   );

@@ -19,6 +19,7 @@ import PaymentPlants from '@/components/PaymentPlants';
 import { ProviderButton } from '@/components/ProviderButton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
+import useScrollTo from '@/hooks/scrollTo';
 import { useQuery } from 'hooks/query';
 
 export default function Order() {
@@ -39,6 +40,8 @@ export default function Order() {
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
+
+  useScrollTo()(0, 0);
 
   const clearUrlState = useCallback(() => {
     const baseUrl = new URL(
