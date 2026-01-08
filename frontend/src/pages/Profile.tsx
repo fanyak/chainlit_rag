@@ -7,6 +7,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '@chainlit/react-client';
 
@@ -138,7 +139,11 @@ function ThreadRow({ thread }: { thread: ThreadUsageDisplay }) {
           )}
         </TableCell>
         <TableCell className="font-medium max-w-[200px] truncate">
-          {thread.name || 'Untitled conversation'}
+          {thread.name ? (
+            <Link to={`/thread/${thread.id}`}>{thread.name}</Link>
+          ) : (
+            'Untitled conversation'
+          )}
         </TableCell>
         <TableCell>{formatDate(thread.createdAt)}</TableCell>
         <TableCell className="text-right">
@@ -233,7 +238,7 @@ export default function Profile() {
         <CustomHeader />
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <div className="grid gap-4 md:grid-cols-3 mt-4 mb-8">
           {/* Balance Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -395,11 +400,7 @@ export default function Profile() {
                 </TableHeader>
                 <TableBody>
                   {profileData.threadUsage.map((thread) => {
-                    const thread_copy: ThreadUsageDisplay =
-                      structuredClone(thread);
-                    thread_copy.turnslength = thread_copy.turns?.length || 0;
-                    delete thread_copy.turns;
-                    return <ThreadRow key={thread.id} thread={thread_copy} />;
+                    return <ThreadRow key={thread.id} thread={thread} />;
                   })}
                 </TableBody>
               </Table>

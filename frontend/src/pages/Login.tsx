@@ -1,3 +1,4 @@
+import { BookOpen, MessageSquare } from 'lucide-react';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -89,27 +90,42 @@ export default function Login() {
         <CustomHeader />
         <div className="features" aria-hidden="false">
           <div className="card card--left" aria-labelledby="features-title">
-            <strong id="features-title">Τι κάνει η εφαρμογή</strong>
+            <span className="inline-flex mb-4">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <strong id="features-title" className="ml-2 leading-none">
+                Γιατί όχι απλά ένα ChatBot;
+              </strong>
+            </span>
             <ul className="features-list" role="list">
               <li role="listitem">
-                Αναζητά τεκμήρια και απαντά με βάση την ελληνική φορολογική
-                νομοθεσία.
+                Αναζήτηση στο σύνολο των επίσημων εγγράφων της ΑΑΔΕ, όχι στη
+                γενική γνώση ενός AI μοντέλου.
                 <span className="meta">
-                  Αναζήτηση στο σύνολο των εγγράφων και σύνοψη απάντησης.
+                  Υβριδική αναζήτηση (σημασιολογική + λέξεις-κλειδιά) σε
+                  χιλιάδες νόμους, εγκυκλίους και αποφάσεις.
                 </span>
               </li>
               <li role="listitem">
-                Υποστηρίζει προβολή συνδέσμων προς αρχεία PDF που
-                χρησιμοποιήθηκαν ως πηγές.
+                Βελτιστοποίηση ερώτησης - δημιουργία πολλαπλών παραλλαγών για
+                πληρέστερα αποτελέσματα.
                 <span className="meta">
-                  Ανοίγει PDF σε νέα καρτέλα για αναφορά.
+                  Αυτόματη μετατροπή της ερώτησης σε 5 εναλλακτικές μορφές για
+                  καλύτερη κάλυψη.
                 </span>
               </li>
               <li role="listitem">
-                Προστατευμένη πρόσβαση (πρέπει να συνδεθείτε για πλήρη
-                λειτουργικότητα).
+                Έξυπνη κατάταξη με AI - επιλογή των 10 πιο σχετικών από τα
+                συνολικά αποτελέσματα.
                 <span className="meta">
-                  Συνεργασία με Auth0 / OAuth για έλεγχο ταυτότητας.
+                  Reranking με εξειδικευμένο μοντέλο για υψηλή ακρίβεια.
+                </span>
+              </li>
+              <li role="listitem">
+                Έλεγχος ισχύος νόμων με βάση την τρέχουσα ημερομηνία - αποφυγή
+                παρωχημένων πληροφοριών.
+                <span className="meta">
+                  Αυτόματη αναγνώριση χρονικών πλαισίων και προτεραιοποίηση
+                  ισχυουσών διατάξεων.
                 </span>
               </li>
             </ul>
@@ -121,9 +137,12 @@ export default function Login() {
             aria-labelledby="samples-title"
           >
             <BotSim inputRef={inputRef} />
-            <strong id="samples-title" className="mt-4">
-              Δείγματα ερωτήσεων
-            </strong>
+            <span className="inline-flex mt-4">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <strong id="samples-title" className="ml-2 leading-none">
+                Δείγματα ερωτήσεων
+              </strong>
+            </span>
             <ChipList
               callbackUrl="/"
               providers={config?.oauthProviders || []}

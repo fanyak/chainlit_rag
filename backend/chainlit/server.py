@@ -2298,6 +2298,58 @@ async def get_profile(
     return JSONResponse(status_code=status.HTTP_200_OK, content=profile_data)
 
 
+@router.delete("/user/account")
+async def delete_account(
+    current_user: UserParam,
+):
+    """
+    Delete the authenticated user's account and all associated data.
+
+    Args:
+        current_user: The authenticated user making the request.
+    Returns:
+        JSONResponse: A JSON response indicating success or failure.
+    """
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
+    # Get persisted user
+    persisted_user = None
+    if isinstance(current_user, PersistedUser):
+        persisted_user = current_user
+    else:
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+
+    if not persisted_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+
+    # Delete user and associated data
+    try:
+        await data_layer.delete_user_data(persisted_user.id)
+    except Exception as e:
+        logger.error(f"Error deleting user account: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error deleting user account",
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "User account deleted successfully"},
+    )
+
+
 # -------------------------------------------------------------------------------
 #                               CONTACT FORM HANDLER
 # -------------------------------------------------------------------------------

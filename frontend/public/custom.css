@@ -148,15 +148,15 @@ html {
   line-height: 1;
 }
 .custom-pg .wrap .brand-title .title {
-  font-size: 1.35rem; /* 20px */
+  margin: 2px 0 0;
+  font-size: 1.35rem; /* 22px */
   font-weight: 800;
   color: var(--accentb);
-  margin: 0;
 }
 .custom-pg .wrap .brand-title .tag {
   font-size: 0.95rem;
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .custom-pg .wrap header nav.primary-nav {
@@ -167,15 +167,17 @@ html {
   flex: 1;
   justify-content: center;
 }
-.custom-pg .wrap header nav.primary-nav a {
-  color: var(--text);
+.custom-pg .wrap header nav.primary-nav a,
+.custom-pg .wrap header nav.primary-nav button {
+  color: var(--text) !important;
   text-decoration: none;
   font-weight: 600;
   font-size: 1rem;
   padding: 8px 10px;
   border-radius: 8px;
 }
-.custom-pg .wrap header nav.primary-nav a:hover {
+.custom-pg .wrap header nav.primary-nav a:hover,
+.custom-pg .wrap header nav.primary-nav button:hover {
   background: rgba(11, 78, 162, 0.04);
   color: var(--accentb);
 }
@@ -253,7 +255,7 @@ html {
   display: block;
   margin-bottom: 8px;
   color: #083a66;
-  font-size: 15px;
+  font-size: 1.015rem;
   font-weight: 700;
 }
 .custom-pg .features-list {
@@ -297,7 +299,7 @@ html {
 }
 .custom-pg .features-list li span.meta {
   display: block;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--muted);
   margin-top: 6px;
 }
@@ -431,7 +433,7 @@ html {
 }
 
 .custom-pg footer div {
-  margin: 1rem 1.2rem;
+  /* margin: 1rem 1.2rem; */
   color: var(--muted);
 }
 
@@ -453,8 +455,8 @@ li {
 }
 
 .custom-pg .botsim {
-  min-height: 200px;
-  padding-top: 0.5rem;
+  min-height: 220px;
+  padding-top: 0.65rem;
   background-color: rgba(11, 78, 162, 0.02);
   border-bottom: 6px solid var(--accentb);
   border-radius: 10px;
@@ -515,6 +517,7 @@ li {
 }
 
 .pricing-container .intro {
+  font-size: 0.9rem;
   background: white;
   padding: 2rem;
   border-radius: 8px;
@@ -522,16 +525,16 @@ li {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.pricing-container .intro h2 {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
 .pricing-container.intro p {
   margin-bottom: 0.5rem;
   margin-top: 1rem;
   color: #5f6368;
+}
+.pricing-container .intro li::before {
+  content: '•';
+  color: #1a73e8;
+  font-weight: bold;
+  margin-right: 0.5rem;
 }
 
 .pricing-grid {
@@ -962,6 +965,17 @@ li {
   margin-bottom: 0;
   font-size: 0.95rem;
 }
+.contact-page .faq-item ul {
+  list-style: none;
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+.contact-page .faq-item li::before {
+  content: '✔';
+  color: var(--accentb);
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
 
 /* ===========================================
    CUSTOM FOOTER
@@ -1006,7 +1020,7 @@ li {
   margin-bottom: 0.5rem;
 }
 
-.custom-footer .footer-section ul a {
+.custom-footer .footer-section a {
   font-size: 0.9rem;
   color: var(--muted);
   text-decoration: none;

@@ -8,6 +8,7 @@ import {
 } from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
+// import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 // import Page from 'pages/Page';
@@ -16,7 +17,6 @@ import { useAuth } from '@chainlit/react-client';
 import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
 import PaymentPlants from '@/components/PaymentPlants';
-import { ProviderButton } from '@/components/ProviderButton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 import useScrollTo from '@/hooks/scrollTo';
@@ -34,13 +34,14 @@ export default function Order() {
   const [orderController, setOrderController] =
     useState<AbortController | null>(new AbortController());
   const [openDialog, setOpenDialog] = useState(false);
-  const oAuthReady = config?.oauthProviders.length;
+  //const oAuthReady = config?.oauthProviders.length;
   const providers = config?.oauthProviders || [];
   const GUESTORDER_KEY = 'guestOrder';
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
   const scrollTo = useScrollTo();
+  // const { t } = useTranslation();
 
   const clearUrlState = useCallback(() => {
     const baseUrl = new URL(
@@ -220,38 +221,12 @@ export default function Order() {
       <main className="wrap" role="main" aria-label="app-title">
         <CustomHeader />
 
-        {user ? (
-          <h1 className="text-3xl font-bold">
-            Παραγγείλετε μέσω της Viva Payment
-          </h1>
-        ) : (
-          (oAuthReady && (
-            <div className="grid gap-2">
-              {providers.map((provider, index) => (
-                <ProviderButton
-                  key={`provider-${index}`}
-                  provider={provider}
-                  onClick={() => onOAuthSignIn?.(provider)}
-                />
-              ))}
-            </div>
-          )) ||
-          null
-        )}
-
-        {/* <button
-          onClick={handleCreateOrder}
-          disabled={loading || !user}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        > */}
-
-        {loading ? 'Creating Order...' : 'Create Order'}
-        {/* </button> */}
-
         {orderCode && (
           <div className="bg-green-50 border border-green-200 p-6 rounded-lg space-y-2">
-            <p className="text-green-800 font-semibold">Order Created!</p>
-            <p className="text-sm text-gray-700">Order Code:</p>
+            <p className="text-green-800 font-semibold">
+              H παραγγελία Δημιουργήθηκε!
+            </p>
+            <p className="text-sm text-gray-700">Κωδικός Παραγγελίας:</p>
             <code className="block bg-white p-2 rounded border text-sm text-gray-900">
               {orderCode}
             </code>

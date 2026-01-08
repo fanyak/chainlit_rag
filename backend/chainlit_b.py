@@ -159,7 +159,7 @@ def retrieve(query: str):
     retriever = MultiQueryRetriever(
         # retriever = qdrant_compare.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
         # retriever = vector_store.as_retriever(search_type="similarity", k=15)
-        retriever=qdrant_compare.as_retriever(search_type="similarity", k=30),
+        retriever=qdrant_compare.as_retriever(search_type="similarity", k=15),
         llm_chain=retrieval_chain,
         parser_key="lines",
     )  # "lines" is the key (attribute name) of the parsed output

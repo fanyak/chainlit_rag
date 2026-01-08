@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 
 import CustomFooter from '@/components/CustomFooter';
 import { CustomHeader } from '@/components/CustomHeader';
-import PaymentLogos from '@/components/PaymentLogos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -231,22 +230,37 @@ export default function Contact() {
               <h3>Πώς προστατεύονται τα δεδομένα μου;</h3>
               <p>
                 Το Foros chat λαμβάνει σοβαρά την προστασία των προσωπικών σας
-                δεδομένων. Χρησιμοποιούμε το πρωτόκολλο HTTPS για ασφαλή
-                επικοινωνία. Δεν αποθηκεύουμε ποτέ κωδικούς ασφαλείας,
-                οικονομικά ή τραπεζικά δεδομένα. Για τη δημιουργία λογαριασμού
-                (login / εγγραφή) χρησιμοποιούμε το πρωτόκολλο{' '}
-                <a
-                  href="https://www.microsoft.com/el-gr/security/business/security-101/what-is-oauth"
-                  target="_blank"
-                >
-                  OAuth 2.0
-                </a>{' '}
-                , το οποίο επιτρέπει την ασφαλή αυθεντικοποίηση μέσω τρίτων
-                παρόχων (όπως Google) χωρίς να χρειάζεται να μας παρέχετε κωδικό
-                πρόσβασης.<p></p>Εφαρμόζουμε αυστηρά μέτρα ασφαλείας σύμφωνα με
-                τον GDPR. Δείτε την{' '}
-                <Link to="/privacy">Πολιτική Απορρήτου</Link> για περισσότερες
-                πληροφορίες.
+                δεδομένων:
+                <ul>
+                  <li>
+                    {' '}
+                    Χρησιμοποιούμε το πρωτόκολλο HTTPS για ασφαλή επικοινωνία.{' '}
+                  </li>
+                  <li>
+                    Δεν αποθηκεύουμε ποτέ κωδικούς ασφαλείας, οικονομικά ή
+                    τραπεζικά δεδομένα.{' '}
+                  </li>
+                  <li>
+                    Για τη δημιουργία λογαριασμού (login / εγγραφή)
+                    χρησιμοποιούμε το πρωτόκολλο{' '}
+                    <a
+                      href="https://www.microsoft.com/el-gr/security/business/security-101/what-is-oauth"
+                      target="_blank"
+                    >
+                      OAuth 2.0
+                    </a>{' '}
+                    , το οποίο επιτρέπει την ασφαλή αυθεντικοποίηση μέσω τρίτων
+                    παρόχων (όπως Google) χωρίς να χρειάζεται να μας παρέχετε
+                    κωδικό πρόσβασης.
+                  </li>
+                  <li>
+                    Εφαρμόζουμε αυστηρά μέτρα ασφαλείας σύμφωνα με τον GDPR.{' '}
+                  </li>
+                </ul>
+                <p>
+                  Δείτε την <Link to="/privacy">Πολιτική Απορρήτου</Link> για
+                  περισσότερες πληροφορίες.
+                </p>
               </p>
             </div>
           </section>
@@ -264,11 +278,6 @@ export default function Contact() {
                 <Link to="/order">Συνδρομές</Link>
               </li>
             </ul>
-          </section>
-
-          <section className="payment-provider">
-            <h2>Ασφαλείς Πληρωμές</h2>
-            <PaymentLogos />
           </section>
         </article>
 

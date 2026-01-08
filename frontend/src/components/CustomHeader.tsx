@@ -41,11 +41,31 @@ export function CustomHeader() {
         <a href="/guide" title="Guide">
           Οδηγός
         </a>
+        {/* <a href={user ? "/" : "/login"} title="Chat with Foro">
+          Ρωτήστε τον Foro
+        </a> */}
+
+        <Button
+          onClick={() => {
+            if (!user) {
+              if (window.location.pathname.startsWith('/order')) {
+                window.history.pushState({}, '', getRouterBasename() + '/');
+              }
+              onOAuthSignIn(config?.oauthProviders[0] || '');
+            } else {
+              handleLogoClick();
+            }
+          }}
+          variant="link"
+        >
+          Ρωτήστε τον Foro
+        </Button>
+
         <a href="/order" title="Subscribe">
           Συνδρομή
         </a>
-        <a href="/about" title="About">
-          Σχετικά
+        <a href="/contact" title="Contact">
+          Επικοινωνία
         </a>
       </nav>
 
