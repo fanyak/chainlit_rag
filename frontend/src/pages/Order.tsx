@@ -234,7 +234,7 @@ export default function Order() {
         )}
         <PaymentPlants
           createOrder={handleCreateOrder}
-          user={user}
+          _user={user}
           loading={loading}
         />
       </main>
