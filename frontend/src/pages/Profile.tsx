@@ -190,10 +190,14 @@ export default function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  useScrollTo()(0, 0);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [threadsPage, setThreadsPage] = useState(1);
+  const itemsPerPage = 3;
+  const scrollTo = useScrollTo();
 
   useEffect(() => {
     async function fetchProfile() {
+      scrollTo(0, 0);
       try {
         const response = await apiClient.get('/user/account');
         const data = await response.json();
@@ -249,7 +253,7 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-8" />
               ) : (
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(profileData?.user.balance || 0)}
@@ -271,7 +275,7 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-8" />
               ) : (
                 <div className="text-2xl font-bold">
                   {formatCurrency(totalPayments)}
@@ -293,7 +297,7 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-8" />
               ) : (
                 <div className="text-2xl font-bold">
                   {formatTokens(totalTokens)}
@@ -318,46 +322,121 @@ export default function Profile() {
           <CardContent>
             {loading ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
               </div>
             ) : profileData?.payments && profileData.payments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ημερομηνία</TableHead>
-                    <TableHead>Κωδικός Παραγγελίας</TableHead>
-                    <TableHead>ID Συναλλαγής</TableHead>
-                    <TableHead className="text-right">Ποσό</TableHead>
-                    <TableHead>Κατάσταση</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profileData.payments.map((payment) => (
-                    <TableRow key={payment.transaction_id}>
-                      <TableCell>{formatDate(payment.created_at)}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {payment.order_code}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {payment.transaction_id}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(
-                          payment.amount,
-                          payment.currency || 'EUR'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                          {payment.status || 'Ολοκληρωμένη'}
-                        </span>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ημερομηνία</TableHead>
+                      <TableHead>Κωδικός Παραγγελίας</TableHead>
+                      <TableHead>ID Συναλλαγής</TableHead>
+                      <TableHead className="text-right">Ποσό</TableHead>
+                      <TableHead>Κατάσταση</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {profileData.payments
+                      .slice(
+                        (paymentsPage - 1) * itemsPerPage,
+                        paymentsPage * itemsPerPage
+                      )
+                      .map((payment) => (
+                        <TableRow key={payment.transaction_id}>
+                          <TableCell>
+                            {formatDate(payment.created_at)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {payment.order_code}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {payment.transaction_id}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(
+                              payment.amount,
+                              payment.currency || 'EUR'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                              {payment.status || 'Ολοκληρωμένη'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+                {profileData.payments.length > itemsPerPage && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Εμφάνιση {(paymentsPage - 1) * itemsPerPage + 1} -{' '}
+                      {Math.min(
+                        paymentsPage * itemsPerPage,
+                        profileData.payments.length
+                      )}{' '}
+                      από {profileData.payments.length}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPaymentsPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={paymentsPage === 1}
+                      >
+                        Προηγούμενη
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from(
+                          {
+                            length: Math.ceil(
+                              profileData.payments.length / itemsPerPage
+                            )
+                          },
+                          (_, i) => i + 1
+                        ).map((page) => (
+                          <Button
+                            key={page}
+                            variant={
+                              page === paymentsPage ? 'default' : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => setPaymentsPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPaymentsPage((p) =>
+                            Math.min(
+                              Math.ceil(
+                                profileData.payments.length / itemsPerPage
+                              ),
+                              p + 1
+                            )
+                          )
+                        }
+                        disabled={
+                          paymentsPage ===
+                          Math.ceil(profileData.payments.length / itemsPerPage)
+                        }
+                      >
+                        Επόμενη
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <p className="text-center text-muted-foreground py-8">
                 Δεν υπάρχουν πληρωμές ακόμα.
@@ -380,30 +459,105 @@ export default function Profile() {
           <CardContent>
             {loading ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
               </div>
             ) : profileData?.threadUsage &&
               profileData.threadUsage.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Συνομιλία</TableHead>
-                    <TableHead>Ημερομηνία</TableHead>
-                    <TableHead className="text-right">Input</TableHead>
-                    <TableHead className="text-right">Output</TableHead>
-                    <TableHead className="text-right">Σύνολο</TableHead>
-                    <TableHead className="text-right">Συνομιλίες</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profileData.threadUsage.map((thread) => {
-                    return <ThreadRow key={thread.id} thread={thread} />;
-                  })}
-                </TableBody>
-              </Table>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead>Συνομιλία</TableHead>
+                      <TableHead>Ημερομηνία</TableHead>
+                      <TableHead className="text-right">Input</TableHead>
+                      <TableHead className="text-right">Output</TableHead>
+                      <TableHead className="text-right">Σύνολο</TableHead>
+                      <TableHead className="text-right">Συνομιλίες</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {profileData.threadUsage
+                      .slice(
+                        (threadsPage - 1) * itemsPerPage,
+                        threadsPage * itemsPerPage
+                      )
+                      .map((thread) => {
+                        return <ThreadRow key={thread.id} thread={thread} />;
+                      })}
+                  </TableBody>
+                </Table>
+                {profileData.threadUsage.length > itemsPerPage && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Εμφάνιση {(threadsPage - 1) * itemsPerPage + 1} -{' '}
+                      {Math.min(
+                        threadsPage * itemsPerPage,
+                        profileData.threadUsage.length
+                      )}{' '}
+                      από {profileData.threadUsage.length}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setThreadsPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={threadsPage === 1}
+                      >
+                        Προηγούμενη
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from(
+                          {
+                            length: Math.ceil(
+                              profileData.threadUsage.length / itemsPerPage
+                            )
+                          },
+                          (_, i) => i + 1
+                        ).map((page) => (
+                          <Button
+                            key={page}
+                            variant={
+                              page === threadsPage ? 'default' : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => setThreadsPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setThreadsPage((p) =>
+                            Math.min(
+                              Math.ceil(
+                                profileData.threadUsage.length / itemsPerPage
+                              ),
+                              p + 1
+                            )
+                          )
+                        }
+                        disabled={
+                          threadsPage ===
+                          Math.ceil(
+                            profileData.threadUsage.length / itemsPerPage
+                          )
+                        }
+                      >
+                        Επόμενη
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <p className="text-center text-muted-foreground py-8">
                 Δεν υπάρχουν συνομιλίες ακόμα.

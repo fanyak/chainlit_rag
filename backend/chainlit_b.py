@@ -510,7 +510,7 @@ async def on_chat_start():
         # type: ignore
         cl.Text(
             name="",
-            content="[δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
+            content="[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
             display="inline",
         )
     ]
