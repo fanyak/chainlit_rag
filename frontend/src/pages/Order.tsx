@@ -8,7 +8,7 @@ import {
 } from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
-// import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 // import Page from 'pages/Page';
@@ -41,7 +41,7 @@ export default function Order() {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
   const scrollTo = useScrollTo();
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
 
   const clearUrlState = useCallback(() => {
     const baseUrl = new URL(
@@ -98,7 +98,7 @@ export default function Order() {
       setLoading(true);
       if (!user) {
         // toast.error('You must be logged in to create an order');
-        toast.warning('We need you to log in first.');
+        toast.warning(t('order.loginFirst'));
         // save the amount the user wanted to pay in the URL so we can use it after login
         createStorageState(GUESTORDER_KEY, createGuestOrderUrlState(amount));
         setTimeout(() => {
@@ -120,7 +120,7 @@ export default function Order() {
         // NOTE:  we don't need to check if orderCode is present in the response
         // because it is done in the backend (order.py) and it raises an Error Response if not
         const orderCode = data.orderCode;
-        toast.success(`Redirecting to payment page`);
+        toast.success(t('order.orderRedirect'));
 
         // Redirect to Viva Payments Smart Checkout
         // NOTE: Use demo URL for testing, change to production URL when going live
@@ -223,10 +223,8 @@ export default function Order() {
 
         {orderCode && (
           <div className="bg-green-50 border border-green-200 p-6 rounded-lg space-y-2">
-            <p className="text-green-800 font-semibold">
-              H παραγγελία Δημιουργήθηκε!
-            </p>
-            <p className="text-sm text-gray-700">Κωδικός Παραγγελίας:</p>
+            <p className="text-green-800 font-semibold">{t('order.created')}</p>
+            <p className="text-sm text-gray-700">{t('order.orderCode')}</p>
             <code className="block bg-white p-2 rounded border text-sm text-gray-900">
               {orderCode}
             </code>

@@ -2,6 +2,7 @@ import { UserPaymentInfo } from '@/schemas/interface';
 import { SearchParamsSchema } from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useAuth } from '@chainlit/react-client';
@@ -21,6 +22,7 @@ export default function OrderSuccess() {
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
+  const { t: translation } = useTranslation();
 
   //  Handle payment callbacks and failure states
   // should run once on mount, and whenever query or user changes
@@ -33,7 +35,7 @@ export default function OrderSuccess() {
 
     if (orderFailed) {
       console.log('Payment failed or was cancelled.');
-      toast.error('Payment failed or was cancelled.');
+      toast.error(translation('payments.errors.paymentFailed'));
       return;
     }
     const isPaymentCallback = t && s && eventId && eci ? true : false;
@@ -75,7 +77,7 @@ export default function OrderSuccess() {
             // this means that the transaction was not found in our database
             Object.keys(transaction).length === 0
           ) {
-            toast.error('Checking if Webhook was not received');
+            toast.error(translation('payments.errors.webhookMissing'));
             const payment_request_payload: Partial<UserPaymentInfo> = {
               user_id: user?.identifier,
               transaction_id: t as string,
@@ -96,11 +98,9 @@ export default function OrderSuccess() {
               paymentResultController.signal
             );
             if (payment_response.status === 201) {
-              toast.success('Payment processed successfully!');
+              toast.success(translation('payments.success'));
             } else {
-              toast.info(
-                'Payment already exists in the system. No new record created.'
-              );
+              toast.info(translation('payments.info.paymentExists'));
             }
           }
           // if we reach here, payment was processed successfully
@@ -136,10 +136,10 @@ export default function OrderSuccess() {
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
               <p className="text-lg text-gray-700 font-medium">
-                Processing your payment...
+                {translation('payments.processing')}
               </p>
               <p className="text-sm text-gray-500">
-                Please wait, this may take a moment.
+                {translation('payments.pleaseWait')}
               </p>
             </div>
           ) : success ? (
@@ -161,13 +161,13 @@ export default function OrderSuccess() {
                 </svg>
               </div>
               <h1 className="text-3xl font-bold text-green-600">
-                Payment processed successfully!
+                {translation('payments.success')}
               </h1>
               <p className="text-gray-600 text-lg">
-                Thank you for your purchase. Your order has been confirmed.
+                {translation('payments.thankYou')}
               </p>
               <p className="text-sm text-gray-500">
-                You will be redirected shortly. If not, please refresh the page.
+                {translation('payments.redirecting')}
               </p>
             </div>
           ) : (
@@ -189,23 +189,19 @@ export default function OrderSuccess() {
                     />
                   </svg>
                   <h1 className="text-2xl font-bold text-gray-800">
-                    Seems we could Not Process Your Payment Please contact
-                    support
+                    {translation('payments.errors.paymentFailed')}
                   </h1>
-                  <p className="text-gray-600">
-                    Logged in as:{' '}
+                  {/* <p className="text-gray-600">
+                    {translation('payments.loggedInAs')}{' '}
                     <span className="font-medium">{user.identifier}</span>
-                  </p>
+                  </p> */}
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4">
                   <h1 className="text-2xl font-bold text-gray-800">
-                    Sign In to Continue
+                    {translation('auth.provider.continue')}
                   </h1>
-                  <p className="text-gray-600 text-center">
-                    Please log in with one of your accounts to proceed with
-                    payment
-                  </p>
+
                   {oAuthReady && (
                     <div className="grid gap-3 w-full">
                       {providers.map((provider, index) => (

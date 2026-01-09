@@ -242,5 +242,27 @@
     "MultiSelectInput": {
       "placeholder": "선택..."
     }
+  },
+  "order": {
+    "created": "주문이 생성되었습니다!",
+    "orderCode": "주문 코드:"
+  },
+  "payments": {
+    "processing": "결제를 처리하고 있습니다...",
+    "pleaseWait": "잠시만 기다려 주세요. 시간이 걸릴 수 있습니다.",
+    "success": "결제가 성공적으로 처리되었습니다!",
+    "thankYou": "구매해 주셔서 감사합니다. 주문이 확인되었습니다.",
+    "redirecting": "공 리디렉션됩니다. 그렇지 않으면 페이지를 새로 고침하세요.",
+    "failed": "결제를 처리할 수 없습니다. 지원팀에 문의하세요",
+    "loggedInAs": "로그인됨:",
+    "signInToContinue": "계속하려면 로그인",
+    "signInPrompt": "결제를 진행하려면 계정 중 하나로 로그인하세요",
+    "errors": {
+      "paymentFailed": "결제가 실패했거나 취소되었습니다.",
+      "webhookMissing": "데이터베이스에서 거래를 찾을 수 없습니다."
+    },
+    "info": {
+      "paymentExists": "결제가 이미 시스템에 존재합니다."
+    }
   }
 }

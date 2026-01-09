@@ -242,5 +242,27 @@
     "MultiSelectInput": {
       "placeholder": "Select..."
     }
+  },
+  "order": {
+    "created": "Order Created!",
+    "orderCode": "Order Code:"
+  },
+  "payments": {
+    "processing": "Processing your payment...",
+    "pleaseWait": "Please wait, this may take a moment.",
+    "success": "Payment processed successfully!",
+    "thankYou": "Thank you for your purchase. Your order has been confirmed.",
+    "redirecting": "You will be redirected shortly. If not, please refresh the page.",
+    "failed": "Seems we could Not Process Your Payment Please contact support",
+    "loggedInAs": "Logged in as:",
+    "signInToContinue": "Sign In to Continue",
+    "signInPrompt": "Please log in with one of your accounts to proceed with payment",
+    "errors": {
+      "paymentFailed": "Payment failed or was cancelled.",
+      "webhookMissing": "Transaction not found in our database."
+    },
+    "info": {
+      "paymentExists": "Payment already exists in our system."
+    }
   }
 }

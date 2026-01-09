@@ -241,5 +241,27 @@
     "MultiSelectInput": {
       "placeholder": "選択..."
     }
+  },
+  "order": {
+    "created": "注文が作成されました！",
+    "orderCode": "注文コード："
+  },
+  "payments": {
+    "processing": "お支払いを処理中...",
+    "pleaseWait": "お待ちください。これには時間がかかる可能性があります。",
+    "success": "お支払いが正常に処理されました！",
+    "thankYou": "ご購入ありがとうございます。ご注文が確定されました。",
+    "redirecting": "まもなくリダイレクトされます。されない場合はページを更新してください。",
+    "failed": "お支払いを処理できませんでした。サポートにお問い合わせください",
+    "loggedInAs": "ログイン中：",
+    "signInToContinue": "続けるにはサインイン",
+    "signInPrompt": "お支払いを続けるには、いずれかのアカウントでログインしてください",
+    "errors": {
+      "paymentFailed": "お支払いが失敗したか、キャンセルされました。",
+      "webhookMissing": "データベースにトランザクションが見つかりません。"
+    },
+    "info": {
+      "paymentExists": "お支払いは既にシステムに存在します。"
+    }
   }
 }

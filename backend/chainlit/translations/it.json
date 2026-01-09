@@ -242,5 +242,27 @@
     "MultiSelectInput": {
       "placeholder": "Seleziona..."
     }
+  },
+  "order": {
+    "created": "Ordine creato!",
+    "orderCode": "Codice ordine:"
+  },
+  "payments": {
+    "processing": "Elaborazione del pagamento...",
+    "pleaseWait": "Attendere prego, potrebbe richiedere un momento.",
+    "success": "Pagamento elaborato con successo!",
+    "thankYou": "Grazie per il tuo acquisto. Il tuo ordine è stato confermato.",
+    "redirecting": "Sarai reindirizzato a breve. Altrimenti, aggiorna la pagina.",
+    "failed": "Sembra che non siamo riusciti a elaborare il tuo pagamento. Contatta l'assistenza",
+    "loggedInAs": "Connesso come:",
+    "signInToContinue": "Accedi per continuare",
+    "signInPrompt": "Accedi con uno dei tuoi account per procedere con il pagamento",
+    "errors": {
+      "paymentFailed": "Il pagamento è fallito o è stato annullato.",
+      "webhookMissing": "Transazione non trovata nel nostro database."
+    },
+    "info": {
+      "paymentExists": "Il pagamento esiste già nel nostro sistema."
+    }
   }
 }

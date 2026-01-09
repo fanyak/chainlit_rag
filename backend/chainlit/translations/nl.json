@@ -242,5 +242,27 @@
     "MultiSelectInput": {
       "placeholder": "Selecteer..."
     }
+  },
+  "order": {
+    "created": "Bestelling aangemaakt!",
+    "orderCode": "Bestellingscode:"
+  },
+  "payments": {
+    "processing": "Uw betaling wordt verwerkt...",
+    "pleaseWait": "Een moment geduld alstublieft, dit kan even duren.",
+    "success": "Betaling succesvol verwerkt!",
+    "thankYou": "Bedankt voor uw aankoop. Uw bestelling is bevestigd.",
+    "redirecting": "U wordt binnenkort doorgestuurd. Zo niet, vernieuw dan de pagina.",
+    "failed": "Het lijkt erop dat we uw betaling niet konden verwerken. Neem contact op met ondersteuning",
+    "loggedInAs": "Ingelogd als:",
+    "signInToContinue": "Inloggen om door te gaan",
+    "signInPrompt": "Log in met een van uw accounts om door te gaan met de betaling",
+    "errors": {
+      "paymentFailed": "Betaling is mislukt of geannuleerd.",
+      "webhookMissing": "Transactie niet gevonden in onze database."
+    },
+    "info": {
+      "paymentExists": "Betaling bestaat al in ons systeem."
+    }
   }
 }

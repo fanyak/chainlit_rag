@@ -242,5 +242,27 @@
     "MultiSelectInput": {
       "placeholder": "选择..."
     }
+  },
+  "order": {
+    "created": "订单已创建！",
+    "orderCode": "订单代码："
+  },
+  "payments": {
+    "processing": "正在处理您的付款...",
+    "pleaseWait": "请稍候，这可能需要一些时间。",
+    "success": "付款处理成功！",
+    "thankYou": "感谢您的购买。您的订单已确认。",
+    "redirecting": "即将重定向。如果没有，请刷新页面。",
+    "failed": "我们无法处理您的付款，请联系支持",
+    "loggedInAs": "已登录为：",
+    "signInToContinue": "登录以继续",
+    "signInPrompt": "请使用您的其中一个账户登录以继续付款",
+    "errors": {
+      "paymentFailed": "付款失败或已取消。",
+      "webhookMissing": "在我们的数据库中找不到交易。"
+    },
+    "info": {
+      "paymentExists": "付款已存在于我们的系统中。"
+    }
   }
 }
