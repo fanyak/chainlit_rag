@@ -36,10 +36,10 @@ export const ConfirmDialog = ({
       >
         <DialogHeader>
           <DialogTitle>
-            <Translator path="navigation.newChat.dialog.title" />
+            <Translator path="payments.createOrder" />
           </DialogTitle>
           <DialogDescription>
-            <Translator path="navigation.newChat.dialog.description" />
+            <Translator path="payments.confirmOrder" />
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">

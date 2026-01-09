@@ -52,6 +52,7 @@ async def data_layer(mock_storage_client: BaseStorageClient, tmp_path: Path):
                     "name" TEXT,
                     "userId" UUID,
                     "userIdentifier" TEXT,
+                    "deletedAt" TIMESTAMP,
                     "tags" TEXT[],
                     "metadata" JSONB,
                     FOREIGN KEY ("userId") REFERENCES users("id") ON DELETE CASCADE
