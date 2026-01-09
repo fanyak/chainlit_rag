@@ -60,31 +60,14 @@ export default function Contact() {
         <CustomHeader />
 
         <article className="legal-content contact-page">
-          <h1>Επικοινωνία</h1>
           <p className="intro">
             Επικοινωνήστε μαζί μας για οποιαδήποτε απορία ή υποστήριξη.
           </p>
 
           <div className="contact-container">
-            <section className="contact-info">
+            {/* <section className="contact-info">
               <h2>Στοιχεία Επικοινωνίας</h2>
-
-              <div className="info-block">
-                <h3>📧 Email</h3>
-                <p>
-                  <a href="mailto:support@foroschat.gr">support@foros.chat</a>
-                </p>
-                <p className="note">
-                  Απαντάμε συνήθως εντός 24-48 ωρών (εργάσιμες ημέρες)
-                </p>
-              </div>
-
-              <div className="info-block">
-                <h3>📍 Διεύθυνση</h3>
-                <p>Foros Chat</p>
-                <p>55236 Θεσσαλονίκη, Ελλάδα</p>
-              </div>
-
+              
               <div className="info-block">
                 <h3>🏢 Στοιχεία Εταιρείας</h3>
                 <p>Επωνυμία: Foros Chat</p>
@@ -92,7 +75,7 @@ export default function Contact() {
                 <p>ΔΟΥ: Α' Αθηνών</p>
                 <p>ΓΕΜΗ: 123456789000</p>
               </div>
-            </section>
+            </section> */}
 
             <section className="contact-form-section">
               <h2>Φόρμα Επικοινωνίας</h2>

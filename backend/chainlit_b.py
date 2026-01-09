@@ -351,8 +351,12 @@ async def print_insufficient_balance_message():
     ).send()
 
 
+############  DATA LAYER ###########################
+
 # Data Layer for token usage tracking
+
 db_object = db_object.setup__db()
+
 # Use absolute path to ensure we're using the correct database file
 db_file = os.path.join(os.path.dirname(__file__), "token_usage.db")
 # Or use: db_file = "C:/Users/fanyak/chainlit_rag/backend/chainlit/token_usage.db"

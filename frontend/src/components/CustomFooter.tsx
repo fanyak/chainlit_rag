@@ -6,7 +6,7 @@ function CustomFooter() {
   return (
     <footer className="custom-footer">
       <div className="footer-content">
-        <div className="footer-section m-auto">
+        <div className="footer-section">
           <Link to="/">Foros Chat</Link>
           <p>
             <Link to="/">Φορολογικός Βοηθός με Τεχνητή Νοημοσύνη</Link>

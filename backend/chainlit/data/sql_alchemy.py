@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from chainlit.contact import ContactFormRequest
 from chainlit.data.base import BaseDataLayer
 from chainlit.data.storage_clients.base import BaseStorageClient
 from chainlit.data.utils import queue_until_user_message
@@ -290,6 +291,21 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             return [cast(UserPaymentInfoDict, payment) for payment in result]
         return None  # Unexpected result type
 
+    ###### Contact ######
+
+    async def send_contact_email(self, data: ContactFormRequest, user: PersistedUser):
+        if self.show_logger:
+            logger.info(f"SQLAlchemy: send_contact_email, data={data}")
+
+        contact = data.model_dump()
+        contact["created_at"] = await self.get_current_timestamp()
+
+        contact["user_id"] = user.identifier
+        query = """INSERT INTO contacts (user_id, name, email, subject, message, created_at)
+                     VALUES (:user_id, :name, :email, :subject, :message, :created_at)"""
+        rowcount = await self.execute_sql(query=query, parameters=contact)
+        assert rowcount
+
     ###### Threads ######
 
     async def get_thread_author(self, thread_id: str) -> str:
@@ -394,12 +410,15 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         # Delete feedbacks/elements/steps/thread
         feedbacks_query = """DELETE FROM feedbacks WHERE "forId" IN (SELECT "id" FROM steps WHERE "threadId" = :id)"""
         elements_query = """DELETE FROM elements WHERE "threadId" = :id"""
-        steps_query = """DELETE FROM steps WHERE "threadId" = :id"""
-        thread_query = """DELETE FROM threads WHERE "id" = :id"""
-        parameters = {"id": thread_id}
+        # steps_query = """DELETE FROM steps WHERE "threadId" = :id"""
+        # thread_query = """DELETE FROM threads WHERE "id" = :id"""
+        thread_query = (
+            """UPDATE threads SET "deletedAt" = :deletedAt WHERE "id" = :id"""
+        )
+        parameters = {"id": thread_id, "deletedAt": await self.get_current_timestamp()}
         await self.execute_sql(query=feedbacks_query, parameters=parameters)
         await self.execute_sql(query=elements_query, parameters=parameters)
-        await self.execute_sql(query=steps_query, parameters=parameters)
+        # await self.execute_sql(query=steps_query, parameters=parameters)
         await self.execute_sql(query=thread_query, parameters=parameters)
 
     async def list_threads(
@@ -689,7 +708,8 @@ class SQLAlchemyDataLayer(BaseDataLayer):
                 MAX(s."createdAt") AS updatedAt
             FROM threads t
             LEFT JOIN steps s ON t."id" = s."threadId"
-            WHERE t."userId" = :user_id OR t."id" = :thread_id
+            WHERE (t."userId" = :user_id OR t."id" = :thread_id)
+            AND t."deletedAt" IS NULL
             GROUP BY
                 t."id",
                 t."createdAt",

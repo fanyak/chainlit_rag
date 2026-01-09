@@ -842,9 +842,19 @@ li {
 
 .contact-page .contact-container {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
+  grid-template-columns: 1fr;
   gap: 3rem;
   margin-bottom: 3rem;
+  padding: 1.5rem;
+  /* border: solid 1px var(--accentb); */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 0.8rem;
+  color: var(--muted);
+  background: linear-gradient(
+    135deg,
+    rgba(11, 78, 162, 0.02),
+    rgba(6, 96, 168, 0.01)
+  );
 }
 
 .contact-page .contact-info {

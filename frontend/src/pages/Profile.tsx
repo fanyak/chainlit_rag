@@ -4,9 +4,11 @@ import {
   ChevronRight,
   CreditCard,
   MessageSquare,
+  Trash2,
   Wallet
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '@chainlit/react-client';
@@ -113,10 +115,15 @@ function formatTokens(tokens: number): string {
   return tokens.toString();
 }
 
-function ThreadRow({ thread }: { thread: ThreadUsageDisplay }) {
+function ThreadRow({
+  thread,
+  onDelete
+}: {
+  thread: ThreadUsageDisplay;
+  onDelete: (threadId: string) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const hasTurns = thread.turns && thread.turns.length > 0;
-
   return (
     <>
       <TableRow className="hover:bg-muted/50">
@@ -158,6 +165,17 @@ function ThreadRow({ thread }: { thread: ThreadUsageDisplay }) {
         <TableCell className="text-right text-muted-foreground">
           {thread.turns?.length || 0}
         </TableCell>
+        <TableCell>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-0 h-8 w-8 text-destructive hover:text-destructive"
+            onClick={() => onDelete(thread.id)}
+            title="Διαγραφή συνομιλίας"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TableCell>
       </TableRow>
       {hasTurns &&
         isOpen &&
@@ -180,6 +198,7 @@ function ThreadRow({ thread }: { thread: ThreadUsageDisplay }) {
               {formatTokens(turn.total_tokens)}
             </TableCell>
             <TableCell />
+            <TableCell />
           </TableRow>
         ))}
     </>
@@ -192,8 +211,9 @@ export default function Profile() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [threadsPage, setThreadsPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 10;
   const scrollTo = useScrollTo();
+  const { t: translate } = useTranslation();
 
   useEffect(() => {
     async function fetchProfile() {
@@ -215,6 +235,25 @@ export default function Profile() {
       fetchProfile();
     }
   }, [user]);
+
+  const handleDeleteThread = async (threadId: string) => {
+    if (
+      !confirm(translate('threadHistory.thread.actions.delete.description'))
+    ) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteThread(threadId);
+
+      // Refresh the profile data after deletion
+      const response = await apiClient.get('/user/account');
+      const data = await response.json();
+      setProfileData(data);
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+    }
+  };
 
   if (!user) {
     return (
@@ -304,7 +343,12 @@ export default function Profile() {
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                {profileData?.threadUsage.length || 0} συνομιλίες
+                {profileData?.threadUsage.length || 0} ενεργές συνομιλίες*
+              </p>
+              <p>
+                <i className="text-xs text-muted-foreground">
+                  *Τα συνολικά tokens αφορούν μόνο σε μη διαγραμένες συνομιλίες.
+                </i>
               </p>
             </CardContent>
           </Card>
@@ -476,6 +520,7 @@ export default function Profile() {
                       <TableHead className="text-right">Output</TableHead>
                       <TableHead className="text-right">Σύνολο</TableHead>
                       <TableHead className="text-right">Συνομιλίες</TableHead>
+                      <TableHead className="w-[60px]">Ενέργειες</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -485,7 +530,13 @@ export default function Profile() {
                         threadsPage * itemsPerPage
                       )
                       .map((thread) => {
-                        return <ThreadRow key={thread.id} thread={thread} />;
+                        return (
+                          <ThreadRow
+                            key={thread.id}
+                            thread={thread}
+                            onDelete={handleDeleteThread}
+                          />
+                        );
                       })}
                   </TableBody>
                 </Table>
@@ -577,6 +628,24 @@ export default function Profile() {
             Ανανέωση Υπολοίπου
           </Button>
         </div>
+
+        {/* Account Deletion Notice */}
+        <Card className="mt-8 border-muted">
+          <CardHeader>
+            <CardTitle className="text-base">Διαγραφή Λογαριασμού</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Εάν επιθυμείτε να διαγράψετε τον λογαριασμό σας, παρακαλούμε
+              επικοινωνήστε μαζί μας μέσω της{' '}
+              <Link to="/contact" className="text-primary hover:underline">
+                σελίδας επικοινωνίας
+              </Link>
+              . Θα φροντίσουμε να διαγράψουμε τα δεδομένα σας από το σύστημά
+              μας.
+            </p>
+          </CardContent>
+        </Card>
       </main>
       <CustomFooter />
     </div>

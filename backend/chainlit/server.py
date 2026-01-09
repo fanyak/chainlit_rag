@@ -2356,7 +2356,7 @@ async def delete_account(
 
 
 @router.post("/contact")
-async def contact_form(data: ContactFormRequest):
+async def contact_form(data: ContactFormRequest, current_user: UserParam):
     """
     Handle contact form submissions.
     Sends email notification to support team.
@@ -2366,16 +2366,35 @@ async def contact_form(data: ContactFormRequest):
     Returns:
         JSONResponse: Success or error response.
     """
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Data persistence is not enabled",
+        )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
+    # Get persisted user
+    persisted_user = None
+    if isinstance(current_user, PersistedUser):
+        persisted_user = current_user
+    else:
+        persisted_user = await data_layer.get_user(identifier=current_user.identifier)
+
+    if not persisted_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
     try:
         # Log the contact form submission
+        await data_layer.send_contact_email(data, persisted_user)
         logger.info(
             f"Contact form submission from {data.name} ({data.email}): {data.subject}"
         )
-
-        # TODO: Implement email sending via fastapi-mail
-        # For now, we just log and return success
-        # In production, you would send an email here:
-        # await send_contact_email(data)
 
         response = ContactFormResponse(
             success=True,

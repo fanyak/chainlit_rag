@@ -3,6 +3,22 @@ import os
 import sqlite3
 from typing import List, Optional, TypedDict
 
+# -- TODO: USE contextlib to manage connections? --
+# from contextlib import contextmanager
+
+#  @contextmanager
+#     def get_connection(self):
+#         conn = sqlite3.connect(self.db_path)
+#         conn.row_factory = sqlite3.Row
+#         try:
+#             yield conn
+#         finally:
+#             conn.close()
+#     # usage:
+#     with self.get_connection() as conn:
+
+#########################################
+
 # --- SQLite Database Functions ---
 DB_NAME = os.environ.get("DB_NAME", "user_data.db")
 
@@ -307,6 +323,20 @@ class db_object:
                     CREATE INDEX IF NOT EXISTS chat_foreign_key
                                ON turn_token_log(chat_id)
                     """)
+
+                cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS contacts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        name TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        subject TEXT,
+                        message TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        is_read BOOLEAN DEFAULT 0,
+                        FOREIGN KEY (user_id) REFERENCES users(identifier) ON DELETE NO ACTION
+                    )
+                """)
                 conn.commit()
                 conn.close()
                 db_object.DB_SETUP_COMPLETE = True
