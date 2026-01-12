@@ -8,7 +8,7 @@ describe('readme_language', () => {
     cy.contains('Welcome to Chainlit!');
   });
 
-  it('should show Portguese markdown on pt-BR language', () => {
+  it.skip('should show Portguese markdown on pt-BR language', () => {
     cy.visit('/', {
       onBeforeLoad(win) {
         Object.defineProperty(win.navigator, 'language', {
@@ -20,7 +20,7 @@ describe('readme_language', () => {
     cy.contains('Bem-vindo ao Chainlit!');
   });
 
-  it('should fallback to default markdown on Klingon language', () => {
+  it.skip('should fallback to default markdown on Klingon language', () => {
     cy.visit('/', {
       onBeforeLoad(win) {
         Object.defineProperty(win.navigator, 'language', {

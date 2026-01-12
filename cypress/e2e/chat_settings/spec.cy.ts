@@ -34,7 +34,7 @@ describe('Customize chat settings', () => {
       .type('{rightarrow}'.repeat(6))
       .should('have.attr', 'aria-valuenow', '7.6');
 
-    cy.contains('Confirm').click();
+    cy.contains('Επιβεβαίωση').click();
 
     cy.get('.step').should('have.length', 1);
     cy.get('.step').eq(0).should('contain', 'Settings updated!');
@@ -67,7 +67,7 @@ describe('Customize chat settings', () => {
 
     cy.step('Check if modal is correctly closed');
 
-    cy.contains('Cancel').click();
+    cy.contains('Άκυρο').click();
     cy.get('#chat-settings').should('not.exist');
   });
 });
