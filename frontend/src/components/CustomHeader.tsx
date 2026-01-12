@@ -1,16 +1,18 @@
 import getRouterBasename from '@/lib/router';
 import { apiClient } from 'api';
 import { LogIn } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useAuth } from '@chainlit/react-client';
 
 import { Logo } from '@/components/Logo';
 import UserNav from '@/components/header/UserNav';
 import { Button } from '@/components/ui/button';
+import LoadingSpinner from '@/components/ui/loading-button-spinner';
 
 export function CustomHeader() {
   const { user, data: config } = useAuth();
+  const [isLogging, setIsLogging] = useState(false);
 
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
@@ -20,6 +22,18 @@ export function CustomHeader() {
     // Use window.location.href to trigger full page reload,
     // which ensures AppWrapper's auth check runs and redirects to login if needed
     window.location.href = getRouterBasename() + '/';
+  };
+
+  const onChatClick = () => {
+    if (!user) {
+      setIsLogging(true);
+      if (window.location.pathname.startsWith('/order')) {
+        window.history.pushState({}, '', getRouterBasename() + '/');
+      }
+      onOAuthSignIn(config?.oauthProviders[0] || '');
+    } else {
+      handleLogoClick();
+    }
   };
 
   return (
@@ -45,20 +59,16 @@ export function CustomHeader() {
           Ρωτήστε τον Foro
         </a> */}
 
-        <Button
-          onClick={() => {
-            if (!user) {
-              if (window.location.pathname.startsWith('/order')) {
-                window.history.pushState({}, '', getRouterBasename() + '/');
-              }
-              onOAuthSignIn(config?.oauthProviders[0] || '');
-            } else {
-              handleLogoClick();
-            }
-          }}
-          variant="link"
-        >
-          Ρωτήστε τον Foro
+        <Button onClick={onChatClick} variant="link">
+          {isLogging ? (
+            <span className="inline-flex items-center bg-gray-200 p-2 rounded-sm">
+              <LoadingSpinner color="var(--accentb)" />
+              <span>Σύνδεση...</span>
+            </span>
+          ) : (
+            <span>Ρωτήστε τον Foro</span>
+          )}
+          {/* Ρωτήστε τον Foro */}
         </Button>
 
         <a href="/order" title="Subscribe">

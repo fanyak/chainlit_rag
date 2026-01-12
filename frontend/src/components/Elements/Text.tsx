@@ -19,7 +19,7 @@ const TextElement = ({ element }: TextElementProps) => {
   let content = '';
 
   if (isLoading) {
-    return <Skeleton className="h-4 w-full" />;
+    return <Skeleton className="h-4 w-10" />;
   }
 
   if (error) {

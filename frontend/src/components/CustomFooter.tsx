@@ -7,9 +7,9 @@ function CustomFooter() {
     <footer className="custom-footer">
       <div className="footer-content">
         <div className="footer-section">
-          <Link to="/">Foros Chat</Link>
+          <a href="/">Foros Chat</a>
           <p>
-            <Link to="/">Φορολογικός Βοηθός με Τεχνητή Νοημοσύνη</Link>
+            <a href="/">Φορολογικός Βοηθός με Τεχνητή Νοημοσύνη</a>
           </p>
         </div>
 
