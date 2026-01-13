@@ -78,19 +78,17 @@ chat_model = init_chat_model(
 
 sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
 
-# Create a Qdrant client for local storage
-# client = QdrantClient(":memory:")
 qdrant_client = QdrantClient(
     url=os.environ["QDRANT_URL"],
     api_key=os.environ["QDRANT_API_KEY"],
     # prefer_grpc=True,
 )
 
-COLLECTION_NAME = "aade_docs_faiss"  # gemma, not finetuned, dot
-qdrant_compare = QdrantVectorStore(
+COLLECTION_NAME = "aade_docs_faiss"
+qdrant_vs = QdrantVectorStore(
     client=qdrant_client,
     collection_name=COLLECTION_NAME,
-    embedding=embeddings,  # greek embedings'
+    embedding=embeddings,
     sparse_embedding=sparse_embeddings,
     # https://python.langchain.com/docs/integrations/vectorstores/qdrant/#hybrid-vector-search
     retrieval_mode=RetrievalMode.HYBRID,
@@ -98,8 +96,6 @@ qdrant_compare = QdrantVectorStore(
     sparse_vector_name="sparse",
     distance=models.Distance.DOT,
 )
-
-# print(qdrant_compare.get_by_ids(['06ac1430-a1e5-4b84-bce7-de4dfe33af05']))
 
 ##### MULTI QUERY ######
 current_date = datetime.now().strftime("%B,%Y")
@@ -157,9 +153,9 @@ def retrieve(query: str):
     """Retrieve information related to a query."""
     compressor = CohereRerank(model="rerank-v3.5", top_n=10)
     retriever = MultiQueryRetriever(
-        # retriever = qdrant_compare.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
+        # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
         # retriever = vector_store.as_retriever(search_type="similarity", k=15)
-        retriever=qdrant_compare.as_retriever(search_type="similarity", k=15),
+        retriever=qdrant_vs.as_retriever(search_type="similarity", k=20),
         llm_chain=retrieval_chain,
         parser_key="lines",
     )  # "lines" is the key (attribute name) of the parsed output

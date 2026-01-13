@@ -1,0 +1,133 @@
+MONETIZATION STRATEGY FOR CHAINLIT RAG APPLICATION
+==================================================
+
+CURRENT COST STRUCTURE ANALYSIS
+-------------------------------
+
+Your costs include:
+1. Gemini API: Currently charging $0.30/M input tokens, $2.50/M output tokens (passthrough pricing)
+2. Cohere Rerank API: $1.00 per 1000 searches (NOT being charged to users)
+3. Qdrant Cloud: Storage + search operations (NOT being charged to users)
+4. Google Cloud Storage: Storage + bandwidth (NOT being charged to users)
+5. Hosting: Server/compute costs (NOT being charged to users)
+6. Embedding costs: HuggingFace inference (if using API vs local)
+
+
+RECOMMENDED MONETIZATION STRATEGIES
+-----------------------------------
+
+OPTION 1: MARKUP ON TOKEN COSTS (Simplest)
+------------------------------------------
+Add a 50-100% markup to your current token pricing:
+
+    # Instead of pass-through pricing
+    charge_per_input_token = 0.45/units    # 50% markup on $0.30
+    charge_per_output_token = 3.75/units   # 50% markup on $2.50
+
+Pros: Simple, transparent, scales with usage
+Cons: Doesn't cover fixed costs at low usage
+
+
+OPTION 2: HYBRID MODEL (Recommended)
+------------------------------------
+Combine subscription tiers with per-token charges:
+
+    TIERS = {
+        "free": {"monthly_fee": 0, "included_tokens": 10000, "markup": 2.0},
+        "basic": {"monthly_fee": 9.99, "included_tokens": 500000, "markup": 1.5},
+        "pro": {"monthly_fee": 29.99, "included_tokens": 2000000, "markup": 1.2},
+    }
+
+
+OPTION 3: ALL-INCLUSIVE PER-QUERY PRICING
+-----------------------------------------
+Charge per question/query instead of per token:
+
+    QUERY_COST = 0.05  # €0.05 per question
+    # Simpler for users to understand, predictable pricing
+
+
+IMPLEMENTATION RECOMMENDATIONS
+------------------------------
+
+1. CALCULATE TRUE COST PER QUERY
+   Track all infrastructure costs for a month, divide by query count:
+
+    turn_cost_breakdown = {
+        "gemini_cost": gemini_input_cost + gemini_output_cost,
+        "cohere_cost": 0.001,      # ~$1 per 1000 rerank calls
+        "qdrant_cost": 0.0005,     # estimated per query
+        "storage_cost": 0.0001,    # estimated per query
+        "hosting_cost": 0.002,     # estimated per query
+        "total_cost": None         # sum of above
+    }
+
+
+2. ADD PROFIT MARGIN CONFIGURATION
+   Make it easy to adjust:
+
+    PROFIT_MARGIN = float(os.environ.get("PROFIT_MARGIN", 1.5))  # 50% profit
+    balance_to_deduct = total_infrastructure_cost * PROFIT_MARGIN
+
+
+3. IMPLEMENT USAGE TIERS
+   Reward heavy users with better rates:
+
+    def get_user_tier_discount(total_spent: float) -> float:
+        if total_spent > 100:
+            return 0.9   # 10% discount
+        elif total_spent > 50:
+            return 0.95  # 5% discount
+        return 1.0
+
+
+QUICK WIN: UPDATE YOUR CURRENT PRICING
+--------------------------------------
+The simplest immediate change:
+
+    units = 1000000
+    PROFIT_MARGIN = 1.6  # 60% markup
+    GEMINI_INPUT_COST = 0.30/units
+    GEMINI_OUTPUT_COST = 2.50/units
+    INFRASTRUCTURE_OVERHEAD = 0.003  # fixed cost per query
+
+    charge_per_input_token = GEMINI_INPUT_COST * PROFIT_MARGIN
+    charge_per_output_token = GEMINI_OUTPUT_COST * PROFIT_MARGIN
+    balance_to_deduct = (
+        charge_per_input_token * input_tokens + 
+        charge_per_output_token * output_tokens +
+        INFRASTRUCTURE_OVERHEAD
+    )
+
+
+COMPETITIVE ANALYSIS
+--------------------
+Research what similar services charge:
+- ChatGPT Plus: $20/month unlimited
+- Claude Pro: $20/month unlimited
+- Perplexity Pro: $20/month unlimited
+- Document Q&A SaaS: $10-50/month tiered
+
+Your specialized Greek tax law service could command premium pricing 
+given the niche expertise.
+
+
+ENVIRONMENT VARIABLES TO ADD
+----------------------------
+Add these to your .env file:
+
+    PROFIT_MARGIN=1.6
+    INFRASTRUCTURE_OVERHEAD=0.003
+    CHARGE_PER_INPUT_TOKEN=0.00000048    # 0.30/M * 1.6
+    CHARGE_PER_OUTPUT_TOKEN=0.000004     # 2.50/M * 1.6
+
+
+SUMMARY
+-------
+Current: Only charging Gemini API passthrough costs
+Problem: Not covering Cohere, Qdrant, GCS, hosting, or generating profit
+
+Recommended Action:
+1. Add 60% markup to token costs (covers overhead + profit)
+2. Add fixed per-query fee of €0.003 (covers Cohere rerank)
+3. Consider subscription tiers for predictable revenue
