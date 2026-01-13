@@ -1,6 +1,7 @@
 import { SearchParamsSchema } from '@/schemas/redirectSchema';
 import { apiClient } from 'api';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useAuth } from '@chainlit/react-client';
@@ -17,6 +18,7 @@ export default function OrderFail() {
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const oAuthReady = config?.oauthProviders.length;
   const providers = config?.oauthProviders || [];
+  const { t } = useTranslation();
   const onOAuthSignIn = useCallback((provider: string) => {
     window.location.href = apiClient.getOAuthEndpoint(provider);
   }, []);
@@ -38,10 +40,10 @@ export default function OrderFail() {
     const { orderFailed } = result.data;
 
     if (orderFailed) {
-      console.log('Payment failed or was cancelled.');
+      console.log(t('payments.errors.paymentFailed'));
       setLoading(false);
-      setFailureReason('Payment was cancelled or declined. Please try again.');
-      toast.error('Payment failed or was cancelled.');
+      setFailureReason(t('payments.errors.paymentFailed'));
+      toast.error(t('payments.errors.paymentFailed'));
       return;
     }
   }, [query, user]); // Runs when query or user changes
@@ -57,9 +59,11 @@ export default function OrderFail() {
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600"></div>
               <p className="text-lg text-gray-700 font-medium">
-                Processing payment details...
+                {t('payments.processing')}...
               </p>
-              <p className="text-sm text-gray-500">Please wait.</p>
+              <p className="text-sm text-gray-500">
+                {t('payments.pleaseWait')}
+              </p>
             </div>
           ) : (
             // Failure state
@@ -82,11 +86,10 @@ export default function OrderFail() {
 
               <div>
                 <h1 className="text-3xl font-bold text-red-600 mb-2">
-                  Payment Failed
+                  {t('payments.errors.paymentFailed')}
                 </h1>
                 <p className="text-gray-700 text-base mb-3">
-                  {failureReason ||
-                    'Unfortunately, your payment could not be processed at this time.'}
+                  {failureReason || t('payments.errors.reason.fallback')}
                 </p>
               </div>
 
@@ -94,9 +97,12 @@ export default function OrderFail() {
                 <p className="text-sm text-amber-800">
                   <span className="font-semibold">What can you do?</span>
                   <ul className="mt-2 space-y-1 ml-2">
-                    <li>• Check your payment details and try again</li>
-                    <li>• Try a different payment method</li>
-                    <li>• Contact your bank if the issue persists</li>
+                    <li>• Ελέγξε τη κάρτα σας και ξαναδοκιμάστε</li>
+                    <li>• Δοκιμάστε διαφορετικό τρόπο πληρωμής</li>
+                    <li>
+                      • Επικοινώνηστε με την τράπεζά σας αν το πρόβλημα
+                      παραμένει
+                    </li>
                   </ul>
                 </p>
               </div>
@@ -106,20 +112,20 @@ export default function OrderFail() {
                   onClick={handleRetry}
                   className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Try Again
+                  {t('payments.retry')}
                 </button>
                 <button
                   onClick={handleGoHome}
                   className="px-6 py-3 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                  Go to Home
+                  {t('common.actions.goBack')}
                 </button>
               </div>
 
               {!user && oAuthReady && (
                 <div className="pt-6 border-t w-full">
                   <p className="text-sm text-gray-600 mb-4">
-                    Not signed in? Log in to your account to continue:
+                    {t('auth.login.title')}
                   </p>
                   <div className="grid gap-3">
                     {providers.map((provider, index) => (

@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 import { useTranslation } from 'components/i18n/Translator';
+
+import { useResetOnPageRestore } from 'hooks/useResetOnPageRestore';
 
 // import { Auth0 } from 'components/icons/Auth0';
 // import { Cognito } from 'components/icons/Cognito';
@@ -9,6 +13,7 @@ import { useTranslation } from 'components/i18n/Translator';
 // import { Microsoft } from 'components/icons/Microsoft';
 // import { Okta } from 'components/icons/Okta';
 import { Button } from './ui/button';
+import LoadingSpinner from './ui/loading-button-spinner';
 
 // function capitalizeFirstLetter(string: string) {
 //   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -62,21 +67,35 @@ interface ProviderButtonProps {
 }
 
 const ProviderButton = ({
-  provider,
+  provider: _provider,
   onClick
 }: ProviderButtonProps): JSX.Element => {
   const { t } = useTranslation();
-  console.log('Rendering ProviderButton for provider:', provider);
+  const [isLogging, setIsLogging] = useState(false);
+
+  const handleClick = () => {
+    setIsLogging(true);
+    onClick();
+  };
+
+  // Reset loading state when page is restored from bfcache (browser back button)
+  useResetOnPageRestore(() => setIsLogging(false));
+
   return (
-    <Button type="button" variant="front" onClick={onClick}>
-      {/* {renderProviderIcon(provider.toLowerCase())} 
-      {t('auth.provider.continue', {
-        provider: getProviderName(provider)
-      })}*/}
-      {t('auth.provider.continue', {
-        // provider: getProviderName(provider)
-        provider: '' // Omitting provider name as per new design
-      })}
+    <Button
+      type="button"
+      variant="front"
+      onClick={handleClick}
+      disabled={isLogging}
+    >
+      {isLogging ? (
+        <span className="inline-flex items-center p-2 rounded-sm">
+          <LoadingSpinner />
+          <span>{t('common.status.logging')}</span>
+        </span>
+      ) : (
+        t('auth.provider.connect')
+      )}
     </Button>
   );
 };

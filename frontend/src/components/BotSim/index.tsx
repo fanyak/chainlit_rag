@@ -3,7 +3,7 @@ import { Dispatch, Fragment, SetStateAction, useEffect, useState } from 'react';
 
 function BotSim({ inputRef }: { inputRef: React.RefObject<HTMLDivElement> }) {
   const messages: string[] = [
-    'Χαίρεται! Είμαι ο Φορολογικός Βοηθός',
+    'Χαίρεται👋! Είμαι ο Φορολογικός Βοηθός',
     'Είμαι bot ειδικά εκπαιδευμένο να απαντά σε ερωτήσεις σχετικά με την ελληνική φορολογική νομοθεσία.',
     'Πώς μπορώ να σας βοηθήσω σήμερα;'
   ];
@@ -155,7 +155,7 @@ function BotSim({ inputRef }: { inputRef: React.RefObject<HTMLDivElement> }) {
           {/* {textArray[index] && ( */}
           <div
             className={clsx(
-              'w-max min-w-[8rem] min-h-10 mb-2 px-3 py-2.5 relative rounded-2xl max-w-[70%] flex-grow-0 text-sm',
+              'w-max min-w-[8rem] min-h-10 mb-2 mt-2 px-3 py-2.5 relative rounded-2xl max-w-[70%] flex-grow-0 text-sm',
               'transition-all duration-500',
               textDoneArray[index]
                 ? 'ml-auto bg-accent text-white'

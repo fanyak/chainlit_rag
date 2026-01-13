@@ -44,6 +44,7 @@ class RedirectSchema:
             "/order",
             "/order/success",
             "/order/fail",
+            "/login",
         ]
         print(v)
         if v not in ALLOWED_LOGIN_REDIRECT_URLS:

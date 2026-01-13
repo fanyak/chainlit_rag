@@ -98,8 +98,8 @@ export default function Login() {
             </span>
             <ul className="features-list" role="list">
               <li role="listitem">
-                Αναζήτηση στο σύνολο των επίσημων εγγράφων της ΑΑΔΕ, όχι στη
-                γενική γνώση ενός AI μοντέλου.
+                Αναζήτηση στη βιβλιοθήκη εγγράφων της ΑΑΔΕ, όχι στη γενική γνώση
+                ενός AI μοντέλου.
                 <span className="meta">
                   Υβριδική αναζήτηση (σημασιολογική + λέξεις-κλειδιά) σε
                   χιλιάδες νόμους, εγκυκλίους και αποφάσεις.
@@ -120,14 +120,6 @@ export default function Login() {
                   Reranking με εξειδικευμένο μοντέλο για υψηλή ακρίβεια.
                 </span>
               </li>
-              <li role="listitem">
-                Έλεγχος ισχύος νόμων με βάση την τρέχουσα ημερομηνία - αποφυγή
-                παρωχημένων πληροφοριών.
-                <span className="meta">
-                  Αυτόματη αναγνώριση χρονικών πλαισίων και προτεραιοποίηση
-                  ισχυουσών διατάξεων.
-                </span>
-              </li>
             </ul>
           </div>
 
@@ -137,7 +129,7 @@ export default function Login() {
             aria-labelledby="samples-title"
           >
             <BotSim inputRef={inputRef} />
-            <span className="inline-flex mt-4">
+            <span className="inline-flex mt-4 pt-2">
               <MessageSquare className="h-5 w-5 text-primary" />
               <strong id="samples-title" className="ml-2 leading-none">
                 Δείγματα ερωτήσεων

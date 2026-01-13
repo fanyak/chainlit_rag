@@ -4,6 +4,11 @@ import clsx from 'clsx';
 import React, { memo, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'components/i18n/Translator';
+
+import { useResetOnPageRestore } from '@/hooks/useResetOnPageRestore';
+
+import LoadingSpinner from '../ui/loading-button-spinner';
 
 const PLACEHOLDER_TEXT =
   'Επιλέξτε μία ερώτηση από επάνω ή πληκτρολογήστε εδώ νέα ερώτηση...';
@@ -22,7 +27,8 @@ export default memo(function SearchBox({
   const [quickQueryHtml, setQuickQueryHtml] = useState<{ __html: string }>();
   const [controller, setController] = useState(new AbortController());
   const [inputText, setInputText] = useState('');
-
+  const { t } = useTranslation();
+  const [isLogging, setIsLogging] = useState(false);
   // Context value for AskProvider
   const askContextValue = {
     inputText
@@ -56,6 +62,7 @@ export default memo(function SearchBox({
   };
 
   const handleAsk = () => {
+    setIsLogging(true);
     onAsk();
   };
 
@@ -166,6 +173,9 @@ export default memo(function SearchBox({
     };
   }, [quickQuery]);
 
+  // Reset loading state when page is restored from bfcache (browser back button)
+  useResetOnPageRestore(() => setIsLogging(false));
+
   return (
     <AskProvider value={askContextValue}>
       <form
@@ -201,23 +211,21 @@ export default memo(function SearchBox({
           className="small"
           type="button"
           id="askBtn"
-          aria-label="Ρώτα"
-          disabled={!inputText.length}
+          aria-label={t('common.actions.submit')}
+          disabled={!inputText.length || isLogging}
           onClick={handleAsk}
         >
-          Ρώτα
+          {' '}
+          {isLogging ? (
+            <span className="inline-flex items-center p-2 rounded-sm">
+              <LoadingSpinner />
+              <span>{t('common.actions.submit')}</span>
+            </span>
+          ) : (
+            t('common.actions.submit')
+          )}
         </Button>
       </form>
-      {/* <div
-        style={{
-          marginTop: '12px',
-          color: 'var(--muted)',
-          fontSize: '0.75rem'
-        }}
-      >
-        Παραδείγματα ερωτήσεων για να ξεκινήσετε. Επιλέξτε ή πληκτρολογήστε και
-        πατήστε "Ρώτα".
-      </div> */}
     </AskProvider>
   );
 });

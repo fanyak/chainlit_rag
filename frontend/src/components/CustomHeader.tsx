@@ -1,6 +1,6 @@
 import getRouterBasename from '@/lib/router';
 import { apiClient } from 'api';
-import { LogIn } from 'lucide-react';
+import { LogIn, MessageSquare } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
 import { useAuth } from '@chainlit/react-client';
@@ -9,6 +9,8 @@ import { Logo } from '@/components/Logo';
 import UserNav from '@/components/header/UserNav';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/loading-button-spinner';
+
+import { useResetOnPageRestore } from '@/hooks/useResetOnPageRestore';
 
 export function CustomHeader() {
   const { user, data: config } = useAuth();
@@ -36,6 +38,9 @@ export function CustomHeader() {
     }
   };
 
+  // Reset loading state when page is restored from bfcache (browser back button)
+  useResetOnPageRestore(() => setIsLogging(false));
+
   return (
     <header role="banner" aria-label="Top navigation">
       <div className="brand">
@@ -59,14 +64,17 @@ export function CustomHeader() {
           Ρωτήστε τον Foro
         </a> */}
 
-        <Button onClick={onChatClick} variant="link">
+        <Button onClick={onChatClick} variant="link" disabled={isLogging}>
           {isLogging ? (
             <span className="inline-flex items-center bg-gray-200 p-2 rounded-sm">
               <LoadingSpinner color="var(--accentb)" />
               <span>Σύνδεση...</span>
             </span>
           ) : (
-            <span>Ρωτήστε τον Foro</span>
+            <span className="inline-flex items-center">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <span className="ml-1">Ρωτήστε τώρα τον Foro</span>
+            </span>
           )}
           {/* Ρωτήστε τον Foro */}
         </Button>
