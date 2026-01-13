@@ -95,7 +95,7 @@ export default function OrderFail() {
 
               <div className="bg-amber-50 border-l-4 border-amber-400 p-4 w-full text-left">
                 <p className="text-sm text-amber-800">
-                  <span className="font-semibold">What can you do?</span>
+                  <span className="font-semibold">Τί μπορείτε να κάνετε;</span>
                   <ul className="mt-2 space-y-1 ml-2">
                     <li>• Ελέγξε τη κάρτα σας και ξαναδοκιμάστε</li>
                     <li>• Δοκιμάστε διαφορετικό τρόπο πληρωμής</li>

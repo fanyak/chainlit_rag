@@ -229,7 +229,7 @@ async def create_viva_payment_order(user: User, amount_cents: AmountOrderedType)
         # FOR FAILURE: 99.06 euros in cents (1 euro = 100 cents)
         # "amount": 9906,
         "amount": amount_cents,  # amount in cents (1 euro = 100 cents)
-        "customerTrns": f"αγορά από Chainlit RAG για tokens αξίας {amount_cents / 100} ευρώ από τον χρήστη {user.identifier}",
+        "customerTrns": f"αγορά από Foros chat για συνδρομή αξίας {amount_cents / 100} ευρώ από τον χρήστη {user.identifier}",
         "customer": {
             "email": "",
             "fullName": "",
