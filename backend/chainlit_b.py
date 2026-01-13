@@ -547,9 +547,6 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     if balance <= 0:
         await print_insufficient_balance_message()
         return
-    # Specify an ID for the thread
-    # config = {"configurable": {"thread_id":cl.context.session.id}}
-    # config = {"configurable": {"thread_id":str(uuid.uuid4())}}
 
     # Create a NEW callback for each turn only
     cb = UsageMetadataCallbackHandler()
@@ -644,8 +641,9 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # After streaming completes update with turn metadata
     final_answer.metadata = turn_token_data
     await final_answer.update()
+
+    # Explicitly persist to database (update() uses create_task which doesn't wait)
     try:
-        # Explicitly persist to database (update() uses create_task which doesn't wait)
         await get_data_layer().update_step(final_answer.to_dict()) 
     except Exception as e:
         db_logger.error(f"Error persisting step metadata: {e}")
@@ -662,10 +660,36 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         return
 
     # print(f"thread: {thread}")
+    # ===================== PRICING CONFIGURATION =====================
+    # Pricing strategy: Cost markup + per-query overhead for profitability
+    # 
+    # Base costs (Gemini 2.5 Flash as of Jan 2025):
+    #   - Input tokens: $0.30 per 1M tokens
+    #   - Output tokens: $2.50 per 1M tokens
+    #
+    # Markup: 3x to cover infrastructure + profit margin
+    # Per-query overhead: €0.01 to cover Cohere reranking (~€0.001/search)
+    #   + Qdrant hosting + GCS storage + compute overhead
+    # ================================================================
     units = 1000000  # tokens per million
-    charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", 0.30/units))
-    charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", 2.5/units))
-    balance_to_deduct = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
+
+    # Profit margin multiplier (3x = 200% gross margin)
+    PROFIT_MARGIN = float(os.environ.get("PROFIT_MARGIN", 3.0))
+
+    # Per-query overhead for retrieval services (Cohere, Qdrant, GCS, etc.)
+    PER_QUERY_OVERHEAD = float(os.environ.get("PER_QUERY_OVERHEAD", 0.01))  # €0.01 per query
+
+    # Base token costs (at-cost from Google)
+    base_input_rate = 0.30 / units   # $0.30 per 1M input tokens
+    base_output_rate = 2.50 / units  # $2.50 per 1M output tokens
+
+    # Apply markup for pricing to users
+    charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", base_input_rate * PROFIT_MARGIN))
+    charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", base_output_rate * PROFIT_MARGIN))
+
+    # Total charge = token costs + per-query overhead
+    token_charge = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
+    balance_to_deduct = token_charge + PER_QUERY_OVERHEAD
 
     # Get existing totals (or 0 if first turn)
     existing_metadata = json.loads(thread.get("metadata") or "{}")

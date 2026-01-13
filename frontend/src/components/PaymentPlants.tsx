@@ -1,5 +1,5 @@
 import { AmountOrderedType } from '@/schemas/redirectSchema';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { useTranslation } from '@/components/i18n/Translator';
@@ -43,7 +43,7 @@ const faqData: FaqItem[] = [
     question:
       'Ποιές άλλες υπηρεσίες πέρα από τη συνομιλία καλύπτει η συνδρομή;',
     answer:
-      'Πέρα απο το καθαρό κόστος των tokens που καταναλώνετε κατά τη συνομιλία σας με το μοντέλο AI, η συνδρομή σας καλύπτει και την λειτουργία της υπηρεσίας μας όπως είναι η αποθήκευση ιστορικού συνομιλιών, η διαχείριση λογαριασμού, η ασφάλεια δεδομένων και η υποστήριξη πελατών.'
+      'Η τιμολόγηση κάθε ερωτήματος περιλαμβάνει: (1) το κόστος tokens που καταναλώνετε κατά τη συνομιλία με το μοντέλο AI, (2) ένα πάγιο κόστος €0,01 ανά ερώτημα για υπηρεσίες αναζήτησης και ανάκτησης εγγράφων, και (3) την κάλυψη λειτουργικών εξόδων όπως αποθήκευση ιστορικού, διαχείριση λογαριασμού, ασφάλεια δεδομένων και υποστήριξη πελατών.'
   }
 ];
 
@@ -104,25 +104,48 @@ function PaymentPlants({
   return (
     <div className="pricing-container">
       <div className="intro">
+        <h3>
+          <Sparkles className="h-4 w-4 mr-1" />
+          Μοντέλο χρέωσης: Pay-as-you-go
+        </h3>
+        <p>
+          <strong>Πληρώνετε μόνο για ό,τι χρησιμοποιείτε.</strong> Δεν υπάρχουν
+          μηνιαίες συνδρομές ή δεσμεύσεις. Με την πληρωμή σας προσθέτετε
+          υπόλοιπο στον λογαριασμό σας, και αυτό καταναλώνεται σταδιακά με κάθε
+          ερώτημα.
+        </p>
+
+        <h3>
+          <Sparkles className="h-4 w-4 mr-1" />
+          Πώς υπολογίζεται το κόστος κάθε ερωτήματος:
+        </h3>
+        <ol>
+          <li>
+            <strong>Βασικό κόστος tokens:</strong> Υπολογίζεται με βάση την
+            τιμολόγηση του μοντέλου AI (Gemini 2.5 flash) για τα tokens που
+            καταναλώνονται σε κάθε ερώτημα.
+          </li>
+          <li>
+            <strong>Κόστος λειτουργίας:</strong> Προστίθεται για την κάλυψη
+            λειτουργικών εξόδων: λειτουργία ιστοσελίδας, αναζήτηση και ανάκτηση
+            εγγράφων, αποθήκευση ιστορικού, διαχείριση λογαριασμού, ασφάλεια
+            δεδομένων και υποστήριξη πελατών.
+          </li>
+        </ol>
+
+        <p>
+          <strong>Συνολικό κόστος ανά ερώτημα</strong> = Κόστος tokens + Κόστος
+          λειτουργίας
+        </p>
+
         <ul>
           <li>
-            Τα πλάνα συνδρομής υπολογίζονται με βάση την αξία των tokens που
-            καταναλώνετε κατά τη συνομιλία σας με το μοντέλο AI.
-          </li>
-
-          <li>
-            Κάθε φορά που συνομιλείτε αφαιρείται από το υπόλοιπο του λογαριασμού
-            σας η αξία των tokens που χρησιμοποιήσατε.
+            Κάθε φορά που συνομιλείτε, το συνολικό κόστος του ερωτήματος
+            αφαιρείται αυτόματα από το υπόλοιπο του λογαριασμού σας.
           </li>
           <li>
-            Μπορείτε να ανανεώσετε το υπόλοιπο του λογαριασμού σας όποτε το
-            επιθυμείτε επιλέγοντας ένα από τα παρακάτω πλάνα.
-          </li>
-          <li>
-            Πέρα απο το καθαρό κόστος των tokens που καταναλώνετε, η συνδρομή
-            σας καλύπτει και έξοδα λειτουργίας της υπηρεσίας μας όπως είναι η
-            αποθήκευση ιστορικού συνομιλιών, η διαχείριση λογαριασμού, η
-            ασφάλεια δεδομένων και η υποστήριξη πελατών.
+            Μπορείτε να ανανεώσετε το υπόλοιπό σας όποτε το επιθυμείτε
+            επιλέγοντας ένα από τα παρακάτω πλάνα.
           </li>
           <li>
             Για αναλυτικές πληροφορίες σχετικά με το πώς λειτουργεί η υπηρεσία,
@@ -136,29 +159,9 @@ function PaymentPlants({
       </div>
 
       <div className="pricing-grid">
-        {/* <div className="pricing-card">
-          <div className="card-header">
-            <h3 className="card-title">Colab</h3>
-            <div className="card-price">Free</div>
-            <p className="card-description">Get started with cloud computing</p>
-          </div>
-          <div className="card-body">
-            <ul className="plan-features-list">
-              <li>Access to basic GPUs and TPUs</li>
-              <li>5GB storage per session</li>
-              <li>Intermittent computing power</li>
-              <li>Community support</li>
-              <li>Google Drive integration</li>
-            </ul>
-          </div>
-          <div className="card-footer">
-            <button className="btn btn-secondary">Get Started</button>
-          </div>
-        </div> */}
-
         <div className="pricing-card featured">
           <div className="card-header">
-            <h3 className="card-title">Ελάχιστη Συνδρομή</h3>
+            <h3 className="card-title">Ελάχιστη Πίστωση</h3>
             <div className="card-price">
               5€<span></span>
             </div>
@@ -205,7 +208,7 @@ function PaymentPlants({
 
         <div className="pricing-card">
           <div className="card-header">
-            <h3 className="card-title">Tυπική Συνδρομή</h3>
+            <h3 className="card-title">Tυπική Πίστωση</h3>
             <div className="card-price">
               10€<span></span>
             </div>

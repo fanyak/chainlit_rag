@@ -79,8 +79,8 @@ export function CustomHeader() {
           {/* Ρωτήστε τον Foro */}
         </Button>
 
-        <a href="/order" title="Subscribe">
-          Συνδρομή
+        <a href="/order" title="Packages">
+          Πακέτα tokens
         </a>
         <a href="/contact" title="Contact">
           Επικοινωνία
