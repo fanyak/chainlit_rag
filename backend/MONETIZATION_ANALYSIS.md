@@ -12,7 +12,8 @@ This document analyzes the monetization strategy implemented in the Foros Chat a
 
 1. **Token-based pricing** with a 3x markup over base costs
 2. **Per-query overhead fee** (€0.01) to cover retrieval services
-3. **Pay-as-you-go** model with no recurring subscriptions
+3. **VAT (24%)** - Greek standard rate applied to all charges
+4. **Pay-as-you-go** model with no recurring subscriptions
 
 ---
 
@@ -80,6 +81,9 @@ PROFIT_MARGIN = 3.0  # 300% of base cost
 # Per-query overhead for infrastructure
 PER_QUERY_OVERHEAD = 0.01  # €0.01 per query
 
+# VAT rate (Greek standard rate)
+VAT_RATE = 0.24  # 24%
+
 # Base rates (Google's cost)
 base_input_rate = 0.30 / 1_000_000   # $0.30 per 1M
 base_output_rate = 2.50 / 1_000_000  # $2.50 per 1M
@@ -88,28 +92,35 @@ base_output_rate = 2.50 / 1_000_000  # $2.50 per 1M
 charge_per_input_token = base_input_rate * PROFIT_MARGIN  # $0.90 per 1M
 charge_per_output_token = base_output_rate * PROFIT_MARGIN  # $7.50 per 1M
 
-# Total charge per query
-total_charge = (input_tokens × charge_input) + (output_tokens × charge_output) + PER_QUERY_OVERHEAD
+# Total charge per query (including VAT)
+token_charge = (input_tokens × charge_input) + (output_tokens × charge_output)
+net_charge = token_charge + PER_QUERY_OVERHEAD
+vat_amount = net_charge * VAT_RATE
+total_charge = net_charge + vat_amount  # Final price including VAT
 ```
 
 ### 2.2 User-Facing Pricing
 
-| Component          | Base Cost | With 3x Markup | User Pays |
-| ------------------ | --------- | -------------- | --------- |
-| Input tokens       | $0.30/1M  | **$0.90/1M**   | €0.82/1M  |
-| Output tokens      | $2.50/1M  | **$7.50/1M**   | €6.82/1M  |
-| Per-query overhead | -         | -              | **€0.01** |
+| Component          | Base Cost | With 3x Markup | Net Price | With VAT (24%) |
+| ------------------ | --------- | -------------- | --------- | -------------- |
+| Input tokens       | $0.30/1M  | $0.90/1M       | €0.82/1M  | €1.02/1M       |
+| Output tokens      | $2.50/1M  | $7.50/1M       | €6.82/1M  | €8.46/1M       |
+| Per-query overhead | -         | -              | €0.01     | €0.0124        |
+
+**Note:** All user-facing prices include 24% VAT (gross prices).
 
 ### 2.3 Typical Query Pricing Example
 
 For an average query (3,000 input tokens, 500 output tokens):
 
-| Component             | Calculation      | Amount       |
-| --------------------- | ---------------- | ------------ |
-| Input tokens          | 3,000 × €0.82/1M | €0.00246     |
-| Output tokens         | 500 × €6.82/1M   | €0.00341     |
-| Per-query overhead    | Fixed            | €0.01000     |
-| **Total user charge** |                  | **€0.01587** |
+| Component                    | Calculation           | Amount       |
+| ---------------------------- | --------------------- | ------------ |
+| Input tokens                 | 3,000 × €0.82/1M      | €0.00246     |
+| Output tokens                | 500 × €6.82/1M        | €0.00341     |
+| Per-query overhead           | Fixed                 | €0.01000     |
+| **Subtotal (net)**           |                       | **€0.01587** |
+| VAT (24%)                    | €0.01587 × 0.24       | €0.00381     |
+| **Total user charge (gross)**|                       | **€0.01968** |
 
 ---
 
@@ -117,12 +128,16 @@ For an average query (3,000 input tokens, 500 output tokens):
 
 ### 3.1 Per-Query Profit
 
-| Item                        | Amount       |
-| --------------------------- | ------------ |
-| Revenue per query (avg)     | €0.01587     |
-| Direct costs (LLM + Cohere) | €0.003       |
-| **Gross profit per query**  | **€0.01287** |
-| **Gross margin**            | **~81%**     |
+| Item                              | Amount       |
+| --------------------------------- | ------------ |
+| Revenue per query (gross, avg)    | €0.01968     |
+| VAT payable to government (24%)   | -€0.00381    |
+| **Revenue after VAT (net)**       | **€0.01587** |
+| Direct costs (LLM + Cohere)       | -€0.003      |
+| **Gross profit per query**        | **€0.01287** |
+| **Gross margin (on net revenue)** | **~81%**     |
+
+**Important:** VAT is collected from users and remitted to the government. It is not profit.
 
 ### 3.2 Break-Even Analysis
 
@@ -293,14 +308,16 @@ MODEL_NAME=gemini-2.5-flash    # LLM model to use
 
 ### Pricing at a Glance
 
-| Metric                       | Value            |
-| ---------------------------- | ---------------- |
-| Markup multiplier            | 3.0x             |
-| Per-query overhead           | €0.01            |
-| Avg cost to you per query    | €0.003           |
-| Avg charge to user per query | €0.016           |
-| Gross margin                 | ~81%             |
-| Break-even (medium costs)    | ~260 queries/day |
+| Metric                              | Value            |
+| ----------------------------------- | ---------------- |
+| Markup multiplier                   | 3.0x             |
+| Per-query overhead                  | €0.01            |
+| VAT rate                            | 24%              |
+| Avg cost to you per query           | €0.003           |
+| Avg charge to user (net, excl. VAT) | €0.016           |
+| Avg charge to user (gross, incl. VAT)| €0.020          |
+| Gross margin (on net revenue)       | ~81%             |
+| Break-even (medium costs)           | ~260 queries/day |
 
 ### Key Files
 

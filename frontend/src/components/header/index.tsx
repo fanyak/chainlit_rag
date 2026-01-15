@@ -13,7 +13,7 @@ import NewChatButton from './NewChat';
 import ReadmeButton from './Readme';
 import ShareButton from './Share';
 import SidebarTrigger from './SidebarTrigger';
-import { ThemeToggle } from './ThemeToggle';
+// import { ThemeToggle } from './ThemeToggle';
 import UserNav from './UserNav';
 
 const Header = memo(() => {
@@ -75,7 +75,7 @@ const Header = memo(() => {
               target={link.target}
             />
           ))}
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
         <UserNav />
       </div>
     </div>

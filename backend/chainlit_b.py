@@ -59,7 +59,8 @@ embeddings = HuggingFaceEmbeddings(
 
 rate_limiter = InMemoryRateLimiter(
     # <-- Super slow! We can only make a request once every 10 seconds!!
-    requests_per_second=0.1,
+    # requests_per_second=0.1,
+    requests_per_second=5,
     # Wake up every 100 ms to check whether allowed to make a request,
     check_every_n_seconds=0.1,
     # max_bucket_size=10,  # Controls the maximum burst size.
@@ -143,14 +144,12 @@ logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 graph_builder = StateGraph(MessagesState)
 
 
-##### Chohere Reranker ##
-# https://dashboard.cohere.com/api-keys
-# https://docs.cohere.com/docs/rerank-overview#multilingual-reranking
-
-
 @tool(response_format="content_and_artifact")
 def retrieve(query: str):
     """Retrieve information related to a query."""
+    # Chohere Reranker
+    # https://dashboard.cohere.com/api-keys
+    # https://docs.cohere.com/docs/rerank-overview#multilingual-reranking
     compressor = CohereRerank(model="rerank-v3.5", top_n=10)
     retriever = MultiQueryRetriever(
         # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
@@ -187,7 +186,7 @@ def retrieve(query: str):
 def query_or_respond(state: MessagesState):
     """
     Generate tool call for retrieval or respond.
-    Force tool calling by using tool choice!!!!
+    We force tool calling by using tool_choice="retrieve"!!!!
     """
     llm_with_tools = chat_model.bind_tools([retrieve], tool_choice="retrieve")
     response = llm_with_tools.invoke(state["messages"])
@@ -238,7 +237,7 @@ def generate(state: MessagesState):
         3.  **Required Information and Format:**
             * Provide a succinct and concise response, limited to a maximum of three hundrend Greek words.
             * For every fact or statement, cite the relevant law or state decision from the context.
-            * When citing an article, also include the full title of the law or order.
+            * When citing an article, you must also include the full title of the law or order.
         4.  **Language:** All responses must be in Greek.
         5.  **Citations:** At the end of your response, list all sources from the provided context that were used.
             For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the folder path.
@@ -311,7 +310,7 @@ graph = graph_builder.compile(checkpointer=memory)
 override_providers()
 
 
-async def handle_user_balance_in_session(balance):
+async def set_user_balance_in_session(balance):
     user_id = cl.user_session.get("user_id")
     if balance is None:
         print(f"Error retrieving balance for user {user_id}.")
@@ -322,8 +321,6 @@ async def handle_user_balance_in_session(balance):
         # flag to disable token tracking in main()
         cl.user_session.set("error_db", True)
     # in any case set the balance (might be None)
-    else:
-        pass
     cl.user_session.set("balance", balance)
 
 
@@ -406,9 +403,9 @@ async def on_chat_start():
     If the chainlit jwt for the user_session_timeout (which defaults to 15 days), is not expired,
     the frontend sends this token to the backend
      -> the OAuth callback is not called again: !!!
-        The backend validates the token internally.
-        If the token is valid, the user is immediately authenticated,
-        and the chat lifecycle proceeds directly to @cl.on_chat_start.
+    The backend validates the token internally.
+    If the token is valid, the user is immediately authenticated,
+    and the chat lifecycle proceeds directly to @cl.on_chat_start.
     If the token is expired or invalid, the user is redirected to the login page and the Oauth is called.
     """
     user = cl.user_session.get("user")
@@ -417,57 +414,7 @@ async def on_chat_start():
 
     event = asyncio.Event()
     cl.user_session.set("stop_event", event)
-    # SQLITE ALLOWS MULTIPLE CONNECTIONS FROM THE SAME THREAD
-    # BUT WRITE OPERATIONS ARE SERIALIZED
-    # https://www.sqlite.org/isolation.html
 
-    # 1. Initialize db_object for user_id
-    # each user gets their own instance of the db_object class
-    # db_object: user_token.db_object = user_token.db_object(user_id)
-    # store the db_object instance in the user session
-    # cl.user_session.set("db_object", db_object)
-
-    # user session id 4be5ba5c-e25e-46fa-9121-05f9611d80f2
-    # print(cl.user_session.get("id"))
-
-    # 2. Setup db connection for the user session
-    # if db_object.check_db_connection() is False:
-    #     conn = db_object.setup_user_db_connection()
-    #     if conn is None:
-    #         print("Failed to connect to the database.")
-    #         await cl.Message(
-    #             content="Failed to connect to the database. Token tracking disabled.",
-    #             author="System",
-    #         ).send()
-    #         # flag to disable token tracking in main()
-    #         cl.user_session.set("error_db", True)
-    #         return
-    # # 3. Check if user exists in the database, if not create a new user with initial balance = 0
-    # user_exists = db_object.check_user_exists()
-    # if user_exists is not True:
-    #     if user_exists is None:
-    #         print(f"Error checking if user {user_id} exists in the database.")
-    #         await cl.Message(
-    #             content=f"Error checking if user {user_id} exists in the database. Token tracking disabled.",
-    #             author="System",
-    #         ).send()
-    #         # flag to disable token tracking in main()
-    #         cl.user_session.set("error_db", True)
-    #         return
-    #     # if user_exists is False, then create new user
-    #     if db_object.create_user_balance():
-    #         print(f"Created new user {user_id} in the database.")
-    #     else:
-    #         print(f"Error creating user {user_id} in the database.")
-    #         await cl.Message(
-    #             content=f"Error creating user {user_id} in the database. Token tracking disabled.",
-    #             author="System",
-    #         ).send()
-    #         # flag to disable token tracking in main()
-    #         cl.user_session.set("error_db", True)
-    #         return
-    # # either user existed or was created successfully
-    # 4. now get the balance
     balance = None
     persistedUser: PersistedUser = await get_data_layer().get_user(identifier=user_id)
     if persistedUser is None:
@@ -483,24 +430,13 @@ async def on_chat_start():
         print(persistedUser)
         balance = persistedUser.balance
     # handle balance result
-    await handle_user_balance_in_session(balance)
+    await set_user_balance_in_session(balance)
     if balance is None:
         return  # error already handled in handle_user_balance_in_session
     if balance <= 0:
         await print_insufficient_balance_message()
         return
-    # # 5. Create a new chat id in the database
-    # new_chat_id = db_object.create_new_token_usage()
-    # if new_chat_id is not True:
-    #     print(f"Error creating new chat for user {user_id} in the database.")
-    #     await cl.Message(
-    #         content=f"Error creating new chat for user {user_id} in the database. Token tracking disabled.",
-    #         author="System",
-    #     ).send()
-    #     # flag to disable token tracking in main()
-    #     cl.user_session.set("error_db", True)
-    #     return
-    # 6. Display initial usage
+
     print(
         f"User {user_id} has started or resumed a chat. Displaying initial token usage."
     )
@@ -514,14 +450,8 @@ async def on_chat_start():
             display="inline",
         )
     ]
-    usage_msg = (
-        f"Welcome, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
-        # f"Total tokens used so far: **{usage[2]}** (Prompt: {usage[0]}, Completion: {usage[1]})"
-        # if usage
-        # else f"Database error retrieving usage for user {user_id}! Token tracking disabled."
-    )
+    usage_msg = f"Welcome, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
     await cl.Message(content=usage_msg, elements=elements, author="System").send()
-    # db_object.close_connection()
 
 
 @cl.on_message  # type: ignore
@@ -660,6 +590,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         return
 
     # print(f"thread: {thread}")
+
     # ===================== PRICING CONFIGURATION =====================
     # Pricing strategy: Cost markup + per-query overhead for profitability
     # 
@@ -670,6 +601,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # Markup: 3x to cover infrastructure + profit margin
     # Per-query overhead: €0.01 to cover Cohere reranking (~€0.001/search)
     #   + Qdrant hosting + GCS storage + compute overhead
+    # VAT: 24% (Greek standard rate) - applied to total charge
     # ================================================================
     units = 1000000  # tokens per million
 
@@ -679,6 +611,9 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # Per-query overhead for retrieval services (Cohere, Qdrant, GCS, etc.)
     PER_QUERY_OVERHEAD = float(os.environ.get("PER_QUERY_OVERHEAD", 0.01))  # €0.01 per query
 
+    # VAT rate (Greek standard rate: 24%)
+    VAT_RATE = float(os.environ.get("VAT_RATE", 0.24))  # 24% VAT
+
     # Base token costs (at-cost from Google)
     base_input_rate = 0.30 / units   # $0.30 per 1M input tokens
     base_output_rate = 2.50 / units  # $2.50 per 1M output tokens
@@ -687,9 +622,12 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", base_input_rate * PROFIT_MARGIN))
     charge_per_output_token: float = float(os.environ.get("CHARGE_PER_OUTPUT_TOKEN", base_output_rate * PROFIT_MARGIN))
 
-    # Total charge = token costs + per-query overhead
+    # Total charge = (token costs + per-query overhead) * (1 + VAT)
+    # Note: User-facing prices include VAT (gross prices)
     token_charge = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
-    balance_to_deduct = token_charge + PER_QUERY_OVERHEAD
+    net_charge = token_charge + PER_QUERY_OVERHEAD
+    vat_amount = net_charge * VAT_RATE
+    balance_to_deduct = net_charge + vat_amount  # Total including VAT
 
     # Get existing totals (or 0 if first turn)
     existing_metadata = json.loads(thread.get("metadata") or "{}")
@@ -774,9 +712,3 @@ def on_chat_end():
 #             icon="/public/write.svg",
 #         )
 #     ]
-
-# from chainlit.data import get_data_layer
-# @cl.data_layer
-# def data_layer():
-#     print("Setting data layer...", get_data_layer())
-#     return get_data_layer()

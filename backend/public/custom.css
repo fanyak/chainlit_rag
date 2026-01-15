@@ -150,7 +150,7 @@ html {
 .custom-pg .wrap .brand-title .title {
   margin: 2px 0 0;
   font-size: 1.3rem; /* 21px */
-  font-weight: 800;
+  font-weight: 700;
   color: var(--accentb);
 }
 .custom-pg .wrap .brand-title .tag {
@@ -171,7 +171,7 @@ html {
 .custom-pg .wrap header nav.primary-nav button {
   color: var(--text) !important;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 1rem;
   padding: 8px 10px;
   border-radius: 8px;
@@ -267,7 +267,7 @@ html {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 .custom-pg .features-list li {
   font-size: 0.95rem;
@@ -280,8 +280,8 @@ html {
     rgba(255, 255, 255, 0)
   );
   border-radius: 8px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   border: 1px solid rgba(11, 78, 162, 0.03);
 }
 .custom-pg .features-list li::before {
@@ -303,7 +303,7 @@ html {
 }
 .custom-pg .features-list li span.meta {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--muted);
   margin-top: 6px;
 }
@@ -471,7 +471,7 @@ li {
     display: none;
   }
   .custom-pg .wrap header .brand-title .title {
-    font-size: 20px;
+    font-size: 1rem;
   }
   .custom-pg .wrap header .logo {
     width: 48px;
@@ -540,7 +540,7 @@ li {
 .pricing-container .intro h6 {
   display: inline-flex;
   align-items: center;
-  color: #1a73e8;
+  /* color: #1a73e8; */
   font-weight: 500;
   line-height: 2;
 }
@@ -777,8 +777,8 @@ li {
 
 .legal-page .legal-content h2 {
   font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--accentb);
+  font-weight: 500;
+  /* color: var(--accentb); */
   margin-bottom: 1rem;
 }
 
@@ -881,6 +881,7 @@ li {
     rgba(11, 78, 162, 0.02),
     rgba(6, 96, 168, 0.01)
   ); */
+  background: #fff;
 }
 
 .contact-page .contact-info {
@@ -1189,10 +1190,14 @@ li {
 }
 
 .guide-page .guide-content .intro {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  padding: 1rem;
   color: var(--muted);
   margin-bottom: 2rem;
   line-height: 1.6;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .guide-page .process-section,
@@ -1231,11 +1236,12 @@ li {
 .guide-page .step-card.featured {
   color: var(--muted);
   border-color: var(--accentb);
-  background: linear-gradient(
+  /* background: linear-gradient(
     135deg,
     rgba(11, 78, 162, 0.02),
     rgba(6, 96, 168, 0.01)
-  );
+  ); */
+  background: #fff;
 }
 .guide-page .step-card.featured span {
   color: rgb(7, 21, 36);
@@ -1366,7 +1372,7 @@ li {
 
 /* Tips Section */
 .guide-page .tips-section .bg-card {
-  background-color: transparent;
+  background-color: #fff;
 }
 
 .guide-page .tips-content {
@@ -1414,4 +1420,10 @@ li {
 .guide-page .disclaimer-card p {
   color: var(--muted);
   line-height: 1.6;
+}
+
+@media (max-width: 787px) {
+  .guide-page .guide-content {
+    padding: 0;
+  }
 }

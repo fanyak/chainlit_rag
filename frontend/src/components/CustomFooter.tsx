@@ -8,8 +8,19 @@ function CustomFooter() {
       <div className="footer-content">
         <div className="footer-section">
           <a href="/">Foros Chat</a>
+          <br />
+          <a href="/">Φορολογικός Βοηθός με Τεχνητή Νοημοσύνη</a>
           <p>
-            <a href="/">Φορολογικός Βοηθός με Τεχνητή Νοημοσύνη</a>
+            <br />
+            Ιδιοκτήτης ipolistonkosmo
+            <br />
+            ΑΦΜ 061836972
+            <br />
+            τηλ. 6981298704
+            <br />
+            Τ.Κ 55236, Θεσσαλονίκη
+            <br />
+            Αρ.ΓΕΜΗ 059249304000
           </p>
         </div>
 

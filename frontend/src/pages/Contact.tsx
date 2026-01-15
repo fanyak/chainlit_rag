@@ -163,7 +163,7 @@ export default function Contact() {
 
                   <Button
                     type="submit"
-                    className="submit-btn"
+                    className="submit-btn m-auto"
                     disabled={loading}
                   >
                     {loading ? 'Αποστολή...' : 'Αποστολή Μηνύματος'}

@@ -105,7 +105,7 @@ function PaymentPlants({
     <div className="pricing-container">
       <div className="intro">
         <h3>
-          <Sparkles className="h-4 w-4 mr-1" />
+          <Sparkles className="h-4 w-4 mr-1" color="#ced11c" />
           Μοντέλο χρέωσης: Pay-as-you-go
         </h3>
         <p>
@@ -116,7 +116,7 @@ function PaymentPlants({
         </p>
 
         <h3>
-          <Sparkles className="h-4 w-4 mr-1" />
+          <Sparkles className="h-4 w-4 mr-1" color="#ced11c" />
           Πώς υπολογίζεται το κόστος κάθε ερωτήματος:
         </h3>
         <ol>
