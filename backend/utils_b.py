@@ -27,7 +27,11 @@ def extract_path(match: re.Match[str]) -> str:
     file_path = match.group(0)
     # Replace with link markdown format
     # Normalize backslashes to forward slashes
-    raw_file_path = file_path.replace("\\", "/", -1).replace("//", "/", -1)
+    # Also, sometimes the models answer contains the path in double quotes
+    # the regex to extract the path does not account for that, so we remove them here
+    raw_file_path = (
+        file_path.replace("\\", "/", -1).replace("//", "/", -1).replace('"', "", -1)
+    )
     raw_file_path = raw_file_path.replace("assets/", "")
     # rf"{file_path}"
     return f"{get_storage_url()}{raw_file_path}"

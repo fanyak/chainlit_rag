@@ -6,9 +6,14 @@ import logging
 # import pandas as pd
 # import numpy as np
 import os
+
+# sqlite3 imports
+# REF: https://reference.langchain.com/python/langgraph/checkpoints/#langgraph.checkpoint.sqlite.SqliteSaver
+import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
 
+# LangChain imports
 from langchain.chat_models import init_chat_model
 
 # from langchain_community.cross_encoders import HuggingFaceCrossEncoder
@@ -34,7 +39,7 @@ from langchain_core.tools import tool
 # Gemma
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient, models
@@ -45,9 +50,50 @@ from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.gcs import GCSStorageClient
 from chainlit.logger import db_logger
 from chainlit.user import PersistedUser
+from keyword_mapping import keyword_mappings
+
+# custom modules
 from override_provider import override_providers
 from user_token import db_object
 from utils_b import amendment, parse_links_to_markdown
+
+# Load glossary for selective injection
+GLOSSARY_PATH = os.path.join(os.path.dirname(__file__), "glossary.json")
+with open(GLOSSARY_PATH, encoding="utf-8") as f:
+    glossary = json.load(f)
+
+
+def get_relevant_glossary_terms(query: str) -> str:
+    """
+    Find glossary terms relevant to the user's query.
+    Returns formatted definitions for injection into context.
+    """
+    query_lower = query.lower()
+    relevant_terms = []
+
+    # Find matching terms based on keywords
+    matched_terms = set()
+    for keyword, terms in keyword_mappings.items():
+        if keyword in query_lower:
+            matched_terms.update(terms)
+
+    # Build the glossary context
+    if matched_terms:
+        for item in glossary:
+            if item["term"] in matched_terms:
+                entry = f"**{item['term']}**: {item['definition']}"
+                if "distinction" in item:
+                    entry += f" ΔΙΑΚΡΙΣΗ: {item['distinction']}"
+                relevant_terms.append(entry)
+
+    if relevant_terms:
+        return (
+            "\n\n### ΓΛΩΣΣΑΡΙΟ ΟΡΩΝ ###\n"
+            + "\n\n".join(relevant_terms)
+            + "\n### ΤΕΛΟΣ ΓΛΩΣΣΑΡΙΟΥ ###\n"
+        )
+    return ""
+
 
 # Gemma
 
@@ -211,6 +257,17 @@ def generate(state: MessagesState):
     tool_messages: list[ToolMessage] = recent_tool_messages[::-1]
     # Format into prompt
     docs_content = "\n\n".join(str(doc.content) for doc in tool_messages)
+
+    # Get the latest user question for glossary lookup
+    user_question = ""
+    for message in reversed(state["messages"]):
+        if message.type == "human":
+            user_question = message.content
+            break
+
+    # Selective glossary injection based on query
+    glossary_context = get_relevant_glossary_terms(user_question)
+
     system_message_content = (
         ## Persona and Core Task ###
         """You are a professional assistant for question-answering tasks regarding Greek tax laws.
@@ -242,9 +299,20 @@ def generate(state: MessagesState):
         5.  **Citations:** At the end of your response, list all sources from the provided context that were used.
             For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the folder path.
         """
+        ### Critical Legal Distinctions ###
+        """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions. 
+        For example:
+        - "Ατομική επιχείρηση" (sole proprietorship): A business owned and operated by ONE natural person without separate legal entity. The owner is personally liable.
+        - "Προσωπική εταιρία" (personal company/partnership): A company with TWO OR MORE partners (e.g., Ο.Ε., Ε.Ε.). It has a separate legal identity from its partners.
+        These are DIFFERENT legal forms with DIFFERENT tax obligations. Never confuse or interchange such terms.
+        """
         ### Context ###
         """
-        Today's date is """ + current_date + """. The context is the following: """
+        Today's date is """
+        + current_date
+        + """. """
+        + glossary_context
+        + """The retrieved documents are the following: """
         "\n\n"
         f"{docs_content}"
     )
@@ -292,8 +360,23 @@ graph_builder.add_edge("generate", END)
 #     await cl.sleep(2)
 #     return "για!"
 
-memory = MemorySaver()
+####################### Checkpointing #########################
+
+# IN DEVELOPMENT ONLY: use in-memory checkpointing
+# memory = MemorySaver()
+
+# IN PRODUCTION: use sqlite checkpointing
+# Note: check_same_thread=False is OK as the implementation uses a lock
+# to ensure thread safety.
+conn = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
+
+
+memory = SqliteSaver(conn)
+
+##################################################################
+
 graph = graph_builder.compile(checkpointer=memory)
+
 
 # REF: https://docs.chainlit.io/authentication/overview
 # @cl.password_auth_callback

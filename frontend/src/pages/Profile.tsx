@@ -519,7 +519,7 @@ export default function Profile() {
                       <TableHead className="text-right">Input</TableHead>
                       <TableHead className="text-right">Output</TableHead>
                       <TableHead className="text-right">Σύνολο</TableHead>
-                      <TableHead className="text-right">Συνομιλίες</TableHead>
+                      <TableHead className="text-right">Ερωτήσεις</TableHead>
                       <TableHead className="w-[60px]">Ενέργειες</TableHead>
                     </TableRow>
                   </TableHeader>
