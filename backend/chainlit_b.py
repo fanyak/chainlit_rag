@@ -39,6 +39,8 @@ from langchain_core.tools import tool
 # Gemma
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
+
+# from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -583,6 +585,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     await progress.send()
     async def runner(event):
         buffer = ""
+        retrieved_artifacts = []  # Store artifacts from tool calls
         for msg, metadata in graph.stream(
             {"messages": [HumanMessage(content=message.content)]}, # type: ignore[arg-type]
             stream_mode="messages",
@@ -593,6 +596,9 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
                 event.clear()
                 break
             if (msg.content and isinstance(msg, ToolMessage)):  # type: ignore[union-attr]
+                 # Save artifacts from tool call (the retrieved documents)
+                if hasattr(msg, "artifact") and msg.artifact:
+                    retrieved_artifacts.extend(msg.artifact)
                 progress.content ="Συγκεντρώνω τις πληροφορίες..."  # type: ignore
                 await progress.update()
             if (
@@ -605,20 +611,22 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
                 # Note: python name binding: assignments create a new local variable by default. 
                 buffer += msg.content  # type: ignore[union-attr]
                 await final_answer.stream_token(msg.content) # type: ignore[union-attr]
-        return buffer 
+        return buffer, retrieved_artifacts
     try:
         task = asyncio.create_task(runner(
             cl.user_session.get("stop_event"))# type: ignore
             )
-        buffer = await task
+        buffer, retrieved_artifacts = await task
     except Exception as e:
         print(f"user cancelled: {e}")
         buffer = ""
+        retrieved_artifacts = []
     finally:
         await final_answer.send()
 
     # fmt: off
-    parsed_content = parse_links_to_markdown(buffer)
+    print(retrieved_artifacts)
+    parsed_content = parse_links_to_markdown(buffer, [doc.metadata for doc in retrieved_artifacts])
     if parsed_content:
         elements = [
             cl.Text(name=f"{cl.context.session.thread_id}", content=parsed_content, display="inline")  # type: ignore

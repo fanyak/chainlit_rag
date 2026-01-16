@@ -66,6 +66,7 @@ dependencies = [
     "fastembed",
     "langchain-cohere==0.4.6",
     "langgraph==0.6.8",
+    "langgraph-checkpoint-sqlite>=2.0.0",
     "sentence-transformers==5.1.1",
     "aiosqlite==0.21.0",
     "google-cloud-storage>=2.19.0,<3.0.0",
