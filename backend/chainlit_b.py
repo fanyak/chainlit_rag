@@ -625,7 +625,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         await final_answer.send()
 
     # fmt: off
-    print(retrieved_artifacts)
+    # print(retrieved_artifacts)
     parsed_content = parse_links_to_markdown(buffer, [doc.metadata for doc in retrieved_artifacts])
     if parsed_content:
         elements = [
