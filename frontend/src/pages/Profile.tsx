@@ -169,7 +169,7 @@ function ThreadRow({
           <Button
             variant="ghost"
             size="sm"
-            className="p-0 h-8 w-8 text-destructive hover:text-destructive"
+            className="p-0 h-8 w-8 text-white hover:text-destructive"
             onClick={() => onDelete(thread.id)}
             title="Διαγραφή συνομιλίας"
           >

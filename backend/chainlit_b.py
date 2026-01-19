@@ -302,7 +302,7 @@ def generate(state: MessagesState):
             For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the folder path.
         """
         ### Critical Legal Distinctions ###
-        """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions. 
+        """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions.
         For example:
         - "Ατομική επιχείρηση" (sole proprietorship): A business owned and operated by ONE natural person without separate legal entity. The owner is personally liable.
         - "Προσωπική εταιρία" (personal company/partnership): A company with TWO OR MORE partners (e.g., Ο.Ε., Ε.Ε.). It has a separate legal identity from its partners.
@@ -414,17 +414,18 @@ async def print_insufficient_balance_message():
     balance = cl.user_session.get("balance")
     balance = max(balance, 0)
     print(f"User {user_id} has insufficient balance: {balance}.")
-    elements = [
-        # type: ignore
-        cl.Text(
-            name="",
-            content="[συνδρομή εδώ](/order)",
-            display="inline",
-        )
-    ]
+    # elements = [
+    #     # type: ignore
+    #     cl.Text(
+    #         name="",
+    #         content="[συνδρομή εδώ](/order)",
+    #         display="inline",
+    #     )
+    # ]
     await cl.Message(
-        content=f"Το υπόλοιπο σας είναι {balance:.2f}€. Παρακαλώ ανανεώστε τον λογαριασμό σας για να συνεχίσετε να χρησιμοποιείτε την υπηρεσία.",
-        elements=elements,
+        content=f"Το υπόλοιπο σας είναι {balance:.2f}€. Παρακαλώ ανανεώστε τον λογαριασμό σας για να συνεχίσετε να χρησιμοποιείτε την υπηρεσία."
+        "\n [Ανανεώστε τα tokens σας εδώ](/order)",
+        # elements=elements,
         author="System",
     ).send()
 
@@ -527,16 +528,21 @@ async def on_chat_start():
     )
     # usage = db_object.get_all_chats_tokens()
     # usage = (0, 0, 0)  # dummy usage
-    elements = [
-        # type: ignore
-        cl.Text(
-            name="",
-            content="[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
-            display="inline",
-        )
-    ]
-    usage_msg = f"Welcome, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
-    await cl.Message(content=usage_msg, elements=elements, author="System").send()
+    # elements = [
+    #     # type: ignore
+    #     cl.Text(
+    #         name="",
+    #         content="[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
+    #         display="inline",
+    #     )
+    # ]
+    usage_msg = f"Χαίρετε, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
+    await cl.Message(
+        content=usage_msg
+        + "\n[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
+        # elements=elements,
+        author="System",
+    ).send()
 
 
 @cl.on_message  # type: ignore
