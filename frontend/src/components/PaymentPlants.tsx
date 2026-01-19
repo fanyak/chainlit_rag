@@ -105,10 +105,11 @@ function PaymentPlants({
     <div className="pricing-container">
       <div className="intro">
         <h3>
-          <Sparkles className="h-4 w-4 mr-1" color="#ced11c" />
+          <Sparkles className="h-4 w-4 mr-1" fill="#0b4ea2" />
           Μοντέλο χρέωσης: Pay-as-you-go
         </h3>
         <p>
+          {' '}
           <strong>Πληρώνετε μόνο για ό,τι χρησιμοποιείτε.</strong> Δεν υπάρχουν
           μηνιαίες συνδρομές ή δεσμεύσεις. Με την πληρωμή σας προσθέτετε
           υπόλοιπο στον λογαριασμό σας, και αυτό καταναλώνεται σταδιακά με κάθε
@@ -116,16 +117,18 @@ function PaymentPlants({
         </p>
 
         <h3>
-          <Sparkles className="h-4 w-4 mr-1" color="#ced11c" />
+          <Sparkles className="h-4 w-4 mr-1" fill="#0b4ea2" />
           Πώς υπολογίζεται το κόστος κάθε ερωτήματος:
         </h3>
         <ol>
           <li>
+            {' '}
             <strong>Βασικό κόστος tokens:</strong> Υπολογίζεται με βάση την
             τιμολόγηση του μοντέλου AI (Gemini 2.5 flash) για τα tokens που
             καταναλώνονται σε κάθε ερώτημα.
           </li>
           <li>
+            {' '}
             <strong>Κόστος λειτουργίας:</strong> Προστίθεται για την κάλυψη
             λειτουργικών εξόδων: λειτουργία ιστοσελίδας, αναζήτηση και ανάκτηση
             εγγράφων, αποθήκευση ιστορικού, διαχείριση λογαριασμού, ασφάλεια
@@ -134,6 +137,7 @@ function PaymentPlants({
         </ol>
 
         <p>
+          {' '}
           <strong>Συνολικό κόστος ανά ερώτημα</strong> = Κόστος tokens + Κόστος
           λειτουργίας
         </p>

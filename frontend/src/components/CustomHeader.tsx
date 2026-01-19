@@ -49,10 +49,11 @@ export function CustomHeader() {
         </div>
         <div className="brand-title">
           <p className="title" id="app-title">
-            Foros Chatbot — Φορολογικός Βοηθός
+            Foros Chat — Φορολογικός Βοηθός
           </p>
           <p className="tag">
-            Αξιόπιστες απαντήσεις σχετικά με την ελληνική φορολογική νομοθεσία
+            Έξυπνη αναζήτηση στη βιβλιοθήκη εγγράφων της ΑΑΔΕ για τεκμηριωμένες
+            απαντήσεις
           </p>
         </div>
       </div>
@@ -64,14 +65,19 @@ export function CustomHeader() {
           Ρωτήστε τον Foro
         </a> */}
 
-        <Button onClick={onChatClick} variant="link" disabled={isLogging}>
+        <Button
+          onClick={onChatClick}
+          variant="link"
+          disabled={isLogging}
+          className={isLogging ? 'bg-gray-200 cta' : 'cta'}
+        >
           {isLogging ? (
-            <span className="inline-flex items-center bg-gray-200 p-2 rounded-sm">
+            <span className="w-full inline-flex items-center p-2">
               <LoadingSpinner color="var(--accentb)" />
               <span>Σύνδεση...</span>
             </span>
           ) : (
-            <span className="inline-flex items-center">
+            <span className="w-full inline-flex items-center">
               <MessageSquare className="h-5 w-5 text-primary" />
               <span className="ml-1">Ρωτήστε τώρα τον Foro</span>
             </span>

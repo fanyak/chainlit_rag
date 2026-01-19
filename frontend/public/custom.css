@@ -176,6 +176,14 @@ html {
   padding: 8px 10px;
   border-radius: 8px;
 }
+
+.custom-pg .wrap header nav.primary-nav button.cta {
+  min-width: 217px;
+  border: solid 1px var(--accentb);
+  border-radius: 1rem;
+  padding: 0.5rem;
+}
+
 .custom-pg .wrap header nav.primary-nav a:hover,
 .custom-pg .wrap header nav.primary-nav button:hover {
   background: rgba(11, 78, 162, 0.04);
@@ -226,9 +234,10 @@ html {
 .custom-pg .features {
   display: flex;
   flex-direction: row;
-  max-width: 70vw;
+  max-width: 80vw;
   gap: 18px;
-  margin: 30px auto 10px auto;
+  padding: 2rem 3rem;
+  margin: 0 auto;
   justify-self: center;
   flex-wrap: wrap;
 }
@@ -252,10 +261,10 @@ html {
   box-shadow: 0 6px 18px rgba(11, 78, 162, 0.03);
 }
 .custom-pg .features .card:nth-child(2) {
-  flex-grow: 1.3;
+  flex-grow: 1;
 }
 .custom-pg .card strong {
-  display: block;
+  /* display: block; */
   margin-bottom: 8px;
   color: #083a66;
   font-size: 1.015rem;
@@ -315,8 +324,6 @@ html {
   margin-top: 10px;
 }
 .chip {
-  background: #eef6ff;
-  color: var(--accentb);
   margin: 2px 0;
   padding: 10px 12px !important;
   /* border-radius: 999px; */
@@ -326,6 +333,8 @@ html {
   font-weight: 600;
   white-space: wrap !important;
   text-align: left !important;
+  background: #eef6ff;
+  color: var(--accentb);
 }
 .chip:focus {
   outline: 2px solid var(--focus);
@@ -466,10 +475,23 @@ li {
   border-radius: 10px;
 }
 
+@media (max-width: 1360px) {
+  .custom-pg .features {
+    max-width: 100%;
+    padding: 1rem 0;
+  }
+}
+
 @media (max-width: 920px) {
   .custom-pg .wrap header nav.primary-nav {
     display: none;
   }
+
+  .custom-pg .wrap header .header-cta button {
+    border: solid 1px var(--accentb);
+    color: var(--accentb);
+  }
+
   .custom-pg .wrap header .brand-title .title {
     font-size: 1rem;
   }
@@ -484,9 +506,28 @@ li {
   .custom-pg .wrap {
     padding: 18px;
   }
+
   .custom-pg .features {
     flex-direction: column-reverse;
     flex-wrap: nowrap;
+  }
+
+  .intro {
+    font-size: 0.9rem !important;
+  }
+
+  .custom-pg .wrap .brand-title .tag {
+    font-size: 0.9rem;
+  }
+  .sample-questions + form.search-box {
+    flex-direction: column;
+  }
+  .sample-questions + form.search-box #quickQuery {
+    width: 100%;
+  }
+
+  .chip {
+    height: 3rem !important;
   }
 }
 
@@ -515,9 +556,9 @@ li {
 /* Pricing Plans CSS */
 
 .pricing-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 80vw;
+  padding: 2rem 3rem;
+  margin: 0 auto;
 }
 
 .pricing-container .intro {
@@ -869,9 +910,10 @@ li {
 .contact-page .contact-container {
   display: grid;
   grid-template-columns: 1fr;
+  max-width: 80vw;
   gap: 3rem;
-  margin-bottom: 3rem;
-  padding: 1.5rem;
+  padding: 2rem 3rem;
+  margin: 0 auto;
   /* border: solid 1px var(--accentb); */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 0.8rem;
@@ -1178,7 +1220,7 @@ li {
 /* Guide Page Styles */
 .guide-page .guide-content {
   padding: 2rem 3rem;
-  max-width: 1200px;
+  max-width: 80vw;
   margin: 0 auto;
 }
 

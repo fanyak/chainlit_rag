@@ -43,7 +43,10 @@ function CustomFooter() {
               <Link to="/contact">Επικοινωνία</Link>
             </li>
             <li>
-              <Link to="/order">Συνδρομές</Link>
+              <Link to="/guide">Οδηγός</Link>
+            </li>
+            <li>
+              <Link to="/order">Πακέτα tokens</Link>
             </li>
           </ul>
         </div>
