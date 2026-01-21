@@ -67,3 +67,7 @@ backend/models/
 .history
 
 backend/*_test.sh
+
+backend/checkpoints.sqlite
+backend/checkpoints.sqlite-shm
+backend/checkpoints.sqlite-wal

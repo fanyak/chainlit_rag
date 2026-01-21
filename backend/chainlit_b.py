@@ -13,6 +13,7 @@ import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
 
+# REF: https://docs.langchain.com/oss/python/langgraph/agentic-rag
 # LangChain imports
 from langchain.chat_models import init_chat_model
 
@@ -236,12 +237,16 @@ def query_or_respond(state: MessagesState):
     Generate tool call for retrieval or respond.
     We force tool calling by using tool_choice="retrieve"!!!!
     """
-    # this The LLM generates an AIMessage with tool_calls metadata,
+    # The LLM generates an AIMessage with tool_calls metadata,
     # but does not execute the tool here!! !
+
+    # we’re giving the model access to the retriever_tool via .bind_tools
     llm_with_tools = chat_model.bind_tools([retrieve], tool_choice="retrieve")
+
     # create an AI message with a tool call!
     response = llm_with_tools.invoke(state["messages"])
-    # MessagesState appends messages to state instead of overwriting
+
+    # MessagesState appends messages to state instead of overwriting!
     return {"messages": [response]}
 
 
@@ -262,6 +267,7 @@ def generate(state: MessagesState):
             recent_tool_messages.append(message)
         else:
             break
+    # organize chronologically
     tool_messages: list[ToolMessage] = recent_tool_messages[::-1]
     # Format into prompt
     docs_content = "\n\n".join(str(doc.content) for doc in tool_messages)
@@ -340,6 +346,7 @@ def generate(state: MessagesState):
     # print(response.usage_metadata)
     ############
 
+    # again, this appends to MessagesState instead of overwriting
     return {"messages": [response]}
 
 
@@ -348,11 +355,7 @@ graph_builder.add_node(tools)
 graph_builder.add_node(generate)
 
 graph_builder.set_entry_point("query_or_respond")
-# graph_builder.add_conditional_edges(
-#     "query_or_respond",
-#     tools_condition,
-#     {END: END, "tools": "tools"},
-# )
+
 graph_builder.add_edge("query_or_respond", "tools")
 graph_builder.add_edge("tools", "generate")
 graph_builder.add_edge("generate", END)
