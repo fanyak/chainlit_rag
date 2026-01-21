@@ -47,6 +47,10 @@ const faqData: FaqItem[] = [
   }
 ];
 
+const disclaimerText = `
+  * Σημείωση: Οι εκτιμήσεις για τον αριθμό των ερωτημάτων βασίζονται σε μέσες τιμές χρήσης και διαφέρουν ανάλογα με τη πολυπλοκότητα κάθε ερωτήματος και τη χρήση tokens από το bot ανά ερώτημα.
+`;
+
 function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -175,7 +179,7 @@ function PaymentPlants({
           </div>
           <div className="card-body">
             <ul className="plan-features-list">
-              <li>Αντιστοιχεί σε περίπου 20 ερωτήματα*</li>
+              <li>Αντιστοιχεί σε περίπου 50 - 70 ερωτήματα*</li>
               <li>
                 Το υπόλοιπο της συνδρομής σας παραμένει στο λογαριασμό σας έως
                 ότου το χρησιμοποιήσετε
@@ -187,10 +191,7 @@ function PaymentPlants({
               <li>Πρόσβαση σε όλα τα χαρακτηριστικά της πλατφόρμας</li>
               <li>Υποστήριξη μέσω email</li>
             </ul>
-            <p>
-              *Το ακριβές πλήθος των ερωτημάτων εξαρτάται από τη πολυπλοκότητα
-              του ερωτήματος και τη χρήση tokens ανά ερώτημα
-            </p>
+            <p>*{disclaimerText}</p>
           </div>
           <div className="card-footer">
             <button
@@ -222,7 +223,7 @@ function PaymentPlants({
           </div>
           <div className="card-body">
             <ul className="plan-features-list">
-              <li>Αντιστοιχεί σε περίπου 40 ερωτήματα*</li>
+              <li>Αντιστοιχεί σε περίπου 100 - 140 ερωτήματα*</li>
               <li>
                 Το υπόλοιπο της συνδρομής σας παραμένει στο λογαριασμό σας έως
                 ότου το χρησιμοποιήσετε
@@ -234,10 +235,7 @@ function PaymentPlants({
               <li>Πρόσβαση σε όλα τα χαρακτηριστικά της πλατφόρμας</li>
               <li>Υποστήριξη μέσω email</li>
             </ul>
-            <p>
-              *Το ακριβές πλήθος των ερωτημάτων εξαρτάται από τη πολυπλοκότητα
-              του ερωτήματος και τη χρήση tokens ανά ερώτημα
-            </p>
+            <p>*{disclaimerText}</p>
           </div>
           <div className="card-footer">
             <button

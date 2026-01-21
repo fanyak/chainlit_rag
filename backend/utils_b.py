@@ -66,7 +66,7 @@ def parse_links_to_markdown(text: str, docs_metadata: List[dict]) -> str:
     """
     # Build a lookup: basename -> full manipulated path (O(1) lookups)
 
-    if not docs_metadata or not text:
+    if not docs_metadata or len(docs_metadata) == 0 or not text:
         return ""
 
     item_fmt = "- {}"

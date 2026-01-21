@@ -230,23 +230,29 @@ def retrieve(query: str):
 # from google.genai import types
 
 
-# Step 1: Generate an AIMessage that may include a tool-call to be sent.
+# *Step 1*: Generate an AIMessage that may include a tool-call to be sent.
 def query_or_respond(state: MessagesState):
     """
     Generate tool call for retrieval or respond.
     We force tool calling by using tool_choice="retrieve"!!!!
     """
+    # this The LLM generates an AIMessage with tool_calls metadata,
+    # but does not execute the tool here!! !
     llm_with_tools = chat_model.bind_tools([retrieve], tool_choice="retrieve")
+    # create an AI message with a tool call!
     response = llm_with_tools.invoke(state["messages"])
     # MessagesState appends messages to state instead of overwriting
     return {"messages": [response]}
 
 
-# Step 2: Execute the retrieval.
+# *Step 2*: Actually execute the retrieval tool!.
+# Takes the AIMessage with tool_calls from step 1 as input
+# Runs the retrieve() function with the extracted arguments
+# Returns a ToolMessage with the results
 tools = ToolNode([retrieve])
 
 
-# Step 3: Generate a response using the retrieved content.
+# *Step 3*: Generate a response using the retrieved content.
 def generate(state: MessagesState):
     """Generate answer."""
     # Get generated ToolMessages
@@ -422,12 +428,14 @@ async def print_insufficient_balance_message():
     #         display="inline",
     #     )
     # ]
-    await cl.Message(
+    balance_message = cl.Message(
         content=f"Το υπόλοιπο σας είναι {balance:.2f}€. Παρακαλώ ανανεώστε τον λογαριασμό σας για να συνεχίσετε να χρησιμοποιείτε την υπηρεσία."
         "\n [Ανανεώστε τα tokens σας εδώ](/order)",
         # elements=elements,
         author="System",
-    ).send()
+    )
+    cl.user_session.set("balance_message", True)  # stop any ongoing processing
+    await balance_message.send()
 
 
 ############  DATA LAYER ###########################
@@ -536,13 +544,16 @@ async def on_chat_start():
     #         display="inline",
     #     )
     # ]
-    usage_msg = f"Χαίρετε, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
-    await cl.Message(
-        content=usage_msg
-        + "\n[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
-        # elements=elements,
-        author="System",
-    ).send()
+    # if cl.user_session.get("greeting_message") is None:
+    #     usage_msg = f"Χαίρετε, {user_id}! Το υπόλοιπο σας είναι: **{balance:.2f}€**."
+    #     greeting = cl.Message(
+    #         content=usage_msg
+    #         + "\n[Δείτε το ιστορικό κατανάλωσης tokens και χρεώσεων εδώ](/account)",
+    #         # elements=elements,
+    #         author="System",
+    #     )
+    #     cl.user_session.set("greeting_message", greeting)
+    #     await greeting.send()
 
 
 @cl.on_message  # type: ignore
@@ -584,7 +595,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     final_answer = cl.Message(content="")  # type: ignore
     usage_metadata: Optional[UsageMetadata] = None
 
-    # initial greeting to message user that search is in progress
+    # message user that search is in progress
     progress = cl.Message(  # type: ignore
         content="Ψάχνω στα έγγραφα της ΑΑΔΕ...", author="AI")
     # await asyncio.sleep(1)  # allow greeting message to render
@@ -635,7 +646,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     parsed_content = parse_links_to_markdown(buffer, [doc.metadata for doc in retrieved_artifacts])
     if parsed_content:
         elements = [
-            cl.Text(name=f"{cl.context.session.thread_id}", content=parsed_content, display="inline")  # type: ignore
+            cl.Text(content=parsed_content, display="inline")  # type: ignore
         ]
         await cl.Message( # type: ignore
             content="Δείτε τα έγγραφα που χρησιμοποιήθηκαν για την απάντηση:",
