@@ -62,12 +62,23 @@ def get_storage_url() -> str:
 ################################################################
 
 
+def normalize_path(path: str) -> str:
+    """normalize path separators for cross-platform consistency.
+
+    On Linux, os.path.basename() doesn't recognize backslashes as path separators,
+    so 'dir\\file.pdf' would return the whole string instead of 'file.pdf'.
+    This function normalizes backslashes to forward slashes first to ensure
+    consistent behavior across platforms.
+    """
+    # Normalize backslashes to forward slashes
+    # Also, sometimes the models answer contains the path in double quotes
+    return path.replace("\\", "/", -1).replace("//", "/", -1).replace('"', "", -1)
+
+
 def manipulate_path(file_path: str) -> str:
     """Manipulates the file path to create a full storage URL."""
     # Normalize backslashes to forward slashes
-    raw_file_path = (
-        file_path.replace("\\", "/", -1).replace("//", "/", -1).replace('"', "", -1)
-    )
+    raw_file_path = normalize_path(file_path)
     # this is greedy: it will remove all '(' instances from the beginning
     raw_file_path = raw_file_path.strip("()[]*{}<>\"'")
     raw_file_path = raw_file_path.replace("assets/", "")
@@ -77,19 +88,6 @@ def manipulate_path(file_path: str) -> str:
 def extract_path(match: re.Match[str]) -> str:
     """Extracts the file path from a regex match object."""
     file_path = match.group(0)
-    # Replace with link markdown format
-    # Normalize backslashes to forward slashes
-    # Also, sometimes the models answer contains the path in double quotes
-    # the regex to extract the path does not account for that, so we remove them here
-    # raw_file_path = (
-    #     file_path.replace("\\", "/", -1).replace("//",
-    #                                             "/", -1).replace('"', "", -1)
-    # )
-    # # this is greedy: it will remove all '(' instances from the beginning
-    # raw_file_path = raw_file_path.strip('()[]*{}<>"\'')
-    # raw_file_path = raw_file_path.replace("assets/", "")
-    # rf"{file_path}"
-    # return f"{get_storage_url()}{raw_file_path}"
     return manipulate_path(file_path)
 
 
@@ -116,13 +114,6 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
     item_fmt = "- {}"
     storage_url = get_storage_url()
 
-    # no unique matches because citations can have same source with different page numbers
-    # unique_matches: set[str] = {extract_path(m) for m in matches}
-
-    # artifact_sources = [
-    #     manipulate_path(d.get("source", "")) for d in docs_metadata]
-    # source_bases_lookup: dict[str, int] = {os.path.basename(
-    #     source): i for i, source in enumerate(artifact_sources)}
     source_bases_lookup = {
         os.path.basename(path): path
         for d in docs_metadata
@@ -131,7 +122,7 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
     used_artifact_sources = []
     for citation in citations:
         found_artifact_path = source_bases_lookup.get(
-            os.path.basename(citation.get("full_path_name", ""))
+            os.path.basename(normalize_path(citation.get("full_path_name", "")))
         )
         if found_artifact_path is not None:
             page_number = citation.get("page_number")
