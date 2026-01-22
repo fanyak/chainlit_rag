@@ -99,9 +99,7 @@ def parse_and_replace_links(text: str) -> str:
     return re.sub(r"[\w\\\/]+\.pdf", extract_path, text)
 
 
-def parse_links_to_markdown(
-    citations: List[Citation], docs_metadata: List[dict]
-) -> str:
+def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) -> str:
     """Extracts PDF links from text and formats them as a markdown list.
     Only includes links that match sources from the provided metadata.
     """

@@ -158,6 +158,7 @@ class LineListOutputParser(BaseOutputParser[List[str]]):
 
     def parse(self, text: str) -> List[str]:
         lines = text.strip().split("\n")
+        print(f"Parsed lines from output parser.\n {lines}")
         return list(filter(None, lines))  # Remove empty lines
 
 
@@ -165,9 +166,9 @@ output_parser = LineListOutputParser()
 
 RETRIEVAL_PROMPT = PromptTemplate(
     input_variables=["question"],
-    template="""You are a highly specialized AI assistant for Greek tax law,
+    template="""You are a highly specialized Greek AI assistant for Greek tax law,
     an expert in generating effective search queries for a vector database that contains legal documents.
-    Your task is to generate five different versions in Greek of the given user question,
+    Your task is to generate five different versions *in Greek* of the given user question,
     in order to retrieve the most relevant and up-to-date documents from the vector database.
     By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations
       of the distance-based similarity search."""
@@ -175,10 +176,10 @@ RETRIEVAL_PROMPT = PromptTemplate(
     + current_date
     + """ You must identify all relevant dates in the user's query and the provided context, including the current date.
     For a query about a specific effective period or expiration date, compare it against the current date."""
-    """If the user divided the question into sub-queries, or If the user's question can be broken-down to two or more distinct sub-queries, you must generate three different versions in Greek for each of these sub-queries."""
+    """If there are multiple distinct queries in the question or if the user's question can be broken-down to two or more distinct sub-queries, you must generate three different versions in Greek for each of these sub-queries."""
     """ Otherwise, if the user asked one specific question and if the question cannot be broken-down to more than one sub-query, you must generate five different versions in Greek for the original query."""
     """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved."""
-    """ You must provide these alternative questions separated by newlines.
+    """ You *must provide these alternative questions separated by newlines*.
     Original question: {question}""",
 )
 # print(RETRIEVAL_PROMPT.format(question="Ποιο είναι το όριο για αφορολόγητο με μερίσματα το 2024;"))
@@ -203,7 +204,7 @@ def retrieve(query: str):
     retriever = MultiQueryRetriever(
         # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
         # retriever = vector_store.as_retriever(search_type="similarity", k=15)
-        retriever=qdrant_vs.as_retriever(search_type="similarity", k=20),
+        retriever=qdrant_vs.as_retriever(search_type="similarity", k=25),
         llm_chain=retrieval_chain,
         parser_key="lines",
     )  # "lines" is the key (attribute name) of the parsed output
