@@ -146,7 +146,7 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
                 )
             )
     artifact_sources_markup = "\n".join(used_artifact_sources)
-    return "### Πηγές:" + artifact_sources_markup
+    return "### Πηγές: " + artifact_sources_markup
 
 
 def amendment(m):
