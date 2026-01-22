@@ -1,9 +1,45 @@
 import os
 import re
-from typing import List
+from typing import List, Optional
 
 # from dotenv import load_dotenv
 # load_dotenv()
+from pydantic import BaseModel, Field
+
+############### structured content for citations ###############
+
+
+class Citation(BaseModel):
+    """A citation for a source used in the answer."""
+
+    full_path_name: str = Field(
+        ...,
+        description="The full file name including the directory path and file extension.",
+    )
+    page_number: int = Field(
+        ...,
+        description="The page number in the document where the cited information can be found.",
+    )
+    article_title: Optional[str] = Field(
+        ...,
+        description="The number and title of the specific article being cited from a legal document. Use None if not applicable.",
+    )
+    paragraph_title: Optional[str] = Field(
+        ...,
+        description="The title of the paragraph being cited, if it exists in the context, otherwise None.",
+    )
+
+
+class AnswerWithCitations(BaseModel):
+    """An answer to the user question along with citations for the answer."""
+
+    answer: str
+    citations: list[Citation]
+
+
+###############################################################
+
+################ Google Storage utilities #####################
 
 
 def get_storage_bucket_name() -> str:
@@ -21,6 +57,9 @@ def get_storage_url() -> str:
     bucket_name = get_storage_bucket_name()
     assets_path = get_storage_assets_path()
     return f"https://storage.googleapis.com/{bucket_name}/{assets_path}/"
+
+
+################################################################
 
 
 def manipulate_path(file_path: str) -> str:
@@ -60,20 +99,28 @@ def parse_and_replace_links(text: str) -> str:
     return re.sub(r"[\w\\\/]+\.pdf", extract_path, text)
 
 
-def parse_links_to_markdown(text: str, docs_metadata: List[dict]) -> str:
+def parse_links_to_markdown(
+    citations: List[Citation], docs_metadata: List[dict]
+) -> str:
     """Extracts PDF links from text and formats them as a markdown list.
     Only includes links that match sources from the provided metadata.
     """
     # Build a lookup: basename -> full manipulated path (O(1) lookups)
 
-    if not docs_metadata or len(docs_metadata) == 0 or not text:
+    if (
+        not docs_metadata
+        or len(docs_metadata) == 0
+        or not citations
+        or len(citations) == 0
+    ):
         return ""
 
     item_fmt = "- {}"
     storage_url = get_storage_url()
 
-    matches = re.finditer(r"[^\s,]+\.pdf", text)
-    unique_matches: set[str] = {extract_path(m) for m in matches}
+    # no unique matches because citations can have same source with different page numbers
+    # unique_matches: set[str] = {extract_path(m) for m in matches}
+
     # artifact_sources = [
     #     manipulate_path(d.get("source", "")) for d in docs_metadata]
     # source_bases_lookup: dict[str, int] = {os.path.basename(
@@ -84,15 +131,24 @@ def parse_links_to_markdown(text: str, docs_metadata: List[dict]) -> str:
         if (path := manipulate_path(d.get("source", "")))
     }
     used_artifact_sources = []
-    for path in unique_matches:
-        found_artifact_path = source_bases_lookup.get(os.path.basename(path))
+    for citation in citations:
+        found_artifact_path = source_bases_lookup.get(
+            os.path.basename(citation.get("full_path_name", ""))
+        )
         if found_artifact_path is not None:
+            page_number = citation.get("page_number")
+            article_title = citation.get("article_title")
+            paragraph_title = citation.get("paragraph_title")
+            page = f", σελ. {page_number}" if page_number else ""
+            article = f", άρθρο: {article_title}" if article_title else ""
+            paragraph = f", παράγραφος: {paragraph_title}" if paragraph_title else ""
             used_artifact_sources.append(
                 item_fmt.format(
-                    f"[{os.path.basename(found_artifact_path)}]({storage_url}{found_artifact_path})"
+                    f"[{os.path.basename(found_artifact_path)}]({storage_url}{found_artifact_path}) {page}{article}{paragraph}"
                 )
             )
-    return "\n".join(used_artifact_sources)
+    artifact_sources_markup = "\n".join(used_artifact_sources)
+    return "### Πηγές:" + artifact_sources_markup
 
 
 def amendment(m):

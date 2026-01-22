@@ -27,7 +27,7 @@ from langchain_cohere import CohereRerank
 
 # from langchain_core.prompts import ChatPromptTemplate # Added this line
 from langchain_core.callbacks import UsageMetadataCallbackHandler
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.messages.ai import UsageMetadata
 from langchain_core.output_parsers import BaseOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -58,7 +58,7 @@ from keyword_mapping import keyword_mappings
 # custom modules
 from override_provider import override_providers
 from user_token import db_object
-from utils_b import amendment, parse_links_to_markdown
+from utils_b import AnswerWithCitations, amendment, parse_links_to_markdown
 
 # Load glossary for selective injection
 GLOSSARY_PATH = os.path.join(os.path.dirname(__file__), "glossary.json")
@@ -310,8 +310,9 @@ def generate(state: MessagesState):
             * For every fact or statement, cite the relevant law or state decision from the context.
             * When citing an article, you must also include the full title of the law or order.
         4.  **Language:** All responses must be in Greek.
-        5.  **Citations:** At the end of your response, list all sources from the provided context that were used.
-            For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the folder path.
+        5. **Multiple Queries Handling:** If the user has asked multiple distinct questions, provide your answer in a numbered list for each topic.
+        6.  **Citations:** At the end of your response, list all sources from the provided context that were used.
+            For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the directory path.
         """
         ### Critical Legal Distinctions ###
         """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions.
@@ -339,7 +340,9 @@ def generate(state: MessagesState):
     prompt = [SystemMessage(system_message_content)] + conversation_messages
 
     # Run
-    response = chat_model.invoke(prompt)
+    response: AnswerWithCitations = chat_model.with_structured_output(
+        AnswerWithCitations
+    ).invoke(prompt)
 
     # TOKEN USAGE
     # print("\nUsage Metadata:")
@@ -347,7 +350,14 @@ def generate(state: MessagesState):
     ############
 
     # again, this appends to MessagesState instead of overwriting
-    return {"messages": [response]}
+    return {
+        "messages": [
+            AIMessage(
+                content=response.answer,
+                citations=[citation.model_dump() for citation in response.citations],
+            )
+        ]
+    }
 
 
 graph_builder.add_node(query_or_respond)
@@ -604,7 +614,8 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # await asyncio.sleep(1)  # allow greeting message to render
     await progress.send()
     async def runner(event):
-        buffer = ""
+        citations = []
+        #buffer = ""
         retrieved_artifacts = []  # Store artifacts from tool calls
         for msg, metadata in graph.stream(
             {"messages": [HumanMessage(content=message.content)]}, # type: ignore[arg-type]
@@ -623,38 +634,43 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
                 await progress.update()
             if (
                 msg.content  # type: ignore[union-attr]
-                and not isinstance(msg, HumanMessage)
+                and isinstance(msg, AIMessage)
                 and metadata["langgraph_node"] == "generate"  # type: ignore[index]
             ):
                 # fmt: off
                 await progress.remove()
                 # Note: python name binding: assignments create a new local variable by default. 
-                buffer += msg.content  # type: ignore[union-attr]
+                #buffer += msg.content  # type: ignore[union-attr]
+                citations = msg.citations  # type: ignore[union-attr]
                 await final_answer.stream_token(msg.content) # type: ignore[union-attr]
-        return buffer, retrieved_artifacts
+        return citations, retrieved_artifacts
     try:
         task = asyncio.create_task(runner(
             cl.user_session.get("stop_event"))# type: ignore
             )
-        buffer, retrieved_artifacts = await task
+        citations, retrieved_artifacts = await task
     except Exception as e:
         print(f"user cancelled: {e}")
-        buffer = ""
+        #buffer = ""
+        citations = []
         retrieved_artifacts = []
     finally:
         await final_answer.send()
 
     # fmt: off
     # print(retrieved_artifacts)
-    parsed_content = parse_links_to_markdown(buffer, [doc.metadata for doc in retrieved_artifacts])
+    # print('citations: !!!!!!!!!!!!!!', citations)
+    parsed_content = parse_links_to_markdown(citations, [doc.metadata for doc in retrieved_artifacts])
     if parsed_content:
         elements = [
             cl.Text(content=parsed_content, display="inline")  # type: ignore
         ]
-        await cl.Message( # type: ignore
-            content="Δείτε τα έγγραφα που χρησιμοποιήθηκαν για την απάντηση:",
-            elements=elements
-        ).send()
+        # await cl.Message( # type: ignore
+        #     content="Δείτε τα έγγραφα που χρησιμοποιήθηκαν για την απάντηση:",
+        #     elements=elements
+        # ).send()
+        final_answer.elements = elements
+        await final_answer.update()
 
     print(f"USAGE {cb.usage_metadata}")
 
