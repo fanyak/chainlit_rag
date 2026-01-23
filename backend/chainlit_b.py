@@ -29,7 +29,6 @@ from langchain_cohere import CohereRerank
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.messages.ai import UsageMetadata
-from langchain_core.output_parsers import BaseOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.runnables import RunnableConfig
@@ -58,7 +57,12 @@ from keyword_mapping import keyword_mappings
 # custom modules
 from override_provider import override_providers
 from user_token import db_object
-from utils_b import AnswerWithCitations, amendment, parse_links_to_markdown
+from utils_b import (
+    AnswerWithCitations,
+    MultiQueryRequest,
+    amendment,
+    parse_links_to_markdown,
+)
 
 # Load glossary for selective injection
 GLOSSARY_PATH = os.path.join(os.path.dirname(__file__), "glossary.json")
@@ -126,6 +130,7 @@ chat_model = init_chat_model(
     # response_mime_type = "application/json",
 )
 
+# TODO: add metadata filtering for vector store: https://docs.langchain.com/oss/python/integrations/vectorstores/qdrant#metadata-filtering
 sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
 
 qdrant_client = QdrantClient(
@@ -141,6 +146,7 @@ qdrant_vs = QdrantVectorStore(
     embedding=embeddings,
     sparse_embedding=sparse_embeddings,
     # https://python.langchain.com/docs/integrations/vectorstores/qdrant/#hybrid-vector-search
+    # uses score fusion
     retrieval_mode=RetrievalMode.HYBRID,
     vector_name="dense",
     sparse_vector_name="sparse",
@@ -150,25 +156,12 @@ qdrant_vs = QdrantVectorStore(
 ##### MULTI QUERY ######
 current_date = datetime.now().strftime("%B,%Y")
 
-# Output parser will split the LLM result into a list of queries
-
-
-class LineListOutputParser(BaseOutputParser[List[str]]):
-    """Output parser for a list of lines."""
-
-    def parse(self, text: str) -> List[str]:
-        lines = text.strip().split("\n")
-        print(f"Parsed lines from output parser.\n {lines}")
-        return list(filter(None, lines))  # Remove empty lines
-
-
-output_parser = LineListOutputParser()
 
 RETRIEVAL_PROMPT = PromptTemplate(
     input_variables=["question"],
     template="""You are a highly specialized Greek AI assistant for Greek tax law,
     an expert in generating effective search queries for a vector database that contains legal documents.
-    Your task is to generate five different versions *in Greek* of the given user question,
+    Your task is to generate five different versions **in Greek** of the given user question,
     in order to retrieve the most relevant and up-to-date documents from the vector database.
     By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations
       of the distance-based similarity search."""
@@ -179,16 +172,35 @@ RETRIEVAL_PROMPT = PromptTemplate(
     """If there are multiple distinct queries in the question or if the user's question can be broken-down to two or more distinct sub-queries, you must generate three different versions in Greek for each of these sub-queries."""
     """ Otherwise, if the user asked one specific question and if the question cannot be broken-down to more than one sub-query, you must generate five different versions in Greek for the original query."""
     """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved."""
-    """ You *must provide these alternative questions separated by newlines*.
+    """ You **must provide these alternative questions separated by newlines**.
     Original question: {question}""",
 )
-# print(RETRIEVAL_PROMPT.format(question="Ποιο είναι το όριο για αφορολόγητο με μερίσματα το 2024;"))
 
 # Chain
-retrieval_chain = RETRIEVAL_PROMPT | chat_model | output_parser
+# Note: with_structured_output returns a Pydantic object.
+# MultiQueryRetriever expects the chain to return a List[str] directly (not a dict).
 
+
+def output_parser(x: MultiQueryRequest) -> List[str]:
+    """Extract the list directly from the Pydantic model"""
+    queries = x.queries
+    # logger.info(f"MultiQuery generated queries: {queries}")
+    return queries
+
+
+retrieval_chain = (
+    RETRIEVAL_PROMPT
+    | chat_model.with_structured_output(MultiQueryRequest)
+    | output_parser
+)
+
+
+# Set up logging for LangChain retrievers
 logging.basicConfig()
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
+
+################################################################
+
 
 ### Build the Graph ####
 graph_builder = StateGraph(MessagesState)
@@ -203,11 +215,11 @@ def retrieve(query: str):
     compressor = CohereRerank(model="rerank-v3.5", top_n=10)
     retriever = MultiQueryRetriever(
         # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
-        # retriever = vector_store.as_retriever(search_type="similarity", k=15)
         retriever=qdrant_vs.as_retriever(search_type="similarity", k=25),
         llm_chain=retrieval_chain,
-        parser_key="lines",
-    )  # "lines" is the key (attribute name) of the parsed output
+        # No parser_key needed - chain returns List[str] directly
+        # include_original=True,  # Include the original query in the list of queries
+    )
 
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=retriever
@@ -219,11 +231,11 @@ def retrieve(query: str):
 
     serialized = "\n\n".join(
         [
-            f"{doc.page_content}\nΠηγή: {doc.metadata['source']}\nΤροποποίηση: {amendment(doc.metadata)}"
+            f"{doc.page_content}\nΠηγή: {doc.metadata['source']}\nΣελίδα: {doc.metadata['page_label']}\nΤροποποίηση: {amendment(doc.metadata)}"
             for doc in retrieved_docs
         ]
     )
-
+    # logger.info(f"Retrieved {retrieved_docs} documents")
     # return tuple(content, artifact)
     return serialized, retrieved_docs
 
@@ -286,7 +298,7 @@ def generate(state: MessagesState):
     system_message_content = (
         ## Persona and Core Task ###
         """You are a professional assistant for question-answering tasks regarding Greek tax laws.
-        Your primary goal is to answer a user's question accurately and helpfully, based *only* on the provided context."""
+        Your primary goal is to answer a user's question accurately and helpfully, based **only** on the provided context."""
         """Always interpret the question as it relates to Greek laws and government decisions. """
         ### Internal Reasoning Process (Do not include in final output) ###
         """ The process you should follow is this:
@@ -312,8 +324,7 @@ def generate(state: MessagesState):
             * When citing an article, you must also include the full title of the law or order.
         4.  **Language:** All responses must be in Greek.
         5. **Multiple Queries Handling:** If the user has asked multiple distinct questions, provide your answer in a numbered list for each topic.
-        6.  **Citations:** At the end of your response, list all sources from the provided context that were used.
-            For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the directory path.
+        6.  **Citations:** list all sources from the provided context that were used in your answer. For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the directory path.
         """
         ### Critical Legal Distinctions ###
         """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions.

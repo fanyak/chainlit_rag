@@ -6,6 +6,20 @@ from typing import List, Optional
 # load_dotenv()
 from pydantic import BaseModel, Field
 
+############# structured content for multiquery ###############
+
+
+class MultiQueryRequest(BaseModel):
+    """A request for multiple queries to be answered."""
+
+    queries: list[str] = Field(
+        ...,
+        description="A list of different versions of the given question.",
+    )
+
+
+#############################################################
+
 ############### structured content for citations ###############
 
 
@@ -66,7 +80,7 @@ def normalize_path(path: str) -> str:
     """normalize path separators for cross-platform consistency.
 
     On Linux, os.path.basename() doesn't recognize backslashes as path separators,
-    so 'dir\\file.pdf' would return the whole string instead of 'file.pdf'.
+    so 'dir\\file.pdf' would return the whole string (dir\\file.pdf) instead of 'file.pdf'.
     This function normalizes backslashes to forward slashes first to ensure
     consistent behavior across platforms.
     """
@@ -119,7 +133,7 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
         for d in docs_metadata
         if (path := manipulate_path(d.get("source", "")))
     }
-    used_artifact_sources = []
+    used_artifact_sources = set()
     for citation in citations:
         found_artifact_path = source_bases_lookup.get(
             os.path.basename(normalize_path(citation.get("full_path_name", "")))
@@ -129,15 +143,17 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
             article_title = citation.get("article_title")
             paragraph_title = citation.get("paragraph_title")
             page = f", σελ. {page_number}" if page_number else ""
-            article = f", άρθρο: {article_title}" if article_title else ""
-            paragraph = f", παράγραφος: {paragraph_title}" if paragraph_title else ""
-            used_artifact_sources.append(
+            article = f", αναφερόμενο άρθρο: {article_title}" if article_title else ""
+            paragraph = (
+                f", παράγραφος κειμένου: {paragraph_title}" if paragraph_title else ""
+            )
+            used_artifact_sources.add(
                 item_fmt.format(
                     f"[{os.path.basename(found_artifact_path)}]({storage_url}{found_artifact_path}) {page}{article}{paragraph}"
                 )
             )
-    artifact_sources_markup = "\n".join(used_artifact_sources)
-    return "### Πηγές: " + artifact_sources_markup
+    artifact_sources_markup = "\n".join([*used_artifact_sources])
+    return "### Πηγές:\n " + artifact_sources_markup
 
 
 def amendment(m):
