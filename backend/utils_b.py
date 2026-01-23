@@ -18,6 +18,24 @@ class MultiQueryRequest(BaseModel):
     )
 
 
+class ClassifyQuery(BaseModel):
+    """Classification of whether a query contains multiple distinct questions."""
+
+    is_complex: bool = Field(
+        ...,
+        description="True if the query contains TWO OR MORE distinct questions about DIFFERENT topics that require separate searches. False for single-topic queries.",
+    )
+
+
+class DecomposedQueries(BaseModel):
+    """Decomposed sub-questions from a complex query."""
+
+    sub_questions: list[str] = Field(
+        ...,
+        description="List of independent sub-questions extracted from the complex query. Each should be a complete, standalone question in Greek.",
+    )
+
+
 #############################################################
 
 ############### structured content for citations ###############

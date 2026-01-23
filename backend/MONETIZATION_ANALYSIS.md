@@ -30,12 +30,39 @@ Based on the flow in `chainlit_b.py`:
 | Input Tokens  | $0.30 / 1M tokens  | ~2,000-5,000 per query |
 | Output Tokens | $2.50 / 1M tokens  | ~300-800 per query     |
 
-**Typical Query Cost Breakdown:**
+**LLM Calls Per Query Pipeline:**
 
-- Assuming average query: 3,000 input tokens, 500 output tokens
-- Input cost: 3,000 × ($0.30 / 1,000,000) = **$0.0009**
-- Output cost: 500 × ($2.50 / 1,000,000) = **$0.00125**
-- **Total LLM cost per query: ~$0.00215 (~€0.002)**
+The RAG pipeline now includes up to 4 LLM calls per user query:
+
+| Step | LLM Call            | Input Tokens | Output Tokens | Purpose                                  |
+| ---- | ------------------- | ------------ | ------------- | ---------------------------------------- |
+| 1    | Classification      | ~200         | ~20           | Determine if query is simple or complex  |
+| 2    | Decomposition\*     | ~300         | ~100          | Split complex queries into sub-questions |
+| 3    | Multi-Query         | ~500         | ~200          | Generate search query variants           |
+| 4    | Response Generation | ~3,000       | ~500          | Generate final answer with citations     |
+
+\*Decomposition only runs for complex queries (~20% of queries)
+
+**Typical Query Cost Breakdown (Simple Query):**
+
+- Classification: 200 input + 20 output tokens
+- Multi-Query: 500 input + 200 output tokens
+- Response Generation: 3,000 input + 500 output tokens
+- **Total: 3,700 input tokens, 720 output tokens**
+- Input cost: 3,700 × ($0.30 / 1,000,000) = **$0.00111**
+- Output cost: 720 × ($2.50 / 1,000,000) = **$0.00180**
+- **Total LLM cost per simple query: ~$0.00291 (~€0.0027)**
+
+**Typical Query Cost Breakdown (Complex Query):**
+
+- Classification: 200 input + 20 output tokens
+- Decomposition: 300 input + 100 output tokens
+- Multi-Query (×2 sub-questions): 1,000 input + 400 output tokens
+- Response Generation: 4,000 input + 700 output tokens
+- **Total: 5,500 input tokens, 1,220 output tokens**
+- Input cost: 5,500 × ($0.30 / 1,000,000) = **$0.00165**
+- Output cost: 1,220 × ($2.50 / 1,000,000) = **$0.00305**
+- **Total LLM cost per complex query: ~$0.0047 (~€0.0043)**
 
 #### Cohere Rerank v3.5
 
@@ -60,11 +87,16 @@ Based on the flow in `chainlit_b.py`:
 
 ### 1.3 Total Cost Per Query (At Cost)
 
-| Component                   | Cost       |
-| --------------------------- | ---------- |
-| Gemini API                  | €0.002     |
-| Cohere Rerank               | €0.001     |
-| **Variable cost per query** | **€0.003** |
+| Component                   | Simple Query | Complex Query |
+| --------------------------- | ------------ | ------------- |
+| Gemini API (Classification) | €0.0003      | €0.0003       |
+| Gemini API (Decomposition)  | -            | €0.0005       |
+| Gemini API (Multi-Query)    | €0.0005      | €0.0010       |
+| Gemini API (Generation)     | €0.0019      | €0.0025       |
+| Cohere Rerank               | €0.001       | €0.001        |
+| **Variable cost per query** | **€0.0037**  | **€0.0053**   |
+
+**Weighted Average** (assuming 80% simple, 20% complex): **~€0.004/query**
 
 ---
 
@@ -113,14 +145,14 @@ total_charge = net_charge + vat_amount  # Final price including VAT
 
 For an average query (3,000 input tokens, 500 output tokens):
 
-| Component                    | Calculation           | Amount       |
-| ---------------------------- | --------------------- | ------------ |
-| Input tokens                 | 3,000 × €0.82/1M      | €0.00246     |
-| Output tokens                | 500 × €6.82/1M        | €0.00341     |
-| Per-query overhead           | Fixed                 | €0.01000     |
-| **Subtotal (net)**           |                       | **€0.01587** |
-| VAT (24%)                    | €0.01587 × 0.24       | €0.00381     |
-| **Total user charge (gross)**|                       | **€0.01968** |
+| Component                     | Calculation      | Amount       |
+| ----------------------------- | ---------------- | ------------ |
+| Input tokens                  | 3,000 × €0.82/1M | €0.00246     |
+| Output tokens                 | 500 × €6.82/1M   | €0.00341     |
+| Per-query overhead            | Fixed            | €0.01000     |
+| **Subtotal (net)**            |                  | **€0.01587** |
+| VAT (24%)                     | €0.01587 × 0.24  | €0.00381     |
+| **Total user charge (gross)** |                  | **€0.01968** |
 
 ---
 
@@ -205,43 +237,70 @@ User Question
      │
      ▼
 ┌─────────────────────────────────────┐
-│ 1. MULTI-QUERY RETRIEVAL            │
-│    - LLM generates 5 query variants │
-│    - Tokens: ~500 input, ~200 output│
-│    - Cost: ~€0.0005 (at markup)     │
+│ 1. QUERY CLASSIFICATION (NEW)       │
+│    - LLM determines simple/complex  │
+│    - Tokens: ~200 input, ~20 output │
+│    - Cost: ~€0.0003 (at cost)       │
 └─────────────────────────────────────┘
      │
-     ▼
-┌─────────────────────────────────────┐
-│ 2. HYBRID SEARCH (Qdrant)           │
-│    - Dense + Sparse vectors         │
-│    - Retrieves top 20 documents     │
-│    - Cost: Included in Qdrant sub   │
-└─────────────────────────────────────┘
+     ├──────────────────┬──────────────────┐
+     │ Simple Query     │ Complex Query    │
+     ▼                  ▼                  │
+     │    ┌─────────────────────────────┐  │
+     │    │ 2a. DECOMPOSITION (NEW)    │  │
+     │    │    - Split into sub-queries │  │
+     │    │    - Tokens: ~300 in, ~100 out│
+     │    │    - Cost: ~€0.0005 (at cost)│ │
+     │    └─────────────────────────────┘  │
+     │                  │                  │
+     │                  ▼                  │
+     │    ┌─────────────────────────────┐  │
+     │    │ 2b. EMIT MULTI TOOL CALLS  │  │
+     │    │    - Create tool call per   │  │
+     │    │      sub-question           │  │
+     │    └─────────────────────────────┘  │
+     │                  │                  │
+     ▼                  ▼                  │
+┌─────────────────────────────────────────┐
+│ 3. MULTI-QUERY RETRIEVAL                │
+│    - LLM generates 5 query variants     │
+│      (per sub-question if complex)      │
+│    - Tokens: ~500 input, ~200 output    │
+│    - Cost: ~€0.0005-0.0010 (at cost)    │
+└─────────────────────────────────────────┘
      │
      ▼
-┌─────────────────────────────────────┐
-│ 3. COHERE RERANK                    │
-│    - Reranks to top 10 documents    │
-│    - Cost: ~€0.001 per query        │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ 4. HYBRID SEARCH (Qdrant)               │
+│    - Dense + Sparse vectors             │
+│    - Retrieves top 25 documents         │
+│    - Deduplication for complex queries  │
+│    - Cost: Included in Qdrant sub       │
+└─────────────────────────────────────────┘
      │
      ▼
-┌─────────────────────────────────────┐
-│ 4. RESPONSE GENERATION              │
-│    - System prompt + context + Q    │
-│    - Tokens: ~2000-4000 input       │
-│    - Tokens: ~300-800 output        │
-│    - Cost: ~€0.005 (at markup)      │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ 5. COHERE RERANK                        │
+│    - Reranks to top 10-15 documents     │
+│    - Cost: ~€0.001 per query            │
+└─────────────────────────────────────────┘
      │
      ▼
-┌─────────────────────────────────────┐
-│ 5. BILLING                          │
-│    - Token charge + €0.01 overhead  │
-│    - Deduct from user balance       │
-│    - Log to database                │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ 6. RESPONSE GENERATION                  │
+│    - System prompt + context + Q        │
+│    - Tokens: ~3000-4000 input           │
+│    - Tokens: ~500-700 output            │
+│    - Cost: ~€0.0019-0.0025 (at cost)    │
+└─────────────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────────────┐
+│ 7. BILLING                              │
+│    - Token charge + €0.012 overhead     │
+│    - Deduct from user balance           │
+│    - Log to database                    │
+└─────────────────────────────────────────┘
 ```
 
 ### Token Usage Tracking
@@ -261,7 +320,8 @@ The following can be configured in production:
 ```bash
 # Pricing configuration
 PROFIT_MARGIN=3.0              # Markup multiplier (default: 3x)
-PER_QUERY_OVERHEAD=0.01        # Per-query fee in EUR (default: €0.01)
+PER_QUERY_OVERHEAD=0.012       # Per-query fee in EUR (default: €0.012)
+                               # Covers: Cohere rerank + extra LLM calls overhead
 CHARGE_PER_INPUT_TOKEN=0.0    # Override input rate (optional)
 CHARGE_PER_OUTPUT_TOKEN=0.0   # Override output rate (optional)
 
@@ -308,16 +368,16 @@ MODEL_NAME=gemini-2.5-flash    # LLM model to use
 
 ### Pricing at a Glance
 
-| Metric                              | Value            |
-| ----------------------------------- | ---------------- |
-| Markup multiplier                   | 3.0x             |
-| Per-query overhead                  | €0.01            |
-| VAT rate                            | 24%              |
-| Avg cost to you per query           | €0.003           |
-| Avg charge to user (net, excl. VAT) | €0.016           |
-| Avg charge to user (gross, incl. VAT)| €0.020          |
-| Gross margin (on net revenue)       | ~81%             |
-| Break-even (medium costs)           | ~260 queries/day |
+| Metric                                | Value            |
+| ------------------------------------- | ---------------- |
+| Markup multiplier                     | 3.0x             |
+| Per-query overhead                    | €0.012           |
+| VAT rate                              | 24%              |
+| Avg cost to you per query             | €0.004           |
+| Avg charge to user (net, excl. VAT)   | €0.024           |
+| Avg charge to user (gross, incl. VAT) | €0.030           |
+| Gross margin (on net revenue)         | ~83%             |
+| Break-even (medium costs)             | ~170 queries/day |
 
 ### Key Files
 

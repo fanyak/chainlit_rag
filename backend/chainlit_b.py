@@ -12,6 +12,7 @@ import os
 import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
+from uuid import uuid4
 
 # REF: https://docs.langchain.com/oss/python/langgraph/agentic-rag
 # LangChain imports
@@ -27,6 +28,7 @@ from langchain_cohere import CohereRerank
 
 # from langchain_core.prompts import ChatPromptTemplate # Added this line
 from langchain_core.callbacks import UsageMetadataCallbackHandler
+from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.messages.ai import UsageMetadata
 from langchain_core.prompts import PromptTemplate
@@ -42,7 +44,7 @@ from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 
 # from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.graph import END, MessagesState, StateGraph
+from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient, models
 
@@ -59,6 +61,8 @@ from override_provider import override_providers
 from user_token import db_object
 from utils_b import (
     AnswerWithCitations,
+    ClassifyQuery,
+    DecomposedQueries,
     MultiQueryRequest,
     amendment,
     parse_links_to_markdown,
@@ -130,7 +134,9 @@ chat_model = init_chat_model(
     # response_mime_type = "application/json",
 )
 
-# TODO: add metadata filtering for vector store: https://docs.langchain.com/oss/python/integrations/vectorstores/qdrant#metadata-filtering
+# Qdrant
+
+# TODO: add metadata filtering for vector store? : https://docs.langchain.com/oss/python/integrations/vectorstores/qdrant#metadata-filtering
 sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
 
 qdrant_client = QdrantClient(
@@ -152,8 +158,119 @@ qdrant_vs = QdrantVectorStore(
     sparse_vector_name="sparse",
     distance=models.Distance.DOT,
 )
+####################### extend Messages State ###########################
 
-##### MULTI QUERY ######
+
+class State(MessagesState):
+    sub_questions: List[str]
+
+
+####################### Classification ###########################
+
+
+# Classification prompt
+CLASSIFICATION_PROMPT = PromptTemplate(
+    input_variables=["question"],
+    template="""Analyze this Greek tax law question and determine if it contains MULTIPLE DISTINCT questions about DIFFERENT topics.
+
+CLASSIFY AS COMPLEX (is_complex=True) ONLY IF:
+- The query contains TWO OR MORE questions about COMPLETELY DIFFERENT tax topics
+- Each sub-question would require searching for DIFFERENT documents
+- Examples of COMPLEX queries:
+  * "Ποιος είναι ο φόρος μερισμάτων και ποιο είναι το αφορολόγητο όριο;" (dividends AND tax-free threshold = 2 different topics)
+  * "Υποχρεούμαστε να πληρώνουμε εκτός έδρας αποζημίωση στους πωλητές μας που ταξιδεύουν για δουλειά? Επίσης αν κάποιος ταξιδεύει σε ημέρα εργασίας, οι ώρες του ταξιδιού λογίζονται ώρες υπερεργασίας και υπερωρίας?" (compensation for field work for travelling salesman and overtime compensation for long travels = 2 different kinds of compensation = 2 different topics)
+
+CLASSIFY AS SIMPLE (is_complex=False) IF:
+- The query is about ONE topic, even if phrased in a complex way
+- The query asks for multiple aspects of the SAME topic
+- Examples of SIMPLE queries:
+  * "Ποιος είναι ο συντελεστής φόρου μερισμάτων για φυσικά πρόσωπα το 2024;" (one topic: dividend tax rate)
+  * "Πώς φορολογούνται τα μερίσματα και ποιες εκπτώσεις ισχύουν;" (one topic: dividend taxation with related deductions)
+
+Question: {question}
+""",
+)
+
+classification_chain = CLASSIFICATION_PROMPT | chat_model.with_structured_output(
+    ClassifyQuery
+)
+
+
+def classify_query(state: State, config: RunnableConfig) -> bool:
+    """Classify whether the query is complex or simple."""
+
+    state["sub_questions"] = []  # clear previous sub_questions
+
+    classification: ClassifyQuery = classification_chain.invoke(
+        {"question": state["messages"][-1].content},
+        config=config,  # Pass config to capture token usage
+    )
+    logger.info(f"Query classification: {classification}")
+    return classification.is_complex
+
+
+###############################################################
+
+
+####################### Decomposition ###########################
+# Decomposition prompt
+DECOMPOSITION_PROMPT = PromptTemplate(
+    input_variables=["question"],
+    template="""You are a Greek tax law expert. Break down this complex question into separate, independent sub-questions.
+
+Each sub-question should:
+1. Be a complete, standalone question in Greek
+2. Focus on ONE specific topic that requires its own document search
+3. Preserve the context and timeframe from the original question
+
+Original question: {question}
+
+Extract the distinct sub-questions. Do NOT rephrase or create variations - just separate the original topics.""",
+)
+
+decomposition_chain = DECOMPOSITION_PROMPT | chat_model.with_structured_output(
+    DecomposedQueries
+)
+
+
+def decompose_query(state: State, config: RunnableConfig):
+    """Decompose a complex query into independent sub-questions."""
+    decomposition: DecomposedQueries = decomposition_chain.invoke(
+        {"question": state["messages"][-1].content},
+        config=config,  # Pass config to capture token usage
+    )
+    logger.info(f"Decomposed sub-questions: {decomposition.sub_questions}")
+    return {"sub_questions": decomposition.sub_questions}
+
+
+def emit_multi_tool_calls(state: State) -> dict:
+    # Create one tool call per subquery
+    tool_calls = [
+        {
+            "name": "retrieve",  # must match the tool's name
+            "args": {"query": sq},  # must match tool schema
+            "id": str(uuid4()),  # unique per call
+        }
+        for sq in state["sub_questions"]
+    ]
+
+    # ToolNode looks at the LAST AIMessage.tool_calls
+    return {"messages": [AIMessage(content="", tool_calls=tool_calls)]}
+
+
+def deduplicate_docs(docs) -> list[Document]:
+    """Deduplicate documents by page_content."""
+    seen = set()
+    unique = []
+    for doc in docs:
+        content_hash = hash(doc.page_content)
+        if content_hash not in seen:
+            seen.add(content_hash)
+            unique.append(doc)
+    return unique
+
+
+####################### MULTI QUERY: Different Perspectives ######
 current_date = datetime.now().strftime("%B,%Y")
 
 
@@ -169,10 +286,7 @@ RETRIEVAL_PROMPT = PromptTemplate(
     + current_date
     + """ You must identify all relevant dates in the user's query and the provided context, including the current date.
     For a query about a specific effective period or expiration date, compare it against the current date."""
-    """If there are multiple distinct queries in the question or if the user's question can be broken-down to two or more distinct sub-queries, you must generate three different versions in Greek for each of these sub-queries."""
-    """ Otherwise, if the user asked one specific question and if the question cannot be broken-down to more than one sub-query, you must generate five different versions in Greek for the original query."""
-    """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved."""
-    """ You **must provide these alternative questions separated by newlines**.
+    """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved.    
     Original question: {question}""",
 )
 
@@ -203,7 +317,7 @@ logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
 
 ### Build the Graph ####
-graph_builder = StateGraph(MessagesState)
+graph_builder = StateGraph(State)
 
 
 @tool(response_format="content_and_artifact")
@@ -228,6 +342,7 @@ def retrieve(query: str):
     # Results
     # retrieved_docs = retriever.invoke(query)
     retrieved_docs = compression_retriever.invoke(query)
+    retrieved_docs = deduplicate_docs(retrieved_docs)
 
     serialized = "\n\n".join(
         [
@@ -245,11 +360,12 @@ def retrieve(query: str):
 
 
 # *Step 1*: Generate an AIMessage that may include a tool-call to be sent.
-def query_or_respond(state: MessagesState):
+def query_or_respond(state: State):
     """
     Generate tool call for retrieval or respond.
     We force tool calling by using tool_choice="retrieve"!!!!
     """
+
     # The LLM generates an AIMessage with tool_calls metadata,
     # but does not execute the tool here!! !
 
@@ -267,11 +383,11 @@ def query_or_respond(state: MessagesState):
 # Takes the AIMessage with tool_calls from step 1 as input
 # Runs the retrieve() function with the extracted arguments
 # Returns a ToolMessage with the results
-tools = ToolNode([retrieve])
+retrieve_node = ToolNode([retrieve])
 
 
 # *Step 3*: Generate a response using the retrieved content.
-def generate(state: MessagesState):
+def generate(state: State):
     """Generate answer."""
     # Get generated ToolMessages
     recent_tool_messages = []
@@ -372,14 +488,21 @@ def generate(state: MessagesState):
     }
 
 
-graph_builder.add_node(query_or_respond)
-graph_builder.add_node(tools)
-graph_builder.add_node(generate)
+graph_builder.add_node("query_or_respond", query_or_respond)
+graph_builder.add_node("retrieve", retrieve_node)
+graph_builder.add_node("emit_multi_tool_calls", emit_multi_tool_calls)
+graph_builder.add_node("decompose_query", decompose_query)
+graph_builder.add_node("generate", generate)
 
-graph_builder.set_entry_point("query_or_respond")
+# graph_builder.set_entry_point("classify_query")
 
-graph_builder.add_edge("query_or_respond", "tools")
-graph_builder.add_edge("tools", "generate")
+graph_builder.add_conditional_edges(
+    START, classify_query, {True: "decompose_query", False: "query_or_respond"}
+)
+graph_builder.add_edge("query_or_respond", "retrieve")
+graph_builder.add_edge("decompose_query", "emit_multi_tool_calls")
+graph_builder.add_edge("emit_multi_tool_calls", "retrieve")
+graph_builder.add_edge("retrieve", "generate")
 graph_builder.add_edge("generate", END)
 
 
@@ -737,9 +860,17 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     #   - Input tokens: $0.30 per 1M tokens
     #   - Output tokens: $2.50 per 1M tokens
     #
+    # LLM calls per query (up to 4):
+    #   1. Classification (~200 input, ~20 output) - always
+    #   2. Decomposition (~300 input, ~100 output) - complex queries only
+    #   3. Multi-Query expansion (~500 input, ~200 output per sub-query)
+    #   4. Response generation (~3000-4000 input, ~500-700 output)
+    #
     # Markup: 3x to cover infrastructure + profit margin
-    # Per-query overhead: €0.01 to cover Cohere reranking (~€0.001/search)
-    #   + Qdrant hosting + GCS storage + compute overhead
+    # Per-query overhead: €0.012 to cover:
+    #   - Cohere reranking (~€0.001/search)
+    #   - Classification & decomposition LLM overhead (~€0.001)
+    #   - Qdrant hosting + GCS storage + compute overhead
     # VAT: 24% (Greek standard rate) - applied to total charge
     # ================================================================
     units = 1000000  # tokens per million
@@ -747,8 +878,8 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # Profit margin multiplier (3x = 200% gross margin)
     PROFIT_MARGIN = float(os.environ.get("PROFIT_MARGIN", 3.0))
 
-    # Per-query overhead for retrieval services (Cohere, Qdrant, GCS, etc.)
-    PER_QUERY_OVERHEAD = float(os.environ.get("PER_QUERY_OVERHEAD", 0.01))  # €0.01 per query
+    # Per-query overhead for retrieval services (Cohere, classification, decomposition, Qdrant, GCS, etc.)
+    PER_QUERY_OVERHEAD = float(os.environ.get("PER_QUERY_OVERHEAD", 0.012))  # €0.012 per query
 
     # VAT rate (Greek standard rate: 24%)
     VAT_RATE = float(os.environ.get("VAT_RATE", 0.24))  # 24% VAT
