@@ -54,11 +54,11 @@ class Citation(BaseModel):
     )
     article_title: Optional[str] = Field(
         ...,
-        description="The number and title of the specific article being cited from a legal document. Use None if not applicable.",
+        description="The number and title of the specific article being cited from a legal document. Use empty string if not applicable.",
     )
     paragraph_title: Optional[str] = Field(
         ...,
-        description="The title of the paragraph being cited, if it exists in the context, otherwise None.",
+        description="The title of the paragraph being cited, if it exists in the context, otherwise empty string.",
     )
 
 

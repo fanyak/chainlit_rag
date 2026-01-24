@@ -160,6 +160,8 @@ qdrant_vs = QdrantVectorStore(
 )
 ####################### extend Messages State ###########################
 
+# subclass MessagesState to add custom fields
+
 
 class State(MessagesState):
     sub_questions: List[str]
@@ -171,21 +173,21 @@ class State(MessagesState):
 # Classification prompt
 CLASSIFICATION_PROMPT = PromptTemplate(
     input_variables=["question"],
-    template="""Analyze this Greek tax law question and determine if it contains MULTIPLE DISTINCT questions about DIFFERENT topics.
+    template="""You are an expert at Greek laws. Analyze this Greek law question and determine if it contains MULTIPLE DISTINCT questions.
 
 CLASSIFY AS COMPLEX (is_complex=True) ONLY IF:
-- The query contains TWO OR MORE questions about COMPLETELY DIFFERENT tax topics
-- Each sub-question would require searching for DIFFERENT documents
+- The query contains TWO OR MORE questions that can be answered in isolation with separate vector searches.
+- A vector search for the input query would be more effective if the query were split into separate, independent sub-questions
 - Examples of COMPLEX queries:
   * "Ποιος είναι ο φόρος μερισμάτων και ποιο είναι το αφορολόγητο όριο;" (dividends AND tax-free threshold = 2 different topics)
   * "Υποχρεούμαστε να πληρώνουμε εκτός έδρας αποζημίωση στους πωλητές μας που ταξιδεύουν για δουλειά? Επίσης αν κάποιος ταξιδεύει σε ημέρα εργασίας, οι ώρες του ταξιδιού λογίζονται ώρες υπερεργασίας και υπερωρίας?" (compensation for field work for travelling salesman and overtime compensation for long travels = 2 different kinds of compensation = 2 different topics)
 
 CLASSIFY AS SIMPLE (is_complex=False) IF:
 - The query is about ONE topic, even if phrased in a complex way
-- The query asks for multiple aspects of the SAME topic
+- The query asks for multiple aspects of the SAME topic and these aspects can be answered based on the SAME document search
 - Examples of SIMPLE queries:
   * "Ποιος είναι ο συντελεστής φόρου μερισμάτων για φυσικά πρόσωπα το 2024;" (one topic: dividend tax rate)
-  * "Πώς φορολογούνται τα μερίσματα και ποιες εκπτώσεις ισχύουν;" (one topic: dividend taxation with related deductions)
+  * "Πώς φορολογούνται τα μερίσματα και ποιες εκπτώσεις ισχύουν;" (one topic: dividend taxation with related deductions that can be answered from same document search)
 
 Question: {question}
 """,
@@ -244,6 +246,11 @@ def decompose_query(state: State, config: RunnableConfig):
 
 
 def emit_multi_tool_calls(state: State) -> dict:
+    """
+    AI Messages can contain multiple tool calls.
+    Then, Tool messages are used to pass the results of a single tool execution back to the model.
+    REF: https://docs.langchain.com/oss/python/langchain/messages#tool-message
+    """
     # Create one tool call per subquery
     tool_calls = [
         {
@@ -316,13 +323,25 @@ logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 ################################################################
 
 
-### Build the Graph ####
+### Instatiate the Graph ####
 graph_builder = StateGraph(State)
+
+# create the retriever tool to be executed within the graph
 
 
 @tool(response_format="content_and_artifact")
 def retrieve(query: str):
-    """Retrieve information related to a query."""
+    """Tool Execution to Retrieve and Rank information related to a query.
+    args: query: str - The user query to retrieve documents for.
+    returns: Tuple (
+    content: str - The concatenated content of the retrieved documents.
+    artifact: list[Document] - The list of  retrieved raw Document objects.
+    )
+    The returned artifact field stores supplementary data
+     that **will not be sent to the model ** but can be accessed programmatically.
+    This is useful for storing raw results, debugging information,
+    or data for downstream processing without cluttering the model's context
+    """
     # Chohere Reranker
     # https://dashboard.cohere.com/api-keys
     # https://docs.cohere.com/docs/rerank-overview#multilingual-reranking
@@ -350,7 +369,9 @@ def retrieve(query: str):
             for doc in retrieved_docs
         ]
     )
+
     # logger.info(f"Retrieved {retrieved_docs} documents")
+
     # return tuple(content, artifact)
     return serialized, retrieved_docs
 
@@ -359,10 +380,10 @@ def retrieve(query: str):
 # from google.genai import types
 
 
-# *Step 1*: Generate an AIMessage that may include a tool-call to be sent.
+# *Step 1*: Generate an AIMessage that must include a tool-call to be sent.
 def query_or_respond(state: State):
     """
-    Generate tool call for retrieval or respond.
+    Generate AI messages with a tool call for retrieval.
     We force tool calling by using tool_choice="retrieve"!!!!
     """
 
@@ -386,10 +407,11 @@ def query_or_respond(state: State):
 retrieve_node = ToolNode([retrieve])
 
 
-# *Step 3*: Generate a response using the retrieved content.
+# *Step 3*: Generate a response using the retrieved content from the tool calls.
 def generate(state: State):
-    """Generate answer."""
-    # Get generated ToolMessages
+    """Generate answer USING THE RESULT OF ALL TOOL CALLS AFTER LAST AI MESSAGE."""
+
+    # Get all generated ToolMessages up to last AIMessage that called  the tools
     recent_tool_messages = []
     for message in reversed(state["messages"]):
         if message.type == "tool":
@@ -440,7 +462,7 @@ def generate(state: State):
             * When citing an article, you must also include the full title of the law or order.
         4.  **Language:** All responses must be in Greek.
         5. **Multiple Queries Handling:** If the user has asked multiple distinct questions, provide your answer in a numbered list for each topic.
-        6.  **Citations:** list all sources from the provided context that were used in your answer. For each source, you must include the specific page and file name. Always use the complete file name, including the extension and the directory path.
+        6.  **Citations:** list all sources from the provided context that were used in your answer. For each source, you must include the specific page and file name. **Always use the complete file name of the source**, including the extension and the directory path.
         """
         ### Critical Legal Distinctions ###
         """IMPORTANT: Pay careful attention to the legal terminology used in the query and to specific legal distinctions.
@@ -729,6 +751,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         return
 
     # Create a NEW callback for each turn only
+    # An AIMessage can hold token counts and other usage metadata in its [usage_metadata] field:
     cb = UsageMetadataCallbackHandler()
 
     # fmt: off
