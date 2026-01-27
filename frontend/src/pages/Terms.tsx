@@ -87,7 +87,7 @@ export default function Terms() {
               <strong> tokens</strong> που καταναλώνονται από το μοντέλο AI,
               καθώς και ένα πάγιο κόστος ανά ερώτημα για την κάλυψη λειτουργικών
               εξόδων (αναζήτηση εγγράφων, αποθήκευση, υποδομή). Η εφαρμογή
-              χρησιμοποιεί το μοντέλο <strong>Gemini 2.5 flash</strong>. Το ποσό
+              χρησιμοποιεί το μοντέλο <strong>Gemini 3 flash</strong>. Το ποσό
               που αντιστοιχεί σε κάθε ερώτημα αφαιρείται από το υπόλοιπο που
               έχετε στο λογαριασμό σας.
             </p>
@@ -95,7 +95,7 @@ export default function Terms() {
             <ul>
               <li>
                 <strong>Κόστος tokens:</strong> Υπολογίζεται με βάση την
-                τιμολόγηση της Google για το μοντέλο Gemini 2.5 flash, με
+                τιμολόγηση της Google για το μοντέλο Gemini 3 flash, με
                 προσαύξηση για την κάλυψη λειτουργικών εξόδων και υπηρεσιών.
               </li>
               <li>
@@ -107,10 +107,10 @@ export default function Terms() {
             <p>
               Μπορείτε να δείτε την αναλυτική τιμολόγηση της Google εδώ:{' '}
               <a
-                href="https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash"
+                href="https://ai.google.dev/gemini-api/docs/pricing#gemini-3-flash"
                 target="_blank"
               >
-                https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash
+                https://ai.google.dev/gemini-api/docs/pricing#gemini-3-flash
               </a>
             </p>
             <p>

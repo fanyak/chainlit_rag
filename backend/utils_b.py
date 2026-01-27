@@ -1,10 +1,23 @@
 import os
 import re
-from typing import List, Optional
+from typing import List, NotRequired, Optional, TypedDict
+
+from langchain_core.documents import Document
 
 # from dotenv import load_dotenv
 # load_dotenv()
 from pydantic import BaseModel, Field
+
+from keyword_mapping import keyword_mappings
+
+
+class GlossaryTerm(TypedDict):
+    """A glossary term with its definition."""
+
+    term: str
+    definition: str
+    distinction: NotRequired[str]
+
 
 ############# structured content for multiquery ###############
 
@@ -176,3 +189,47 @@ def parse_links_to_markdown(citations: List[dict], docs_metadata: List[dict]) ->
 
 def amendment(m):
     return m.get("trapped", "") if m.get("trapped", "") != "/False" else ""
+
+
+def deduplicate_docs(docs) -> list[Document]:
+    """Deduplicate documents by page_content."""
+    seen = set()
+    unique = []
+    for doc in docs:
+        content_hash = hash(doc.page_content)
+        if content_hash not in seen:
+            seen.add(content_hash)
+            unique.append(doc)
+    return unique
+
+
+def get_relevant_glossary_terms(query: str, glossary: list[GlossaryTerm]) -> str:
+    """
+    Find glossary terms relevant to the user's query.
+    Returns formatted definitions for injection into context.
+    """
+    query_lower = query.lower()
+    relevant_terms = []
+
+    # Find matching terms based on keywords
+    matched_terms = set()
+    for keyword, terms in keyword_mappings.items():
+        if keyword in query_lower:
+            matched_terms.update(terms)
+
+    # Build the glossary context
+    if matched_terms:
+        for item in glossary:
+            if item["term"] in matched_terms:
+                entry = f"**{item['term']}**: {item['definition']}"
+                if "distinction" in item:
+                    entry += f" ΔΙΑΚΡΙΣΗ: {item['distinction']}"
+                relevant_terms.append(entry)
+
+    if relevant_terms:
+        return (
+            "\n\n### ΓΛΩΣΣΑΡΙΟ ΟΡΩΝ ###\n"
+            + "\n\n".join(relevant_terms)
+            + "\n### ΤΕΛΟΣ ΓΛΩΣΣΑΡΙΟΥ ###\n"
+        )
+    return ""

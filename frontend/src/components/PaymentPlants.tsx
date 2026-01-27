@@ -128,7 +128,7 @@ function PaymentPlants({
           <li>
             {' '}
             <strong>Βασικό κόστος tokens:</strong> Υπολογίζεται με βάση την
-            τιμολόγηση του μοντέλου AI (Gemini 2.5 flash) για τα tokens που
+            τιμολόγηση του μοντέλου AI (Gemini 3 flash) για τα tokens που
             καταναλώνονται σε κάθε ερώτημα.
           </li>
           <li>

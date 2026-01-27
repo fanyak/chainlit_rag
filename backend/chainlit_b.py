@@ -18,23 +18,28 @@ from uuid import uuid4
 # LangChain imports
 from langchain.chat_models import init_chat_model
 
+# from langchain_core.prompts import ChatPromptTemplate # Added this line
+# from langchain_core.callbacks import UsageMetadataCallbackHandler
+from langchain.messages import (
+    AIMessage,
+    AIMessageChunk,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
+from langchain.tools import tool
+
 # from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 # from langchain.retrievers.document_compressors import CrossEncoderReranker
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_classic.retrievers import ContextualCompressionRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 
 # from langchain_community.llms import Cohere
 from langchain_cohere import CohereRerank
-
-# from langchain_core.prompts import ChatPromptTemplate # Added this line
-from langchain_core.callbacks import UsageMetadataCallbackHandler
-from langchain_core.documents import Document
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.messages.ai import UsageMetadata
 from langchain_core.prompts import PromptTemplate
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -44,6 +49,7 @@ from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 
 # from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient, models
@@ -54,7 +60,6 @@ from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.gcs import GCSStorageClient
 from chainlit.logger import db_logger
 from chainlit.user import PersistedUser
-from keyword_mapping import keyword_mappings
 
 # custom modules
 from override_provider import override_providers
@@ -65,6 +70,8 @@ from utils_b import (
     DecomposedQueries,
     MultiQueryRequest,
     amendment,
+    deduplicate_docs,
+    get_relevant_glossary_terms,
     parse_links_to_markdown,
 )
 
@@ -72,39 +79,6 @@ from utils_b import (
 GLOSSARY_PATH = os.path.join(os.path.dirname(__file__), "glossary.json")
 with open(GLOSSARY_PATH, encoding="utf-8") as f:
     glossary = json.load(f)
-
-
-def get_relevant_glossary_terms(query: str) -> str:
-    """
-    Find glossary terms relevant to the user's query.
-    Returns formatted definitions for injection into context.
-    """
-    query_lower = query.lower()
-    relevant_terms = []
-
-    # Find matching terms based on keywords
-    matched_terms = set()
-    for keyword, terms in keyword_mappings.items():
-        if keyword in query_lower:
-            matched_terms.update(terms)
-
-    # Build the glossary context
-    if matched_terms:
-        for item in glossary:
-            if item["term"] in matched_terms:
-                entry = f"**{item['term']}**: {item['definition']}"
-                if "distinction" in item:
-                    entry += f" ΔΙΑΚΡΙΣΗ: {item['distinction']}"
-                relevant_terms.append(entry)
-
-    if relevant_terms:
-        return (
-            "\n\n### ΓΛΩΣΣΑΡΙΟ ΟΡΩΝ ###\n"
-            + "\n\n".join(relevant_terms)
-            + "\n### ΤΕΛΟΣ ΓΛΩΣΣΑΡΙΟΥ ###\n"
-        )
-    return ""
-
 
 # Gemma
 
@@ -123,14 +97,16 @@ rate_limiter = InMemoryRateLimiter(
     # max_bucket_size=10,  # Controls the maximum burst size.
 )
 
+# REF: https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai
+# REF: https://ai.google.dev/gemini-api/docs/structured-output?example=recipe
 chat_model = init_chat_model(
-    os.environ.get("MODEL_NAME", "gemini-2.5-flash"),
+    os.environ.get("MODEL_NAME", "gemini-3-flash-preview"),
     model_provider="google_genai",
     temperature=0,
-    rate_limiter=rate_limiter,
-    model_kwargs={"stream_usage": True},
-    thinking_budget=512,  # see cot in config.toml
-    # max_tokens = 512, ################## limit tokens
+    rate_limiter=rate_limiter,  # limit tokens
+    model_kwargs={"stream": True},
+    thinking_level="low",  # "low" latency mode
+    max_tokens=None,
     # response_mime_type = "application/json",
 )
 
@@ -194,7 +170,7 @@ Question: {question}
 )
 
 classification_chain = CLASSIFICATION_PROMPT | chat_model.with_structured_output(
-    ClassifyQuery
+    schema=ClassifyQuery.model_json_schema(), method="json_schema"
 )
 
 
@@ -208,7 +184,7 @@ def classify_query(state: State, config: RunnableConfig) -> bool:
         config=config,  # Pass config to capture token usage
     )
     logger.info(f"Query classification: {classification}")
-    return classification.is_complex
+    return classification["is_complex"]
 
 
 ###############################################################
@@ -231,18 +207,18 @@ Extract the distinct sub-questions. Do NOT rephrase or create variations - just 
 )
 
 decomposition_chain = DECOMPOSITION_PROMPT | chat_model.with_structured_output(
-    DecomposedQueries
+    schema=DecomposedQueries.model_json_schema(), method="json_schema"
 )
 
 
-def decompose_query(state: State, config: RunnableConfig):
+def decompose_query(state: State, config: RunnableConfig) -> dict:
     """Decompose a complex query into independent sub-questions."""
     decomposition: DecomposedQueries = decomposition_chain.invoke(
         {"question": state["messages"][-1].content},
         config=config,  # Pass config to capture token usage
     )
-    logger.info(f"Decomposed sub-questions: {decomposition.sub_questions}")
-    return {"sub_questions": decomposition.sub_questions}
+    logger.info(f"Decomposed sub-questions: {decomposition['sub_questions']}")
+    return {"sub_questions": decomposition["sub_questions"]}
 
 
 def emit_multi_tool_calls(state: State) -> dict:
@@ -265,18 +241,6 @@ def emit_multi_tool_calls(state: State) -> dict:
     return {"messages": [AIMessage(content="", tool_calls=tool_calls)]}
 
 
-def deduplicate_docs(docs) -> list[Document]:
-    """Deduplicate documents by page_content."""
-    seen = set()
-    unique = []
-    for doc in docs:
-        content_hash = hash(doc.page_content)
-        if content_hash not in seen:
-            seen.add(content_hash)
-            unique.append(doc)
-    return unique
-
-
 ####################### MULTI QUERY: Different Perspectives ######
 current_date = datetime.now().strftime("%B,%Y")
 
@@ -293,7 +257,7 @@ RETRIEVAL_PROMPT = PromptTemplate(
     + current_date
     + """ You must identify all relevant dates in the user's query and the provided context, including the current date.
     For a query about a specific effective period or expiration date, compare it against the current date."""
-    """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved.    
+    """ When you generate each alternative question you must take into consideration today's date so that the most recent information from the vector datatabase is retrieved.
     Original question: {question}""",
 )
 
@@ -304,14 +268,16 @@ RETRIEVAL_PROMPT = PromptTemplate(
 
 def output_parser(x: MultiQueryRequest) -> List[str]:
     """Extract the list directly from the Pydantic model"""
-    queries = x.queries
+    queries = x["queries"]
     # logger.info(f"MultiQuery generated queries: {queries}")
     return queries
 
 
 retrieval_chain = (
     RETRIEVAL_PROMPT
-    | chat_model.with_structured_output(MultiQueryRequest)
+    | chat_model.with_structured_output(
+        schema=MultiQueryRequest.model_json_schema(), method="json_schema"
+    )
     | output_parser
 )
 
@@ -411,6 +377,7 @@ retrieve_node = ToolNode([retrieve])
 def generate(state: State):
     """Generate answer USING THE RESULT OF ALL TOOL CALLS AFTER LAST AI MESSAGE."""
 
+    writer = get_stream_writer()
     # Get all generated ToolMessages up to last AIMessage that called  the tools
     recent_tool_messages = []
     for message in reversed(state["messages"]):
@@ -431,7 +398,7 @@ def generate(state: State):
             break
 
     # Selective glossary injection based on query
-    glossary_context = get_relevant_glossary_terms(user_question)
+    glossary_context = get_relevant_glossary_terms(user_question, glossary)
 
     system_message_content = (
         ## Persona and Core Task ###
@@ -484,15 +451,19 @@ def generate(state: State):
     conversation_messages = [
         message
         for message in state["messages"]
-        if message.type in ("human", "system")
+        if message.type in ("human")
         or (message.type == "ai" and not message.tool_calls)
     ]
     prompt = [SystemMessage(system_message_content)] + conversation_messages
 
     # Run
-    response: AnswerWithCitations = chat_model.with_structured_output(
-        AnswerWithCitations
-    ).invoke(prompt)
+    # response: AnswerWithCitations = chat_model.with_structured_output(
+    #     schema=AnswerWithCitations.model_json_schema(), method="json_schema"
+    # ).invoke(prompt)
+
+    response: iter[AnswerWithCitations] = chat_model.with_structured_output(
+        schema=AnswerWithCitations.model_json_schema(), method="json_schema"
+    ).stream(prompt)
 
     # TOKEN USAGE
     # print("\nUsage Metadata:")
@@ -500,11 +471,24 @@ def generate(state: State):
     ############
 
     # again, this appends to MessagesState instead of overwriting
+    # return {
+    #     "messages": [
+    #         AIMessage(
+    #             content=response["answer"],
+    #             citations=[citation.model_dump()
+    #                        for citation in response["citations"]],
+    #         )
+    #     ]
+    final_response = {}
+    for chunk in response:
+        writer(chunk)  # Forward to graph stream
+        final_response.update(chunk)  # Accumulate
+
     return {
         "messages": [
             AIMessage(
-                content=response.answer,
-                citations=[citation.model_dump() for citation in response.citations],
+                content=final_response.get("answer", ""),
+                citations=final_response.get("citations", []),
             )
         ]
     }
@@ -661,7 +645,8 @@ def oauth_callback(
 # Each cl.user_session is unique to a user AND a given chat session!!!
 @cl.on_chat_resume  # type: ignore[attr-defined]
 @cl.on_chat_start  # type: ignore[has-type]
-async def on_chat_start():
+# type: ignore[name-defined]
+async def on_chat_start(thread_id: Optional[str] = None):
     # 1. Get the authenticated user and their ID
     """
     If the chainlit jwt for the user_session_timeout (which defaults to 15 days), is not expired,
@@ -750,9 +735,11 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         await print_insufficient_balance_message()
         return
 
+    user = cl.user_session.get("user")  # type: ignore[attr-defined]
+    user_id = user.identifier
     # Create a NEW callback for each turn only
     # An AIMessage can hold token counts and other usage metadata in its [usage_metadata] field:
-    cb = UsageMetadataCallbackHandler()
+    # cb = UsageMetadataCallbackHandler()
 
     # fmt: off
     print(f"Thread ID: {cl.context.session.thread_id}") # type: ignore[attr-defined]
@@ -760,61 +747,49 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         "configurable": {            
             "thread_id": cl.context.session.thread_id # type: ignore[attr-defined]
         },
-        "callbacks": [cb],
+        "callbacks": [],
     }
     # prepare for streaming response
-    final_answer = cl.Message(content="")  # type: ignore
-    usage_metadata: Optional[UsageMetadata] = None
-
-    # message user that search is in progress
-    progress = cl.Message(  # type: ignore
-        content="Ψάχνω στα έγγραφα της ΑΑΔΕ...", author="AI")
-    # await asyncio.sleep(1)  # allow greeting message to render
-    await progress.send()
-    async def runner(event):
-        citations = []
-        #buffer = ""
-        retrieved_artifacts = []  # Store artifacts from tool calls
-        for msg, metadata in graph.stream(
-            {"messages": [HumanMessage(content=message.content)]}, # type: ignore[arg-type]
-            stream_mode="messages",
-            config=config
-        ):
-            if event.is_set():
-                print("Event is set, stopping the waiter.")
-                event.clear()
-                break
+    # REF: https://docs.chainlit.io/api-reference/message#stream-a-message
+    final_answer: cl.Message = await cl.Message(content="Επεξεργάζομαι την ερώτηση...").send()  # type: ignore
+    usage_metadata: List[UsageMetadata] = []
+    #final_answer.send()
+    await final_answer.stream_token("", is_sequence=True)  # type: ignore
+    citations = []
+    #buffer = ""
+    retrieved_artifacts = []  # Store artifacts from tool calls
+    for mode, chunk in graph.stream(
+        {"messages": [HumanMessage(content=message.content)]}, # type: ignore[arg-type]
+        stream_mode=["messages", "custom"],
+        config=config
+    ):
+        if mode == "messages":
+            msg, metadata = chunk  # type: ignore
             if (msg.content and isinstance(msg, ToolMessage)):  # type: ignore[union-attr]
-                 # Save artifacts from tool call (the retrieved documents)
+            # Save artifacts from tool call (the retrieved documents)
                 if hasattr(msg, "artifact") and msg.artifact:
                     retrieved_artifacts.extend(msg.artifact)
-                progress.content ="Συγκεντρώνω τις πληροφορίες..."  # type: ignore
-                await progress.update()
+                    # final_answer.content ="Συγκεντρώνω τις πληροφορίες..."  # type: ignore
+                    # await final_answer.update()
             if (
                 msg.content  # type: ignore[union-attr]
-                and isinstance(msg, AIMessage)
+                and isinstance(msg, AIMessage)  # type: ignore[index]
+                ):
+                if msg.usage_metadata:
+                    usage_metadata.append(msg.usage_metadata) 
+            if (msg.content and isinstance(msg, AIMessage) and not isinstance(msg, AIMessageChunk)  # type: ignore[index]
                 and metadata["langgraph_node"] == "generate"  # type: ignore[index]
-            ):
-                # fmt: off
-                await progress.remove()
-                # Note: python name binding: assignments create a new local variable by default. 
-                #buffer += msg.content  # type: ignore[union-attr]
-                citations = msg.citations  # type: ignore[union-attr]
-                await final_answer.stream_token(msg.content) # type: ignore[union-attr]
-        return citations, retrieved_artifacts
-    try:
-        task = asyncio.create_task(runner(
-            cl.user_session.get("stop_event"))# type: ignore
-            )
-        citations, retrieved_artifacts = await task
-    except Exception as e:
-        print(f"user cancelled: {e}")
-        #buffer = ""
-        citations = []
-        retrieved_artifacts = []
-    finally:
-        await final_answer.send()
+                ):
+                # get citations from non-streamed final message
+                msg_citations = getattr(msg, "citations", None)  # type: ignore[union-attr]
+                if msg_citations and type(msg_citations) is list:
+                    citations.extend(msg_citations)
+                print("final msg content:@@@@@@@@", msg.content)
 
+        elif mode == "custom":
+            content = chunk.get("answer", "")  # type: ignore[union-attr]
+            await final_answer.stream_token(content, is_sequence=True)
+    ############ After streaming is done ############
     # fmt: off
     # print(retrieved_artifacts)
     # print('citations: !!!!!!!!!!!!!!', citations)
@@ -828,41 +803,35 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         #     elements=elements
         # ).send()
         final_answer.elements = elements
-        await final_answer.update()
+       # await final_answer.update()
 
-    print(f"USAGE {cb.usage_metadata}")
+    #print(f"USAGE {usage_metadata}")
 
-    #### Side effects after the response has been sent ####
-    user = cl.user_session.get("user")  # type: ignore[attr-defined]
-    user_id = user.identifier
-    # fmt: off
-    #db_object: user_token.db_object = cl.user_session.get("db_object") # type: ignore[attr-defined]
-    usage_metadata = cb.usage_metadata[os.environ.get(
-        "MODEL_NAME", "gemini-2.5-flash")]
-    if usage_metadata is None:
+    # Get the first (and typically only) model's usage data
+    if len(usage_metadata) == 0:
         logger.warning("No usage metadata from callback")
+        # if no usage data, just update with the artifacats and don't proceed!!
+        await final_answer.update()
         return # Can't proceed without usage data
 
-    total_tokens = usage_metadata["total_tokens"]
-    input_tokens = usage_metadata["input_tokens"]
-    output_tokens = usage_metadata["output_tokens"]
-
     turn_token_data = {
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0
     }
+    for item in usage_metadata:
+        for key in turn_token_data.keys():
+            turn_token_data[key] += int(item.get(key, 0))
+
+    print(f"Turn token data: {turn_token_data}")
 
     # After streaming completes update with turn metadata
     final_answer.metadata = turn_token_data
+
+    # MAKE ALL UPDATES TO THE FINAL ANSWER MESSAGE (TOKEN DATA AND ELEMENTS)
     await final_answer.update()
 
-    # Explicitly persist to database (update() uses create_task which doesn't wait)
-    try:
-        await get_data_layer().update_step(final_answer.to_dict()) 
-    except Exception as e:
-        db_logger.error(f"Error persisting step metadata: {e}")
-        # Non-critical - continue with billing
+    # 3. Update database with token usage and deduct balance
     try:   
         thread = await get_data_layer().get_thread(thread_id=cl.context.session.thread_id)  # type: ignore[attr-defined]   
     except Exception as e:
@@ -879,7 +848,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # ===================== PRICING CONFIGURATION =====================
     # Pricing strategy: Cost markup + per-query overhead for profitability
     # 
-    # Base costs (Gemini 2.5 Flash as of Jan 2025):
+    # Base costs (Gemini 3 Flash as of Jan 2026):
     #   - Input tokens: $0.30 per 1M tokens
     #   - Output tokens: $2.50 per 1M tokens
     #
@@ -907,9 +876,9 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
     # VAT rate (Greek standard rate: 24%)
     VAT_RATE = float(os.environ.get("VAT_RATE", 0.24))  # 24% VAT
 
-    # Base token costs (at-cost from Google)
-    base_input_rate = 0.30 / units   # $0.30 per 1M input tokens
-    base_output_rate = 2.50 / units  # $2.50 per 1M output tokens
+    # Base token costs (at-cost from Google GEMINI 3 Flash pricing as of Jan 2026)
+    base_input_rate = 0.50 / units   # $0.50 per 1M input tokens
+    base_output_rate = 3.00 / units  # $3.00 per 1M output tokens
 
     # Apply markup for pricing to users
     charge_per_input_token: float = float(os.environ.get("CHARGE_PER_INPUT_TOKEN", base_input_rate * PROFIT_MARGIN))
@@ -917,7 +886,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
 
     # Total charge = (token costs + per-query overhead) * (1 + VAT)
     # Note: User-facing prices include VAT (gross prices)
-    token_charge = charge_per_input_token * input_tokens + charge_per_output_token * output_tokens
+    token_charge = charge_per_input_token * turn_token_data.get("input_tokens", 0) + charge_per_output_token * turn_token_data.get("output_tokens", 0)
     net_charge = token_charge + PER_QUERY_OVERHEAD
     vat_amount = net_charge * VAT_RATE
     balance_to_deduct = net_charge + vat_amount  # Total including VAT
@@ -927,9 +896,9 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
 
     # Accumulate
     thread_token_data = {
-    "input_tokens": existing_metadata.get("input_tokens", 0) + input_tokens,
-    "output_tokens": existing_metadata.get("output_tokens", 0) + output_tokens,
-    "total_tokens": existing_metadata.get("total_tokens", 0) + total_tokens
+    "input_tokens": existing_metadata.get("input_tokens", 0) + turn_token_data.get("input_tokens", 0),
+    "output_tokens": existing_metadata.get("output_tokens", 0) + turn_token_data.get("output_tokens", 0),
+    "total_tokens": existing_metadata.get("total_tokens", 0) + turn_token_data.get("total_tokens", 0)
     }
 
     # Update thread FIRST, check result
