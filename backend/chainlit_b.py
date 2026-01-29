@@ -14,10 +14,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import uuid4
 
-# REF: https://docs.langchain.com/oss/python/langgraph/agentic-rag
-# LangChain imports
-from langchain.chat_models import init_chat_model
-
 # from langchain_core.prompts import ChatPromptTemplate # Added this line
 # from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain.messages import (
@@ -32,14 +28,19 @@ from langchain.tools import tool
 # from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 # from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_classic.retrievers import ContextualCompressionRetriever
-from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 
+# from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 # from langchain_community.llms import Cohere
 from langchain_cohere import CohereRerank
 from langchain_core.messages.ai import UsageMetadata
 from langchain_core.prompts import PromptTemplate
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.runnables import RunnableConfig
+
+# REF: https://docs.langchain.com/oss/python/langgraph/agentic-rag
+# LangChain imports
+# from langchain.chat_models import init_chat_model
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -55,10 +56,9 @@ from langgraph.prebuilt import ToolNode
 from qdrant_client import QdrantClient, models
 
 import chainlit as cl
-from chainlit import logger
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.gcs import GCSStorageClient
-from chainlit.logger import db_logger
+from chainlit.logger import db_logger, flow_logger, logger
 from chainlit.user import PersistedUser
 
 # custom modules
@@ -99,16 +99,28 @@ rate_limiter = InMemoryRateLimiter(
 
 # REF: https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai
 # REF: https://ai.google.dev/gemini-api/docs/structured-output?example=recipe
-chat_model = init_chat_model(
-    os.environ.get("MODEL_NAME", "gemini-3-flash-preview"),
-    model_provider="google_genai",
-    temperature=0,
-    rate_limiter=rate_limiter,  # limit tokens
-    model_kwargs={"stream": True},
-    thinking_level="low",  # "low" latency mode
+# chat_model = init_chat_model(
+#     os.environ.get("MODEL_NAME", "gemini-3-flash-preview"),
+#     model_provider="google_genai",
+#     temperature=0,
+#     rate_limiter=rate_limiter,  # limit tokens
+#     model_kwargs={"stream": True},
+#     thinking_level="low",  # "low" latency mode
+#     max_tokens=None,
+#     # response_mime_type = "application/json",
+# )
+
+chat_model = ChatGoogleGenerativeAI(
+    model="gemini-3-flash-preview",
+    temperature=0,  # Gemini 3.0+ defaults to 1.0
     max_tokens=None,
-    # response_mime_type = "application/json",
+    timeout=None,
+    max_retries=2,
+    rate_limiter=rate_limiter,
+    streaming=True,
+    thinking_level="low",  # "low" latency mode
 )
+
 
 # Qdrant
 
@@ -144,6 +156,7 @@ class State(MessagesState):
 
 
 ####################### Classification ###########################
+current_date = datetime.now().strftime("%B,%Y")
 
 
 # Classification prompt
@@ -183,7 +196,7 @@ def classify_query(state: State, config: RunnableConfig) -> bool:
         {"question": state["messages"][-1].content},
         config=config,  # Pass config to capture token usage
     )
-    logger.info(f"Query classification: {classification}")
+    flow_logger.info(f"Query classification: {classification}")
     return classification["is_complex"]
 
 
@@ -194,16 +207,16 @@ def classify_query(state: State, config: RunnableConfig) -> bool:
 # Decomposition prompt
 DECOMPOSITION_PROMPT = PromptTemplate(
     input_variables=["question"],
-    template="""You are a Greek tax law expert. Break down this complex question into separate, independent sub-questions.
+    template="""You are a Greek tax law expert. Break down this complex question into separate, independent sub-questions. 
+    The aim is to generate effective search queries for a vector database that contains legal documents.
 
 Each sub-question should:
 1. Be a complete, standalone question in Greek
 2. Focus on ONE specific topic that requires its own document search
-3. Preserve the context and timeframe from the original question
-
+3. Preserve the context and timeframe from the original question. Today's date is {current_date}
 Original question: {question}
 
-Extract the distinct sub-questions. Do NOT rephrase or create variations - just separate the original topics.""",
+Extract distinct sub-questions. Do NOT rephrase or create variations - just separate the original topics into logical subqueries.""",
 )
 
 decomposition_chain = DECOMPOSITION_PROMPT | chat_model.with_structured_output(
@@ -217,7 +230,7 @@ def decompose_query(state: State, config: RunnableConfig) -> dict:
         {"question": state["messages"][-1].content},
         config=config,  # Pass config to capture token usage
     )
-    logger.info(f"Decomposed sub-questions: {decomposition['sub_questions']}")
+    flow_logger.info(f"Decomposed sub-questions: {decomposition['sub_questions']}")
     return {"sub_questions": decomposition["sub_questions"]}
 
 
@@ -242,7 +255,6 @@ def emit_multi_tool_calls(state: State) -> dict:
 
 
 ####################### MULTI QUERY: Different Perspectives ######
-current_date = datetime.now().strftime("%B,%Y")
 
 
 RETRIEVAL_PROMPT = PromptTemplate(
@@ -269,7 +281,7 @@ RETRIEVAL_PROMPT = PromptTemplate(
 def output_parser(x: MultiQueryRequest) -> List[str]:
     """Extract the list directly from the Pydantic model"""
     queries = x["queries"]
-    # logger.info(f"MultiQuery generated queries: {queries}")
+    # flow_logger.info(f"MultiQuery generated queries: {queries}")
     return queries
 
 
@@ -308,24 +320,31 @@ def retrieve(query: str):
     This is useful for storing raw results, debugging information,
     or data for downstream processing without cluttering the model's context
     """
+
+    flow_logger.info(f"Retrieving documents for query: {query}")
     # Chohere Reranker
     # https://dashboard.cohere.com/api-keys
     # https://docs.cohere.com/docs/rerank-overview#multilingual-reranking
     compressor = CohereRerank(model="rerank-v3.5", top_n=10)
-    retriever = MultiQueryRetriever(
-        # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
-        retriever=qdrant_vs.as_retriever(search_type="similarity", k=25),
-        llm_chain=retrieval_chain,
-        # No parser_key needed - chain returns List[str] directly
-        # include_original=True,  # Include the original query in the list of queries
-    )
+
+    # MultiQuery Retriever
+    # retriever = MultiQueryRetriever(
+    #     # retriever = qdrant_vs.as_retriever(search_type="mmr", k=15, fetch_k=20, lambda_mult=0.7),
+    #     retriever=qdrant_vs.as_retriever(search_type="similarity", k=25),
+    #     llm_chain=retrieval_chain,
+    #     # No parser_key needed - chain returns List[str] directly
+    #     # include_original=True,  # Include the original query in the list of queries
+    # )
+
+    # Simplified Base Retriever (No more MultiQueryRetriever here)
+    # We increase k because the Reranker will prune the results anyway.
+    retriever = qdrant_vs.as_retriever(search_type="similarity", k=30)
 
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=retriever
     )
 
     # Results
-    # retrieved_docs = retriever.invoke(query)
     retrieved_docs = compression_retriever.invoke(query)
     retrieved_docs = deduplicate_docs(retrieved_docs)
 
@@ -362,6 +381,13 @@ def query_or_respond(state: State):
     # create an AI message with a tool call!
     response = llm_with_tools.invoke(state["messages"])
 
+    # Limit to 1 tool call only (MultiQueryRetriever handles multiple queries internally)
+    # if getattr(response, "tool_calls", None) and len(response.tool_calls) > 1:
+    #     logger.info(
+    #         f"Limiting tool calls from {len(response.tool_calls)} to 1")
+    #     response.tool_calls = response.tool_calls[:1]
+
+    flow_logger.info(f"Generated AIMessage with tool calls: {response.tool_calls}")
     # MessagesState appends messages to state instead of overwriting!
     return {"messages": [response]}
 
@@ -402,7 +428,7 @@ def generate(state: State):
 
     system_message_content = (
         ## Persona and Core Task ###
-        """You are a professional assistant for question-answering tasks regarding Greek tax laws.
+        """You are an expert assistant for question-answering tasks regarding Greek tax laws.
         Your primary goal is to answer a user's question accurately and helpfully, based **only** on the provided context."""
         """Always interpret the question as it relates to Greek laws and government decisions. """
         ### Internal Reasoning Process (Do not include in final output) ###
@@ -749,12 +775,16 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         },
         "callbacks": [],
     }
-    # prepare for streaming response
+
+    # progress_element = cl.CustomElement(name="ProgressIndicator")
+    # cl.user_session.set("progress_element", progress_element)
+
+    # prepare for STREAMING response
     # REF: https://docs.chainlit.io/api-reference/message#stream-a-message
-    final_answer: cl.Message = await cl.Message(content="Επεξεργάζομαι την ερώτηση...").send()  # type: ignore
+    final_answer: cl.Message = await cl.Message(content="Αναλύω την ερώτηση ...").send()  # type: ignore
+
     usage_metadata: List[UsageMetadata] = []
     #final_answer.send()
-    await final_answer.stream_token("", is_sequence=True)  # type: ignore
     citations = []
     #buffer = ""
     retrieved_artifacts = []  # Store artifacts from tool calls
@@ -769,8 +799,8 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
             # Save artifacts from tool call (the retrieved documents)
                 if hasattr(msg, "artifact") and msg.artifact:
                     retrieved_artifacts.extend(msg.artifact)
-                    # final_answer.content ="Συγκεντρώνω τις πληροφορίες..."  # type: ignore
-                    # await final_answer.update()
+                    final_answer.content ="Συγκεντρώνω τις πληροφορίες ..."  # type: ignore
+                    await final_answer.update()
             if (
                 msg.content  # type: ignore[union-attr]
                 and isinstance(msg, AIMessage)  # type: ignore[index]
@@ -784,7 +814,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
                 msg_citations = getattr(msg, "citations", None)  # type: ignore[union-attr]
                 if msg_citations and type(msg_citations) is list:
                     citations.extend(msg_citations)
-                print("final msg content:@@@@@@@@", msg.content)
+                flow_logger.info(f"final msg content:@@@@@@@@ {msg.content}")
 
         elif mode == "custom":
             content = chunk.get("answer", "")  # type: ignore[union-attr]
@@ -823,13 +853,13 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         for key in turn_token_data.keys():
             turn_token_data[key] += int(item.get(key, 0))
 
-    print(f"Turn token data: {turn_token_data}")
+    flow_logger.info(f"Turn token data: {turn_token_data}")
 
     # After streaming completes update with turn metadata
     final_answer.metadata = turn_token_data
 
     # MAKE ALL UPDATES TO THE FINAL ANSWER MESSAGE (TOKEN DATA AND ELEMENTS)
-    await final_answer.update()
+    await final_answer.update()    
 
     # 3. Update database with token usage and deduct balance
     try:   
@@ -843,7 +873,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
         cl.user_session.set("error_db", True)
         return
 
-    # print(f"thread: {thread}")
+    # logger.info(f"thread: {thread}")
 
     # ===================== PRICING CONFIGURATION =====================
     # Pricing strategy: Cost markup + per-query overhead for profitability
@@ -919,6 +949,7 @@ async def main(message: cl.Message):  # type: ignore[name-defined]
 
     if updated_user is None or updated_user.balance is None:
         print(f"Error updating user balance for {user_id}")
+        db_logger.error(f"Error updating user balance for {user_id}")
         cl.user_session.set("error_db", True)
         return
 

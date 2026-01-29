@@ -126,6 +126,10 @@ def manipulate_path(file_path: str) -> str:
     raw_file_path = normalize_path(file_path)
     # this is greedy: it will remove all '(' instances from the beginning
     raw_file_path = raw_file_path.strip("()[]*{}<>\"'")
+    # Replace hyphens with underscores in the asset filename part
+    raw_file_path = re.sub(
+        r"(?<=/assets/)([^/]+)-([^/]+)(?=/)", r"\1_\2", raw_file_path
+    )
     raw_file_path = raw_file_path.replace("assets/", "")
     return raw_file_path
 
